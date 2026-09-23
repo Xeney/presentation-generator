@@ -340,9 +340,9 @@ def cards(engine: LayoutEngine, slide: Slide, blocks: list[Block], canvas: Rect)
     n = len(blocks)
     if n == 0:
         return []
-    cols = min(cfg["columns_limit"], n)
-    if n == 1:
-        cols = 1
+    # колонок — примерно корень из числа блоков: 4 блока дают сетку 2×2 и
+    # заполняют слайд, а не 3+1 с пустой ячейкой (иначе слайд выглядит пустым)
+    cols = min(cfg["columns_limit"], max(1, math_ceil(n ** 0.5)))
     rows_t = max(1, math_ceil(n / cols))
     gap = cfg["gap"]
     inner = canvas.padded(0.05)

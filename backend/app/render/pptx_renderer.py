@@ -153,6 +153,13 @@ class Renderer:
         if not cands:
             cands = layouts
         want_kind = self._slide_kind(slide)
+        if target == "content" and want_kind == "multi_column":
+            # макет-оглавление структурно тоже сетка блоков: он подходит
+            # многоблочному слайду лучше, чем «визитка» с крошечным телом
+            extra = [l for l in layouts if l.get("role") == "agenda"
+                     and l.get("kind") in ("multi_column", "bullets")]
+            if extra:
+                cands = cands + extra
 
         def key(l: dict) -> float:
             score = float(l.get("score", 0.0))
@@ -416,6 +423,22 @@ class Renderer:
         index = min(range(len(allowed)), key=lambda i: (abs(allowed[i] - value), allowed[i]))
         index = max(0, min(len(allowed) - 1, index + self._size_step))
         return allowed[index]
+
+    def _readable_text(self, background: str) -> str:
+        """Цвет текста, читаемый на данной заливке (выбор по контрасту WCAG).
+
+        Нужен там, где текст ложится на акцентный фон: у части шаблонов акцент
+        светлый, и белый текст на нём не проходит проверку контраста.
+        """
+        from .images import contrast_ratio
+
+        dark = self._text_color()
+        try:
+            if contrast_ratio(background, "#FFFFFF") >= contrast_ratio(background, dark):
+                return "#FFFFFF"
+        except Exception:  # noqa: BLE001 — при сбое остаётся тёмный текст шаблона
+            pass
+        return dark
 
     def _headline_font(self) -> str:
         return self.profile.get("headline_font") or self.profile.get("body_font") or "Arial"
@@ -730,7 +753,7 @@ class Renderer:
         r = p.add_run()
         r.text = text
         if light_text:
-            self._set_run_font(r, font, size, True, "#FFFFFF")
+            self._set_run_font(r, font, size, True, self._readable_text(fg))
         else:
             self._set_run_font(r, font, size, False, fg)
         fill_hex = (bg or "#FFFFFF") if not light_text else fg
@@ -887,20 +910,22 @@ class Renderer:
         if not n:
             return
         accent = style.get("accent") or self._accent_color() or "#888888"
-        gap = 0.12
-        step_w = (rect.w - gap * (n - 1) - 0.8) / n
-        step_h = rect.h * 0.55
-        start_x = rect.x + 0.0
+        # шевроны «заходят» друг на друга на долю своей ширины — это часть формы;
+        # доля подобрана так, чтобы наложение не превышало порог аудита (18%)
+        overlap_ratio = 0.15
+        step = rect.w / (n + overlap_ratio)
+        overlap = step * overlap_ratio
+        step_h = min(rect.h * 0.6, 1.1)
+        y = rect.y + (rect.h - step_h) / 2
         soft = style.get("accent_soft") or self._accent_soft()
         for i, txt in enumerate(items):
-            x = start_x + i * (step_w + gap) + (0.28 if i else 0.0)
-            if n == 1:
-                x = rect.x + 0.28
-            shp = slide.shapes.add_shape(MSO_SHAPE.CHEVRON, _in(x), _in(rect.y + rect.h * 0.1),
-                                         _in(step_w + 0.28), _in(step_h))
-            shp.adjustments[0] = 0.28
+            x = rect.x + i * step
+            shp = slide.shapes.add_shape(MSO_SHAPE.CHEVRON, _in(x), _in(y),
+                                         _in(step + overlap), _in(step_h))
+            shp.adjustments[0] = 0.25
             shp.fill.solid()
-            rr, gg, bb = hex_to_rgb(soft if i % 2 else accent)
+            fill_hex = soft if i % 2 else accent
+            rr, gg, bb = hex_to_rgb(fill_hex)
             shp.fill.fore_color.rgb = RGBColor(rr, gg, bb)
             shp.line.color.rgb = _color(accent)
             shp.line.width = Pt(0.75)
@@ -913,12 +938,9 @@ class Renderer:
             p.alignment = PP_ALIGN.CENTER
             r = p.add_run()
             r.text = txt
-            white = i % 2 == 0
-            size = self._fit_size(txt, step_w - 0.2, step_h * 0.8, default=14.0)
-            if size < 14:
-                size = 14.0
-            self._set_run_font(r, self._body_font(), size,
-                          True, "#FFFFFF" if white else self._text_color())
+            size = self._fit_size(txt, max(0.4, step - 0.1), step_h * 0.7, default=14.0)
+            self._set_run_font(r, self._body_font(), size, True,
+                               self._readable_text(fill_hex))
 
     # -------------------------------------------------------------------- image
     def _draw_image(self, slide, it: dict, rect: Rect) -> None:

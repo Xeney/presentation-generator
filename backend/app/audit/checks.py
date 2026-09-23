@@ -602,6 +602,26 @@ class Audit:
                 "layout_not_from_template", "error", si,
                 f"слайд собран на макете «{name}», которого нет в шаблоне"))
 
+    def _content_area(self, slide) -> tuple[float, float, float, float] | None:
+        """Контентная область слайда ровно так, как её выбирает вёрстка.
+
+        Логика совпадает с `Renderer._canvas`: тело макета берётся, только если
+        оно достаточно велико, иначе используется сетка профиля. Иначе аудит
+        сравнивал бы заполненность с «визиточной» рамкой, которую вёрстка
+        осознанно не использует.
+        """
+        layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
+        body = layout.get("body") or {}
+        slide_w = self.W / 914400 if self.W else 13.333
+        slide_h = self.H / 914400 if self.H else 7.5
+        if (body.get("w", 0) >= 0.45 * slide_w and body.get("h", 0) >= 0.3 * slide_h):
+            return (float(body["x"]), float(body["y"]),
+                    float(body["w"]), float(body["h"]))
+        if self.grid.get("body_w"):
+            return (float(self.grid.get("body_x", 0.5)), float(self.grid.get("body_y", 1.0)),
+                    float(self.grid["body_w"]), float(self.grid.get("body_h", 5.0)))
+        return None
+
     def _check_content_area(self, slide, si, issues, geo, tolerance_in: float = 0.08):
         """Контент не должен заходить в поля у краёв слайда.
 
@@ -715,17 +735,26 @@ class Audit:
                      MSO_SHAPE_TYPE.TEXT_BOX.value, MSO_SHAPE_TYPE.PLACEHOLDER.value)
     FILL_GRID = 100  # разрешение растеризации при подсчёте занятой площади
 
-    def _check_fill_ratio(self, slide, si, issues, geo, sparse: float = 0.25,
-                          dense: float = 0.75):
-        """Заполненность слайда: меньше четверти — пусто, больше трёх четвертей — тесно.
+    def _check_fill_ratio(self, slide, si, issues, geo, sparse: float = 0.20,
+                          dense: float = 1.10):
+        """Заполненность контентной области: пусто или тесно.
 
-        Считается доля площади слайда, занятая контентными объектами (рамки
-        текстовых блоков, таблицы, диаграммы, картинки). Заголовок, декор и
-        полноэкранный фон не учитываются. Витринные слайды (титул, раздел,
-        финал) из проверки исключены: у них мало контента по замыслу макета.
+        Считается доля площади, занятая контентными объектами (рамки текстовых
+        блоков, таблицы, диаграммы, картинки) **относительно контентной области
+        макета**, а не всего слайда. Причина: у части шаблонов контентная область
+        по дизайну занимает треть слайда, и проверка «от слайда» ругала бы
+        нормальную вёрстку (обоснование — docs/AUDIT.md).
+
+        Заголовок, декор и полноэкранный фон не учитываются; витринные слайды
+        (титул, раздел, финал) из проверки исключены — у них мало контента
+        по замыслу макета.
         """
         layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
         if layout.get("role") not in (None, "content", "agenda"):
+            return
+        area = self._content_area(slide)
+        area_emu = ((area[2] * 914400) * (area[3] * 914400)) if area else (self.W * self.H)
+        if area_emu <= 0:
             return
         grid = self.FILL_GRID
         cells: set[tuple[int, int]] = set()
@@ -747,15 +776,18 @@ class Audit:
                     cells.add((cx, cy))
         if not cells and not geo:
             return
-        ratio = len(cells) / float(grid * grid)
+        # доля занятых ячеек переводится в площадь и делится на контентную область
+        covered = len(cells) / float(grid * grid) * (self.W * self.H)
+        ratio = covered / area_emu
         if ratio < sparse:
             issues.append(Issue.at(
                 "slide_too_sparse", "warning", si,
-                f"слайд заполнен на {ratio * 100:.0f}% (меньше четверти)"))
+                f"контентная область заполнена на {ratio * 100:.0f}% "
+                f"(меньше {sparse * 100:.0f}%)"))
         elif ratio > dense:
             issues.append(Issue.at(
                 "slide_too_dense", "warning", si,
-                f"слайд заполнен на {ratio * 100:.0f}% (больше трёх четвертей)"))
+                f"контентная область переполнена: {ratio * 100:.0f}%"))
 
     @staticmethod
     def _layout_name(slide) -> str:

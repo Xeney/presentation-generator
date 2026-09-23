@@ -20,19 +20,56 @@ sys.path.insert(0, str(ROOT / "backend"))
 sys.path.insert(0, str(ROOT))
 
 
-def load_profile(path: Path | None) -> dict:
+def sibling_profile(deck_path: Path) -> dict | None:
+    """Профиль рядом с колодой: e2e-прогон кладёт «{шаблон}.profile.json»."""
+    import json
+
+    stem = deck_path.stem
+    for variant in ("compact", "cards", "split"):
+        if stem.endswith(f"_{variant}"):
+            stem = stem[: -len(variant) - 1]
+            break
+    candidate = deck_path.with_name(f"{stem}.profile.json")
+    if candidate.exists():
+        try:
+            return json.loads(candidate.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 — битый файл не должен ломать проверку
+            return None
+    return None
+
+
+def load_profile(path: Path | None, deck_name: str = "") -> dict:
+    """Профиль шаблона: явный, либо подобранный по имени колоды.
+
+    Колоды из e2e-прогона называются «{stem профиля}_{вариант}.pptx», поэтому
+    при нескольких профилях берём тот, чей шаблон совпадает с именем файла —
+    иначе аудит сравнивал бы колоду с чужим дизайн-системным профилем и выдавал
+    ложные font_size_not_in_scale и layout_not_from_template.
+    """
     import json
 
     if path is not None:
         return json.loads(path.read_text(encoding="utf-8"))
     candidates = sorted((ROOT / "template_profiles").glob("*.json"))
-    if len(candidates) == 1:
-        return json.loads(candidates[0].read_text(encoding="utf-8"))
-    if candidates:
-        print(f"Внимание: профилей несколько, беру {candidates[0].name} "
-              f"(уточните через --profile)")
-        return json.loads(candidates[0].read_text(encoding="utf-8"))
-    raise SystemExit("Нет JSON-профилей в template_profiles/. Сначала: python tools/make_profiles.py")
+    if not candidates:
+        raise SystemExit(
+            "Нет JSON-профилей в template_profiles/. Сначала: python tools/make_profiles.py")
+
+    profiles = []
+    for candidate in candidates:
+        try:
+            profiles.append((candidate, json.loads(candidate.read_text(encoding="utf-8"))))
+        except Exception:  # noqa: BLE001 — битый профиль пропускаем
+            continue
+    if deck_name:
+        for candidate, profile in profiles:
+            stem = Path(str(profile.get("source_file", ""))).stem
+            if stem and deck_name.startswith(stem):
+                return profile
+        if len(profiles) > 1:
+            print(f"Внимание: профиль не определён по имени «{deck_name}», "
+                  f"беру {profiles[0][0].name} (уточните через --profile)")
+    return profiles[0][1]
 
 
 def main() -> int:
@@ -46,9 +83,8 @@ def main() -> int:
     from app.models.deck import Deck
     from app.planner.fallback import FallbackPlanner
 
-    profile = load_profile(args.profile)
     deck = FallbackPlanner().plan(args.brief or "проверка аудита готового файла", "", "project")
-    audit = Audit(profile)
+    fallback_profile = load_profile(args.profile)
 
     failed = 0
     for name in args.decks:
@@ -57,6 +93,9 @@ def main() -> int:
             print(f"нет файла: {path}")
             failed += 1
             continue
+        profile = (fallback_profile if args.profile
+                   else sibling_profile(path) or load_profile(None, path.name))
+        audit = Audit(profile)
         try:
             deck_for_audit: Deck = deck
             result = audit.audit(deck_for_audit, path.read_bytes())

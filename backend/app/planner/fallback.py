@@ -50,7 +50,30 @@ SEQUENCES = {
     ],
 }
 
-NUM_RE = re.compile(r"\d+(?:[.,]\d+)?\s*(%|[%а-яА-Яa-zA-Z₽$€¥млнтыс\.\s]*(?:руб|рублей|млн|млрд|тыс|%|человек|пользователей|стран|город|города|у.|г.))")
+# Число с ЕДИНИЦЕЙ ИЗМЕРЕНИЯ. Единица обязательна и берётся из закрытого списка:
+# прежний вариант с «любыми буквами до слова руб/г.» захватывал куски предложений
+# («5 подразделений. Платформой пользую»), из-за чего ломались метрики и график.
+METRIC_RE = re.compile(
+    r"(?<![\w.,])"
+    r"(\d{1,3}(?:[ \u00a0]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)"
+    r"\s*"
+    r"(%|₽|\$|€|руб\w*|млн\w*|млрд\w*|тыс\w*|чел\w*|пользовател\w+|задач\w*|"
+    r"город\w*|отдел\w*|подразделени\w*|сотрудник\w*|час\w*|минут\w*|секунд\w*|"
+    r"дн\w*|недел\w*|месяц\w*|год\w*|квартал\w*|раз\w*|балл\w*|пункт\w*|процент\w*)"
+    r"(?![\w])",
+    re.IGNORECASE,
+)
+
+
+def metric_value(text: str) -> Optional[float]:
+    """Числовая часть метрики («1 500 сотрудников» → 1500.0), иначе None."""
+    cleaned = re.sub(r"[^\d.,]", "", text or "").replace(",", ".").strip(".")
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
 
 
 def _sentences(text: str, limit: int = 30) -> list[str]:
@@ -65,8 +88,9 @@ def _digest_brief(brief: str) -> str:
 
 
 def _find_metrics(brief: str) -> list[str]:
-    matches = NUM_RE.findall(brief)
-    return list(dict.fromkeys(m.strip() for m in matches if m.strip()))[:6]
+    matches = METRIC_RE.findall(brief)
+    values = [" ".join(part.strip() for part in match if part.strip()) for match in matches]
+    return list(dict.fromkeys(value for value in values if value))[:6]
 
 
 def _title_text(brief: str) -> str:
@@ -156,14 +180,18 @@ class FallbackPlanner:
                             kind="factoids",
                             factoids=[{"value": m, "label": "показатель из брифа"} for m in metrics[:4]],
                         ))
-                    if has_metrics and len(metrics) >= 3:
+                    numeric = [(metric, metric_value(metric)) for metric in metrics]
+                    numeric = [(metric, value) for metric, value in numeric
+                               if value is not None]
+                    if has_metrics and len(numeric) >= 3:
                         blocks.append(Block(
                             kind="chart",
-                            title="Изменение ключевого показателя",
+                            title="Ключевые показатели из брифа",
                             chart=Chart(
-                                type=ChartType.BAR,
-                                categories=[f"{i+1}-й кв." for i in range(min(4, len(metrics)))],
-                                series=[{"name": "Значение", "values": [float(re.sub(r'[^\d.]', '', m) or 0) for m in metrics[:4]]}],
+                                type=ChartType.COLUMN,
+                                categories=[metric[:18] for metric, _ in numeric[:4]],
+                                series=[{"name": "Значение",
+                                         "values": [value for _, value in numeric[:4]]}],
                                 unit="",
                             ),
                         ))

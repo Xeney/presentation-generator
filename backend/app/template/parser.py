@@ -590,7 +590,8 @@ class TemplateParser:
                     role=role,
                     kind=kind,
                     role_reason=reason,
-                    score=self._layout_score(role, kind, title_ph, body, columns),
+                    score=self._layout_score(role, kind, title_ph, body, columns,
+                                             slide_w * slide_h),
                     placeholders=[p.to_dict() for p in phs],
                     title_ph=title_ph,
                     body=body,
@@ -632,13 +633,22 @@ class TemplateParser:
         return out
 
     @staticmethod
-    def _layout_score(role: str, kind: str, title_ph, body, columns) -> float:
-        """Пригодность макета под автоматическую вёрстку (0..1)."""
+    def _layout_score(role: str, kind: str, title_ph, body, columns,
+                      slide_area: float = 0.0) -> float:
+        """Пригодность макета под автоматическую вёрстку (0..1).
+
+        Чем больше контентная область макета, тем выше оценка: иначе вёрстка
+        выбирала бы «визиточные» макеты с крошечным телом и сжимала контент
+        в узкую полосу, оставляя слайд почти пустым.
+        """
         score = 0.35
         if title_ph:
             score += 0.2
         if body:
             score += 0.25
+            if slide_area > 0:
+                area_ratio = (body.get("w", 0) * body.get("h", 0)) / slide_area
+                score += min(0.15, max(0.0, area_ratio) * 0.3)
         if columns:
             score += 0.05
         if role == "content":

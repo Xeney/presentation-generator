@@ -103,6 +103,20 @@ python tools/import_corpus.py data/templates/content_pack.pptx --text
 | `GROUNDING_OFF_SOURCE_THRESHOLD` | `0.55` | порог косинусной близости слайда к корпусу |
 | `GROUNDING_DUPLICATE_THRESHOLD` | `0.92` | порог семантического дубля слайдов |
 
+## 4.1 Хранилище и кэш
+
+```
+data/jobs/{id}/job.json        метаданные задания (переживают рестарт)
+data/jobs/{id}/template.pptx   исходный шаблон задания (нужен для авто-фиксов)
+data/jobs/{id}/{variant}.pptx  три варианта колоды
+data/cache/thumbs/{hash}/      миниатюры слайдов по хэшу PPTX
+data/corpora/{id}/             разобранные контент-пакеты
+```
+
+Всё старше `JOB_CLEANUP_HOURS` удаляется: при старте сервиса и лениво при новых
+запросах. Кэш миниатюр инвалидируется сам после авто-фиксов, потому что ключ —
+хэш содержимого PPTX.
+
 ## 5. API (кратко)
 
 | Метод | Путь | Назначение |
@@ -158,6 +172,8 @@ uvicorn app.api.main:app --reload --app-dir backend --port 8000
 
 | Симптом | Причина / решение |
 |---|---|
+| `next start` предупреждает про `output: standalone` | для локальной проверки сборки используйте `npm run dev` или `node .next/standalone/server.js` (как в Dockerfile) |
+| Задания/миниатюры пропали после рестарта | они лежат в `data/jobs/` и `data/cache/`; проверьте права на каталог `data/` и значение `JOB_CLEANUP_HOURS` |
 | `503 нужен LibreOffice для миниатюр` | контейнер backend собран без LibreOffice либо локальный запуск без `soffice` в PATH |
 | Генерация идёт дольше 5 минут | модели ещё скачиваются (`docker compose logs ollama`) либо нет GPU; проверьте `docker compose exec ollama ollama list` |
 | `LLM: offline-fallback` в отчёте | Ollama недоступна или `DISABLE_LLM=true`; проверьте `GET /api/health` |

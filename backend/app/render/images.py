@@ -63,3 +63,18 @@ def png_bytes(img: Image.Image) -> bytes:
 def brightness(hex_color: str) -> float:
     r, g, b = hex_to_rgb(hex_color)
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
+
+
+def contrast_ratio(first: str, second: str) -> float:
+    """Контраст двух цветов по WCAG (1..21). Используется вёрсткой и аудитом."""
+    def luminance(hex_color: str) -> float:
+        def channel(value: int) -> float:
+            normalized = value / 255.0
+            return normalized / 12.92 if normalized <= 0.03928 \
+                else ((normalized + 0.055) / 1.055) ** 2.4
+
+        r, g, b = hex_to_rgb(hex_color)
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+    light, dark = sorted((luminance(first), luminance(second)), reverse=True)
+    return (light + 0.05) / (dark + 0.05)

@@ -44,6 +44,9 @@ fi
 if [[ ${#TARGETS[@]} -eq 0 ]]; then
   echo "  Нет шаблонов: положите PPTX в data/templates/ или передайте путь аргументом."
 else
+  # чистим прошлые артефакты: иначе аудит проверит устаревшие колоды,
+  # собранные предыдущей версией кода и без профиля рядом
+  rm -f data/e2e_out/*.pptx data/e2e_out/*.profile.json
   start=$(date +%s)
   "$PY" tools/e2e_render.py "${TARGETS[@]}" --json | tee data/e2e_report.json || fail=1
   elapsed=$(( $(date +%s) - start ))
@@ -62,7 +65,10 @@ echo "=============================================================="
 shopt -s nullglob
 decks=(data/e2e_out/*.pptx)
 if [[ ${#decks[@]} -gt 0 ]]; then
-  "$PY" tools/audit_check.py "${decks[@]}" || echo "  (аудит нашёл проблемы — см. вывод выше)"
+  if ! "$PY" tools/audit_check.py "${decks[@]}"; then
+    echo "  АУДИТ НАШЁЛ ОШИБКИ — см. вывод выше"
+    fail=1
+  fi
 else
   echo "  Нет сгенерированных колод."
 fi

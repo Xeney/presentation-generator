@@ -74,6 +74,10 @@ def render_all(template: Path, out_dir: Path, deck: Deck) -> dict:
     t0 = time.perf_counter()
     profile = TemplateParser(template).parse().to_dict()
     t_profile = time.perf_counter() - t0
+    # профиль кладём рядом с колодами: аудит подхватит его по имени файла,
+    # иначе сравнивал бы результат с дизайн-системой другого шаблона
+    (out_dir / f"{template.stem}.profile.json").write_text(
+        json.dumps(profile, ensure_ascii=False), encoding="utf-8")
 
     dc = DesignContext.from_profile(profile)
     template_bytes = template.read_bytes()
