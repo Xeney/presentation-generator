@@ -128,7 +128,7 @@
 
 | Проверка | Код | Тип | Тест |
 |---|---|---|---|
-| Число со слайда не найдено в контент-пакете | `fact_unverified` | детерминированная | `test_invented_number_is_flagged` |
+| Число со слайда не найдено в источниках (бриф или контент-пакет) | `fact_unverified` | детерминированная | `test_invented_number_is_flagged`, `test_numbers_from_brief_are_not_flagged` |
 | Слайд слабо опирается на контент-пакет (косинус < 0.55) | `content_off_source` | контекстуальная | `test_semantic_duplicates_and_off_source_with_embeddings` |
 | Два слайда пересказывают одну мысль (косинус ≥ 0.92) | `duplicate_slide_semantic` | контекстуальная | `test_semantic_duplicates_and_off_source_with_embeddings` |
 

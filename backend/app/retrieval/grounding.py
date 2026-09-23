@@ -90,11 +90,14 @@ class GroundingChecker:
     """Сверяет колоду с контент-пакетом: числа — точно, смысл — эмбеддингами."""
 
     def __init__(self, corpus: Optional[ContentCorpus], llm=None,
+                 brief: str = "",
                  off_source_threshold: float = 0.55,
                  duplicate_threshold: float = 0.92,
                  max_corpus_lines: int = 120):
         self.corpus = corpus
         self.llm = llm
+        # бриф — тоже исходный материал: цифры из него не считаются выдуманными
+        self.brief = brief or ""
         self.off_source_threshold = off_source_threshold
         self.duplicate_threshold = duplicate_threshold
         self.corpus_lines = (corpus.meaningful_lines()
@@ -109,14 +112,22 @@ class GroundingChecker:
         return GroundingResult(issues, True, model="bge-m3")
 
     # -------------------------------------------------------------- числа
-    def _corpus_numbers(self) -> set[str]:
-        known = {normalize_number(number) for number in self.corpus.all_numbers()}
-        for number in numbers_in(self.corpus.text(max_chars=100000)):
-            known.add(number)
+    def _source_numbers(self) -> set[str]:
+        """Все числа из источников: бриф + контент-пакет."""
+        known = set(numbers_in(self.brief))
+        if self.corpus is not None:
+            known |= {normalize_number(number) for number in self.corpus.all_numbers()}
+            known |= numbers_in(self.corpus.text(max_chars=100000))
         return known
 
     def _check_numbers(self, deck: Deck) -> list[dict]:
-        known = self._corpus_numbers()
+        known = self._source_numbers()
+        sources = []
+        if self.brief:
+            sources.append("бриф")
+        if self.corpus is not None:
+            sources.append(f"контент-пакет «{self.corpus.source_file}»")
+        source_label = " и ".join(sources) or "исходные материалы"
         issues: list[dict] = []
         for index, slide in enumerate(deck.slides):
             for number in sorted(numbers_in(slide_text(slide))):
@@ -127,8 +138,8 @@ class GroundingChecker:
                     "id": f"fact_unverified-{index}-{len(issues)}",
                     "code": "fact_unverified", "severity": "warning",
                     "slide": index, "bbox": [], "deterministic": True,
-                    "message": f"число «{number}» со слайда не найдено "
-                               f"в контент-пакете «{self.corpus.source_file}»",
+                    "message": f"число «{number}» со слайда не найдено в источниках "
+                               f"({source_label})",
                 })
         return issues
 

@@ -73,14 +73,14 @@ def audit_vlm(pptx_bytes: bytes, profile: dict, deck: Deck | None = None,
                                            source_digest=source_digest)
 
 
-def ground_deck(deck: Deck, corpus: ContentCorpus | None) -> dict:
+def ground_deck(deck: Deck, corpus: ContentCorpus | None, brief: str = "") -> dict:
     """Проверка опоры на источник: числа точно, смысл — эмбеддингами BGE-M3."""
     settings = get_settings()
     if not settings.grounding_enabled:
         return {"available": False, "reason": "grounding выключен",
                 "issues": [], "issues_count": 0}
     checker = GroundingChecker(
-        corpus, llm=OllamaClient(),
+        corpus, llm=OllamaClient(), brief=brief,
         off_source_threshold=settings.grounding_off_source_threshold,
         duplicate_threshold=settings.grounding_duplicate_threshold)
     return checker.check(deck).to_dict()
@@ -129,7 +129,7 @@ def full_generate(brief: str, source: str, purpose: str,
     # проверка опоры на источник: проблемы общие для всех вариантов (это контент),
     # поэтому считаем один раз и добавляем в каждый отчёт
     t0 = time.perf_counter()
-    grounding = ground_deck(deck, corpus)
+    grounding = ground_deck(deck, corpus, brief=brief)
     for artifact in artifacts:
         merge_issues(artifact.audit, [dict(issue) for issue in grounding.get("issues", [])])
     stages["grounding_s"] = round(time.perf_counter() - t0, 2)

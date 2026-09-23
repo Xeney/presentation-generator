@@ -67,6 +67,26 @@ def test_numbers_in_tables_and_charts_are_checked():
     assert "fact_unverified" in codes
 
 
+def test_numbers_from_brief_are_not_flagged():
+    """Бриф — тоже исходный материал: его цифры не считаются выдуманными."""
+    deck = _deck([Slide(slide_type=SlideType.CONTENT, heading="Метрики проекта",
+                        blocks=[Block(kind="bullets", items=[
+                            "Стоимость отчётности снизилась на 25%",
+                            "Подключено 10 отделов"])])])
+    checker = GroundingChecker(_corpus(), llm=None,
+                               brief="План: снизить стоимость на 25% и подключить 10 отделов")
+    assert checker.check(deck).issues == []
+
+
+def test_number_absent_from_all_sources_is_flagged():
+    deck = _deck([Slide(slide_type=SlideType.CONTENT, heading="Сомнительные цифры",
+                        blocks=[Block(kind="bullets", items=["Выручка выросла на 87%"])])])
+    checker = GroundingChecker(_corpus(), llm=None, brief="План: подключить 10 отделов")
+    issues = checker.check(deck).issues
+    assert any(i["code"] == "fact_unverified" and "87%" in i["message"] for i in issues)
+    assert "бриф" in issues[0]["message"]
+
+
 def test_without_corpus_check_is_unavailable():
     deck = _deck([Slide(slide_type=SlideType.CONTENT, heading="Любой слайд",
                         blocks=[Block(kind="bullets", items=["Тезис"])])])
