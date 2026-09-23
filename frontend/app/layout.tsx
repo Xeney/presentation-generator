@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
 
+import "./globals.css";
+
 export const metadata: Metadata = {
   title: "Цифровой дизайнер презентаций",
-  description: "Генерация презентаций VK Tech по брифу на произвольном шаблоне",
+  description:
+    "Сервис генерации презентаций по текстовому брифу на произвольном PPTX-шаблоне: " +
+    "три варианта вёрстки, аудит и экспорт в PPTX, PDF и HTML.",
 };
 
+/**
+ * Шрифт — системный стек: сборка не зависит от загрузки внешних шрифтов
+ * (важно для офлайн-демо и сборки в закрытом контуре).
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
-      <body style={{ margin: 0, background: "#0e0f13", color: "#e8eaed",
-        fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
-        {children}
-      </body>
+    <html lang="ru" className="dark">
+      <body className="font-sans">{children}</body>
     </html>
   );
 }
