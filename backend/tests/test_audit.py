@@ -1,52 +1,135 @@
+"""Тесты детерминированного аудита: позитивный кейс и негативные проверки.
+
+Негативные кейсы строятся мутацией уже сгенерированного PPTX: так проверяется
+именно детектор, а не схема Pydantic (которая не даст создать невалидный Deck).
+"""
+from __future__ import annotations
+
 import io
 
 import pytest
+from pptx import Presentation
+from pptx.util import Inches
 
 from app.audit.checks import Audit
-from app.layout.engine import LayoutEngine
 from app.planner.fallback import FallbackPlanner
-from app.render.pptx_renderer import Renderer
-from app.template.parser import TemplateParser
 
 BRIEF = ("Платформа аналитики VK Tech сократила время подготовки отчётов на 40%, "
          "автоматизировала 12 задач и охватила 5 подразделений. 2000 сотрудников "
-         "используют её еженедельно. План — 10 отделов к концу года и ML-предсказания выручки.")
+         "используют её еженедельно. План — 10 отделов к концу года и ML-предсказания "
+         "выручки.")
 
 
-def _run_all(tpl: bytes) -> dict:
-    profile = TemplateParser(tpl).parse().to_dict()
-    deck = FallbackPlanner().plan(BRIEF, "", "project")
-    renderer = Renderer(profile)
-    out = {}
-    for variant in ("compact", "cards", "split"):
-        slides = LayoutEngine(profile, deck, variant).build()
-        pptx = renderer.render(deck, slides)
-        audit = Audit(profile).audit(deck, pptx)
-        out[variant] = (audit, pptx)
-    return out
+@pytest.fixture(scope="module")
+def deck():
+    return FallbackPlanner().plan(BRIEF, "", "project")
 
 
-def test_audit_positive_case(template_lct):
-    results = _run_all(template_lct)
-    for variant, (audit, _) in results.items():
-        assert audit["passed"], f"{variant}: {audit['issues'][:3]}"
-        assert audit["errors"] == 0
-        assert audit["warnings"] == 0
+def _reopen(pptx: bytes) -> Presentation:
+    return Presentation(io.BytesIO(pptx))
 
 
-def test_audit_catches_out_of_bounds(template_lct):
-    profile = TemplateParser(template_lct).parse().to_dict()
-    deck = FallbackPlanner().plan(BRIEF, "", "project")
-    pptx = Renderer(profile).render(
-        deck, LayoutEngine(profile, deck, "compact").build())
-    audit = Audit(profile).audit(deck, pptx)
-    assert all("bbox" in i for i in audit["issues"])
+def _save(prs: Presentation) -> bytes:
+    buf = io.BytesIO()
+    prs.save(buf)
+    return buf.getvalue()
 
 
-@pytest.mark.parametrize("payload", [
-    b"not a pptx at all",
-    b"",
-])
-def test_render_rejects_garbage(payload):
+def test_audit_positive_case(profile_of, render_variants, synthetic_template, deck):
+    """Сгенерированные колоды чисты во всех вариантах: и по ошибкам, и по замечаниям.
+
+    Это регрессионный тест на «одинаково валидны»: варианты различаются вёрсткой,
+    но ни один не должен навлекать на себя замечания собственного аудита.
+    """
+    profile = profile_of(synthetic_template)
+    variants = render_variants(profile, deck, synthetic_template)
+    for variant, pptx in variants.items():
+        result = Audit(profile).audit(deck, pptx)
+        assert result["passed"], f"{variant}: {result['issues'][:4]}"
+        assert result["errors"] == 0, f"{variant}: {result['issues'][:4]}"
+        assert result["warnings"] == 0, f"{variant}: {result['issues'][:4]}"
+
+
+def test_audit_deterministic_and_ids_unique(profile_of, render_variants,
+                                            synthetic_template, deck):
+    profile = profile_of(synthetic_template)
+    pptx = render_variants(profile, deck, synthetic_template)["compact"]
+    first = Audit(profile).audit(deck, pptx)
+    second = Audit(profile).audit(deck, pptx)
+    assert first["issues"] == second["issues"], "аудит должен быть детерминированным"
+    ids = [i["id"] for i in first["issues"]]
+    assert len(ids) == len(set(ids)), "идентификаторы проблем должны быть уникальны"
+
+
+def test_audit_catches_out_of_bounds(profile_of, render_variants,
+                                     synthetic_template, deck):
+    profile = profile_of(synthetic_template)
+    prs = _reopen(render_variants(profile, deck, synthetic_template)["compact"])
+    box = prs.slides[1].shapes.add_textbox(Inches(-4.5), Inches(1), Inches(3), Inches(1))
+    box.text_frame.text = "уехавший блок"
+    result = Audit(profile).audit(deck, _save(prs))
+    codes = {i["code"] for i in result["issues"]}
+    assert "out_of_bounds" in codes
+    issue = next(i for i in result["issues"] if i["code"] == "out_of_bounds")
+    assert issue["severity"] == "error"
+    assert len(issue["bbox"]) == 4
+    assert issue["deterministic"] is True
+
+
+def test_audit_catches_table_too_big(profile_of, render_variants,
+                                     synthetic_template, deck):
+    """Регрессия: проверка размера таблицы была недостижима и не срабатывала."""
+    profile = profile_of(synthetic_template)
+    prs = _reopen(render_variants(profile, deck, synthetic_template)["compact"])
+    slide = prs.slides[1]
+    table = slide.shapes.add_table(8, 6, Inches(0.5), Inches(1.5),
+                                   Inches(6), Inches(4)).table
+    for r in range(8):
+        for c in range(6):
+            table.cell(r, c).text = f"{r}-{c}"
+    result = Audit(profile).audit(deck, _save(prs))
+    codes = {i["code"] for i in result["issues"]}
+    assert "table_too_big" in codes, [i["code"] for i in result["issues"]]
+
+
+def test_audit_catches_too_many_series(profile_of, render_variants,
+                                       synthetic_template, deck):
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE
+
+    profile = profile_of(synthetic_template)
+    prs = _reopen(render_variants(profile, deck, synthetic_template)["compact"])
+    data = CategoryChartData()
+    data.categories = ["A", "B", "C"]
+    for n in range(6):
+        data.add_series(f"S{n}", (1.0 + n, 2.0 + n, 3.0 + n))
+    prs.slides[1].shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.5), Inches(1.5),
+                                   Inches(6), Inches(3.5), data)
+    result = Audit(profile).audit(deck, _save(prs))
+    assert "too_many_series" in {i["code"] for i in result["issues"]}
+
+
+def test_audit_catches_placeholder_text(profile_of, render_variants,
+                                        synthetic_template, deck):
+    profile = profile_of(synthetic_template)
+    prs = _reopen(render_variants(profile, deck, synthetic_template)["compact"])
+    box = prs.slides[1].shapes.add_textbox(Inches(0.5), Inches(6), Inches(4), Inches(0.6))
+    box.text_frame.text = "TODO: вставьте текст"
+    result = Audit(profile).audit(deck, _save(prs))
+    assert "placeholder_text" in {i["code"] for i in result["issues"]}
+
+
+def test_audit_catches_raster_slide(profile_of, render_variants, synthetic_template,
+                                    deck, tiny_png):
+    profile = profile_of(synthetic_template)
+    prs = _reopen(render_variants(profile, deck, synthetic_template)["compact"])
+    prs.slides[1].shapes.add_picture(io.BytesIO(tiny_png), 0, 0,
+                                     width=prs.slide_width, height=prs.slide_height)
+    result = Audit(profile).audit(deck, _save(prs))
+    assert "raster_slide" in {i["code"] for i in result["issues"]}
+
+
+def test_audit_rejects_broken_file(profile_of, synthetic_template, deck):
+    profile = profile_of(synthetic_template)
     with pytest.raises(Exception):
-        Renderer({}).render(FallbackPlanner().plan("x" * 20, "", "project"), [])
+        Audit(profile).audit(deck, b"not a pptx at all")

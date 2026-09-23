@@ -7,13 +7,15 @@ BRIEF = ("Обновление фирменного стиля VK: новый л
          "выросла на 12%. Релиз во всех продуктах — в следующем квартале.")
 
 
-def test_html_export_contains_content(template_any):
-    profile = TemplateParser(template_any).parse().to_dict()
+def test_html_export_contains_content(synthetic_template):
+    profile = TemplateParser(synthetic_template).parse().to_dict()
     deck = FallbackPlanner().plan(BRIEF, "", "product")
     html = deck_to_html(deck, profile)
     assert "<!DOCTYPE html>" in html
     assert deck.title[:20] in html
-    assert "compact" in html or "cards" in html or "slide" in html.lower()
+    assert "slide" in html.lower()
+    for slide in deck.slides[:3]:
+        assert slide.heading[:15] in html
 
 
 def test_html_export_no_secrets():

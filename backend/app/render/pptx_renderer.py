@@ -31,6 +31,10 @@ log = logging.getLogger("render")
 
 A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 
+# имя фигуры-слота, который остаётся вместо картинки, если изображения нет;
+# аудит использует его для проверки image_missing
+IMAGE_SLOT_NAME = "image_slot"
+
 CHART_MAP = {
     ChartType.BAR: XL_CHART_TYPE.BAR_CLUSTERED,
     ChartType.COLUMN: XL_CHART_TYPE.COLUMN_CLUSTERED,
@@ -38,6 +42,10 @@ CHART_MAP = {
     ChartType.PIE: XL_CHART_TYPE.PIE,
     ChartType.DONUT: XL_CHART_TYPE.DOUGHNUT,
 }
+
+
+class RenderError(RuntimeError):
+    """Шаблон не передан, повреждён или не является PPTX."""
 
 
 def _in(v: float) -> Emu:
@@ -88,10 +96,14 @@ def _add_para(tf, text: str, *, first: bool = False) -> None:
 class Renderer:
     """Превращает Deck + план вёрстки в файл PPTX (bytes)."""
 
-    def __init__(self, profile: dict, variant: str = "compact", template_bytes: bytes | None = None):
+    def __init__(self, profile: dict, variant: str = "compact",
+                 template_bytes: bytes | None = None,
+                 images: dict[str, bytes] | None = None):
         self.profile = profile
         self.variant = variant
         self.template_bytes = template_bytes
+        # реестр картинок контент-пакета: ключ (имя файла/подпись) -> байты изображения
+        self.images = images or {}
 
     # ------------------------------------------------------------- layout choice
     def _pick_layout(self, stype: SlideType) -> dict:
@@ -113,43 +125,81 @@ class Renderer:
         return max(cands, key=key)
 
     def _canvas(self, layout: dict) -> Rect:
+        """Контентная область слайда: тело макета, иначе сетка из профиля."""
         slide_w = self.profile["slide_size"]["w_in"]
         slide_h = self.profile["slide_size"]["h_in"]
         body = layout.get("body") or {}
         grid = self.profile.get("grid") or {}
         if body.get("w", 0) >= 0.45 * slide_w and body.get("h", 0) >= 0.3 * slide_h:
-            return Rect(body["x"], body["y"], body["w"], body["h"])
-        bx = grid.get("body_x", 0.5)
-        by = grid.get("body_y", 1.0)
-        bw = grid.get("body_w", slide_w - 1.0)
-        bh = grid.get("body_h", slide_h - 1.5)
-        return Rect(bx, by, bw, bh)
+            rect = Rect(body["x"], body["y"], body["w"], body["h"])
+        else:
+            rect = Rect(grid.get("body_x", 0.5), grid.get("body_y", 1.0),
+                        grid.get("body_w", slide_w - 1.0),
+                        grid.get("body_h", slide_h - 1.5))
+        return self._avoid_title(rect, layout)
+
+    @staticmethod
+    def _avoid_title(rect: Rect, layout: dict) -> Rect:
+        """Сдвигает область контента ниже заголовка, если она на него заходит.
+
+        На витринных макетах (титул, раздел, финал) тело макета нередко занимает
+        весь слайд вместе с заголовком — без этого правила блоки накрывали бы
+        заголовок, что аудит справедливо отмечает как наложение.
+        """
+        title = layout.get("title_ph") or {}
+        if not title:
+            return rect
+        title_top = float(title.get("y", 0.0))
+        title_bottom = title_top + float(title.get("h", 0.0))
+        if rect.y < title_bottom and rect.bottom > title_top:
+            below_h = rect.bottom - (title_bottom + 0.08)
+            if below_h >= 0.6:
+                return Rect(rect.x, title_bottom + 0.08, rect.w, below_h)
+            # на макетах вроде «Section Header» заголовок стоит внизу —
+            # тогда контент логично разместить над ним
+            above_h = title_top - 0.08 - rect.y
+            if above_h >= 0.6:
+                return Rect(rect.x, rect.y, rect.w, above_h)
+        return rect
 
     # -------------------------------------------------------------------- render
     def render(self, deck: Deck, plan_map: dict[int, list[dict]]) -> bytes:
         src = self.template_bytes
-        prs = Presentation(io.BytesIO(src)) if src else Presentation()
-        n_orig = len(prs.slides._sldIdLst)
+        if not src:
+            raise RenderError(
+                "не передан шаблон: слайды собираются только на макетах шаблона")
+        try:
+            prs = Presentation(io.BytesIO(src))
+        except Exception as exc:  # noqa: BLE001 — любая ошибка разбора = невалидный шаблон
+            raise RenderError(f"шаблон не открывается как PPTX: {exc}") from exc
 
-        slides_out = []
+        # исходные слайды-образцы шаблона удаляются вместе с частями пакета,
+        # иначе они остаются в файле мусором и конфликтуют по именам с новыми
+        self._drop_original_slides(prs)
+
         for i, sl in enumerate(deck.slides):
             layout = self._pick_layout(sl.slide_type)
             new = prs.slides.add_slide(self._layout_object(prs, layout))
-            self._clone_title_ph(new, layout)
+            # add_slide уже переносит плейсхолдеры макета: заголовок остаётся,
+            # неиспользуемые пустые рамки убираем, чтобы не мусорить в файле
+            self._drop_empty_placeholders(new)
             self._draw_slide(new, sl, layout, plan_map.get(i, []))
-            slides_out.append(new)
-
-        self._drop_original_slides(prs, keep=len(slides_out))
         buf = io.BytesIO()
         prs.save(buf)
         return buf.getvalue()
 
-    def _drop_original_slides(self, prs: Presentation, keep: int):
-        """Удаляет исходные слайды шаблона, сохраняя keep последних (новых)."""
-        xml_slides = prs.slides._sldIdLst
-        all_ids = list(xml_slides)
-        for sld in all_ids[:-keep] if keep else all_ids:
-            xml_slides.remove(sld)
+    @staticmethod
+    def _drop_original_slides(prs: Presentation) -> None:
+        """Удаляет слайды шаблона: и ссылки в sldIdLst, и части пакета."""
+        sld_id_lst = prs.slides._sldIdLst
+        for sld_id in list(sld_id_lst):
+            r_id = sld_id.get(qn("r:id"))
+            if r_id:
+                try:
+                    prs.part.drop_rel(r_id)
+                except Exception:  # noqa: BLE001 — связь могла быть уже удалена
+                    pass
+            sld_id_lst.remove(sld_id)
 
     def _layout_object(self, prs: Presentation, layout_prof: dict):
         wanted_master = layout_prof.get("master_id")
@@ -169,15 +219,26 @@ class Renderer:
     def _layout_id(layout) -> str:
         return layout.name
 
-    def _clone_title_ph(self, slide, layout_prof: dict) -> None:
-        """Клонирует title-плейсхолдер макета на слайд (если есть)."""
+    @staticmethod
+    def _drop_empty_placeholders(slide) -> None:
+        """Удаляет пустые плейсхолдеры, оставшиеся от макета.
+
+        Заголовок сохраняется всегда: он заполняется вёрсткой. Остальные рамки
+        (подзаголовок, тело, дата и т.п.) без текста только мусорят файл и
+        провоцируют ложные срабатывания анализа наложений.
+        """
         try:
-            lobj = slide.slide_layout
-            for ph in lobj.placeholders:
-                if ph.placeholder_format.type in (1, 3):  # TITLE/CENTER_TITLE
-                    slide.shapes.clone_placeholder(ph)
-        except Exception:
-            pass
+            placeholders = list(slide.placeholders)
+        except Exception:  # noqa: BLE001
+            return
+        for ph in placeholders:
+            try:
+                if ph.placeholder_format.type in (1, 3):  # TITLE / CENTER_TITLE
+                    continue
+                if ph.has_text_frame and not ph.text_frame.text.strip():
+                    ph._element.getparent().remove(ph._element)
+            except Exception:  # noqa: BLE001
+                continue
 
     def _title_rect(self, slide, layout_prof: dict, sl: Slide) -> Optional[Rect]:
         try:
@@ -261,6 +322,8 @@ class Renderer:
             self._draw_quote(slide, it, rect)
         elif widget == "steps":
             self._draw_steps(slide, it, rect)
+        elif widget == "image":
+            self._draw_image(slide, it, rect)
         else:
             log.warning("неизвестный виджет %s", widget)
 
@@ -720,3 +783,88 @@ class Renderer:
                 size = 14.0
             _set_run_font(r, self._body_font(), size,
                           True, "#FFFFFF" if white else self._text_color())
+
+    # -------------------------------------------------------------------- image
+    def _draw_image(self, slide, it: dict, rect: Rect) -> None:
+        """Нативная картинка, вписанная в слот с сохранением пропорций.
+
+        Если байтов нет (нет в контент-пакете, text-to-image выключен) — остаётся
+        нативный слот с подписью; аудит отмечает его как `image_missing`.
+        Растяжение запрещено: масштаб единый по обеим осям.
+        """
+        block: Block = it["block"]
+        style = it.get("style", {})
+        data = self._resolve_image(block)
+        if not data:
+            log.warning("нет изображения для блока «%s» (image_ref=%s) — оставлен слот",
+                        block.image_caption or block.title or "image", block.image_ref)
+            self._draw_image_slot(slide, rect, block, style)
+            return
+        cap_h = 0.34 if block.image_caption else 0.0
+        area = Rect(rect.x, rect.y, rect.w, max(0.4, rect.h - cap_h))
+        box = self._contain(area, data)
+        if box is None:
+            self._draw_image_slot(slide, rect, block, style)
+            return
+        pic = slide.shapes.add_picture(io.BytesIO(data), _in(box.x), _in(box.y),
+                                       _in(box.w), _in(box.h))
+        pic.name = "image"
+        if block.image_caption:
+            tb = slide.shapes.add_textbox(_in(rect.x), _in(box.bottom + 0.04),
+                                          _in(rect.w), _in(cap_h))
+            tf = tb.text_frame
+            tf.word_wrap = True
+            run = tf.paragraphs[0].add_run()
+            run.text = block.image_caption
+            _set_run_font(run, self._body_font(), 11.0, False,
+                          style.get("text_color") or self._text_color())
+
+    def _resolve_image(self, block: Block) -> Optional[bytes]:
+        """Ищет байты изображения в реестре контент-пакета по ключам блока."""
+        for key in (block.image_ref, block.image_caption, block.title):
+            if key and key in self.images:
+                return self.images[key]
+        return None
+
+    @staticmethod
+    def _contain(area: Rect, data: bytes) -> Optional[Rect]:
+        """Вписывает изображение в область с сохранением пропорций (contain)."""
+        try:
+            from PIL import Image
+
+            with Image.open(io.BytesIO(data)) as img:
+                iw, ih = img.size
+        except Exception as exc:  # noqa: BLE001
+            log.warning("не удалось прочитать изображение: %s", exc)
+            return None
+        if not iw or not ih:
+            return None
+        ratio = iw / ih
+        w, h = area.w, area.w / ratio
+        if h > area.h:
+            h, w = area.h, area.h * ratio
+        return Rect(area.x + (area.w - w) / 2, area.y + (area.h - h) / 2, w, h)
+
+    def _draw_image_slot(self, slide, rect: Rect, block: Block, style: dict) -> None:
+        """Нативный слот вместо картинки: рамка в токенах шаблона и подпись."""
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                                     _in(rect.x), _in(rect.y), _in(rect.w), _in(rect.h))
+        shp.name = IMAGE_SLOT_NAME
+        shp.adjustments[0] = 0.04
+        shp.fill.solid()
+        r, g, b = hex_to_rgb(style.get("accent_soft") or self._accent_soft())
+        shp.fill.fore_color.rgb = RGBColor(r, g, b)
+        shp.line.color.rgb = _color(style.get("accent") or self._accent_color() or "#CCCCCC")
+        shp.line.width = Pt(1)
+        shp.shadow.inherit = False
+        caption = block.image_caption or block.image_prompt or ""
+        if caption:
+            tf = shp.text_frame
+            tf.word_wrap = True
+            tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+            p = tf.paragraphs[0]
+            p.alignment = PP_ALIGN.CENTER
+            run = p.add_run()
+            run.text = caption[:120]
+            _set_run_font(run, self._body_font(), 12.0, False,
+                          style.get("text_color") or self._text_color())

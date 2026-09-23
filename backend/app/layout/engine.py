@@ -166,6 +166,8 @@ def _block_min_h(b: Block, dc: DesignContext, w_in: float) -> float:
         return 1.6 + gap
     if b.kind == "steps":
         return 1.1 + gap
+    if b.kind == "image":
+        return 2.2 + gap
     return gap + 0.2
 
 
@@ -229,6 +231,8 @@ class LayoutEngine:
             return not b.quote_text
         if b.kind == "steps":
             return not b.items
+        if b.kind == "image":
+            return not (b.image_ref or b.image_prompt)
         return False
 
     # ------------------------------------------------------ фоновые/витринные

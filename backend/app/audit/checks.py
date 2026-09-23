@@ -12,10 +12,12 @@ import re
 from dataclasses import dataclass, field, asdict
 
 from pptx import Presentation
-from pptx.enum.chart import XL_CHART_TYPE
+from pptx.enum.dml import MSO_FILL_TYPE
+from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 from ..models.deck import Deck
 from ..render.images import hex_to_rgb
+from ..render.pptx_renderer import IMAGE_SLOT_NAME
 
 A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -28,17 +30,19 @@ PLACEHOLDER_MARKERS = ("Заголовок", "Дважды щёлкните", "�
 class Issue:
     code: str
     severity: str            # error | warning
-    slide: int               # 0-based
+    slide: int               # 0-based, -1 = вся колода
     message: str
-    bbox: list = field(default_factory=list)   # [x, y, w, h] в долях
+    bbox: list = field(default_factory=list)   # [x, y, w, h] в долях слайда
+    id: str = ""             # стабильный идентификатор для UI и авто-фиксов
+    deterministic: bool = True
 
     def to_dict(self) -> dict:
         return asdict(self)
 
     @classmethod
-    def at(cls, code, severity, slide, message, bbox=None):
+    def at(cls, code, severity, slide, message, bbox=None, deterministic=True):
         return cls(code=code, severity=severity, slide=slide, message=message,
-                   bbox=list(bbox or []))
+                   bbox=list(bbox or []), deterministic=deterministic)
 
 
 class Audit:
@@ -89,6 +93,8 @@ class Audit:
             self._check_contrast(slide, si, issues)
             # 6. плотность контента
             self._check_density(slide, si, issues)
+            # 6b. объекты: таблицы, диаграммы, слоты изображений
+            self._check_objects(slide, si, issues)
             # 7. пустой слайд
             self._check_empty(slide, si, issues, geo)
             # 8. заполнители-заглушки
@@ -104,6 +110,9 @@ class Audit:
             if n > 1:
                 issues.append(Issue.at("duplicate_heading", "warning", -1,
                                        f"повторяющийся заголовок «{h[:60]}» встречается {n} раза"))
+
+        for n, issue in enumerate(issues):
+            issue.id = f"{issue.code}-{issue.slide}-{n}"
 
         n_err = sum(1 for i in issues if i.severity == "error")
         return {
@@ -125,7 +134,7 @@ class Audit:
             if sh.left is None or sh.width is None:
                 continue
             out.append({
-                "shape": sh, "type": sh.shape_type,
+                "shape": sh, "type": shape_type_int(sh),
                 "x": sh.left, "y": sh.top, "w": sh.width, "h": sh.height,
                 "filled": self._is_visible(sh),
             })
@@ -133,13 +142,15 @@ class Audit:
 
     @staticmethod
     def _is_visible(sh) -> bool:
-        try:
-            if sh.shape_type == 17 and not sh.has_text_frame.text.strip():
+        """Участвует ли фигура в анализе наложений (пустые рамки не считаем)."""
+        st = shape_type_int(sh)
+        if st == MSO_SHAPE_TYPE.GROUP.value:
+            return False
+        if st in (MSO_SHAPE_TYPE.TEXT_BOX.value, MSO_SHAPE_TYPE.PLACEHOLDER.value):
+            try:
+                return bool(sh.text_frame.text.strip())
+            except Exception:  # noqa: BLE001
                 return False
-            if sh.shape_type in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15):  # placeholders
-                return False
-        except Exception:
-            pass
         return True
 
     def _heading(self, slide) -> str:
@@ -212,8 +223,6 @@ class Audit:
         W, H = self.W, self.H
         for g in geo:
             x, y, w, h = g["x"], g["y"], g["w"], g["h"]
-            if g["type"] == 19 or g.get("shape").shape_type in (3, 17):
-                pass
             if x < -10000 or y < -10000 or x + w > W + 10000 or y + h > H + 10000:
                 issues.append(Issue.at(
                     "out_of_bounds", "error", si,
@@ -343,7 +352,7 @@ class Audit:
     def _shape_fill(sh):
         """Заливка фигуры (solidFill srgbClr), иначе None."""
         try:
-            if sh.fill.type == 1 and sh.fill.fore_color is not None:
+            if fill_type_int(sh) == MSO_FILL_TYPE.SOLID.value and sh.fill.fore_color is not None:
                 return str(sh.fill.fore_color.rgb)
         except Exception:
             pass
@@ -353,7 +362,7 @@ class Audit:
         fill_colors = []
         for sh in slide.shapes:
             try:
-                if sh.fill.type == 1:
+                if fill_type_int(sh) == MSO_FILL_TYPE.SOLID.value:
                     rgb = sh.fill.fore_color.rgb
                     if rgb is not None:
                         fill_colors.append((sh.width or 0) * (sh.height or 0), str(rgb))
@@ -377,28 +386,44 @@ class Audit:
                 issues.append(Issue.at("bullet_too_long", "error", si,
                                        f"буллет длиннее 15 слов: «{it['ptext'][:50]}…»",
                                        self._shape_bbox(it["shape"], slide)))
-        # диаграммы
+
+    def _check_objects(self, slide, si, issues):
+        """Объекты данных: размеры таблиц, число серий, наличие картинки.
+
+        Проверки таблиц и диаграмм разведены намеренно: раньше проверка размера
+        таблицы была вложена в ветку диаграмм и не срабатывала никогда.
+        """
         for sh in slide.shapes:
-            gf = getattr(sh, "has_chart", False)
-            if not gf:
-                continue
             try:
-                nseries = 0
-                for plot in sh.chart.plots:
-                    nseries += len(plot.series)
-                if nseries > 5:
-                    issues.append(Issue.at("too_many_series", "error", si,
-                                           f"в диаграмме {nseries} серий (максимум 5)",
-                                           self._shape_bbox(sh, slide)))
-            except Exception:
+                if getattr(sh, "has_chart", False):
+                    self._check_chart(sh, slide, si, issues)
+                elif getattr(sh, "has_table", False):
+                    self._check_table(sh, slide, si, issues)
+                elif (sh.name or "").startswith(IMAGE_SLOT_NAME):
+                    issues.append(Issue.at(
+                        "image_missing", "warning", si,
+                        "нет изображения для блока-иллюстрации: оставлен слот",
+                        self._shape_bbox(sh, slide)))
+            except Exception:  # noqa: BLE001 — не роняем аудит из-за одной фигуры
                 continue
-            # таблицы
-            if sh.shape_type == 19:
-                tbl = sh.table
-                if len(tbl.columns) > 5 or len(tbl.rows) > 7:
-                    issues.append(Issue.at("table_too_big", "error", si,
-                                           f"таблица {len(tbl.rows)}x{len(tbl.columns)} (макс. 7x5)",
-                                           self._shape_bbox(sh, slide)))
+
+    def _check_table(self, sh, slide, si, issues):
+        tbl = sh.table
+        n_rows, n_cols = len(tbl.rows), len(tbl.columns)
+        if n_rows > 7 or n_cols > 5:
+            issues.append(Issue.at(
+                "table_too_big", "error", si,
+                f"таблица {n_rows}×{n_cols} (максимум 7 строк и 5 колонок)",
+                self._shape_bbox(sh, slide)))
+
+    def _check_chart(self, sh, slide, si, issues):
+        chart = sh.chart
+        n_series = sum(len(plot.series) for plot in chart.plots)
+        if n_series > 5:
+            issues.append(Issue.at(
+                "too_many_series", "error", si,
+                f"в диаграмме {n_series} серий (максимум 5)",
+                self._shape_bbox(sh, slide)))
 
     @staticmethod
     def _is_bullet(p, run) -> bool:
@@ -412,12 +437,15 @@ class Audit:
             pass
         return False
 
+    OBJECT_TYPES = (MSO_SHAPE_TYPE.CHART.value, MSO_SHAPE_TYPE.TABLE.value,
+                    MSO_SHAPE_TYPE.PICTURE.value, MSO_SHAPE_TYPE.AUTO_SHAPE.value)
+
     def _check_empty(self, slide, si, issues, geo):
-        has_text = any(it["ptext"] for it in self._scan_runs(slide) if it["ptext"] and it["run"].text.strip())
-        has_obj = any(g["type"] in (3, 19) or g.get("shape").shape_type in (3, 19) for g in geo)
-        toolbar = any(True for g in geo)  # placeholder shapes не считаются пустыми
-        if not has_text and not has_obj and len(geo) > 0:
-            issues.append(Issue.at("empty_slide", "warning", si, "слайд не содержит контента"))
+        has_text = any(it["run"].text.strip() for it in self._scan_runs(slide))
+        has_obj = any(g["type"] in self.OBJECT_TYPES for g in geo)
+        if not has_text and not has_obj and geo:
+            issues.append(Issue.at("empty_slide", "warning", si,
+                                   "слайд не содержит ни текста, ни объектов"))
 
     def _check_placeholders(self, slide, si, issues, geo):
         full = " ".join(it["ptext"] for it in self._scan_runs(slide))
@@ -430,10 +458,29 @@ class Audit:
     def _check_raster_slide(self, slide, si, issues, geo):
         W, H = self.W, self.H
         for g in geo:
-            if g["type"] == 18 and g["w"] >= 0.92 * W and g["h"] >= 0.92 * H:
+            if g["type"] == MSO_SHAPE_TYPE.PICTURE.value \
+                    and g["w"] >= 0.92 * W and g["h"] >= 0.92 * H:
                 issues.append(Issue.at("raster_slide", "error", si,
                                        "слайд целиком является растровой картинкой",
                                        [0, 0, 1, 1]))
+
+
+def fill_type_int(sh) -> int | None:
+    """Числовой код типа заливки (см. `shape_type_int` — та же причина)."""
+    fill = getattr(sh, "fill", None)
+    ft = getattr(fill, "type", None)
+    return getattr(ft, "value", ft)
+
+
+def shape_type_int(sh) -> int | None:
+    """Числовой код типа фигуры.
+
+    `Shape.shape_type` возвращает член перечисления `MSO_SHAPE_TYPE`, который
+    не сравнивается с int напрямую (`MSO_SHAPE_TYPE.PICTURE == 13` → False),
+    поэтому везде приводим к значению.
+    """
+    st = getattr(sh, "shape_type", None)
+    return getattr(st, "value", st)
 
 
 def _lum(h: str) -> float:

@@ -84,7 +84,11 @@ class Block(BaseModel):
     factoids: list[dict[str, str]] = Field(default_factory=list, max_length=6)
     quote_text: Optional[str] = Field(default=None, max_length=300)
     quote_author: Optional[str] = Field(default=None, max_length=80)
+    # --- изображения (kind="image") ---
+    # image_ref — ключ картинки в контент-пакете (имя файла внутри PPTX/DOCX)
+    image_ref: Optional[str] = Field(default=None, max_length=160)
     image_caption: Optional[str] = Field(default=None, max_length=80)
+    # image_prompt — описание для text-to-image (используется, если генерация включена)
     image_prompt: Optional[str] = Field(default=None, max_length=300)
     source_ref: Optional[str] = Field(default=None, max_length=120)
 

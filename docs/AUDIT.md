@@ -26,7 +26,8 @@
 | Элемент вышел за границы слайда | `out_of_bounds` | error | есть | `test_audit_catches_out_of_bounds` |
 | Два блока наложились друг на друга | `overlap` | warning | есть | `test_audit_positive_case` (негативный кейс) |
 | Текст не поместился в свою рамку | `text_overflow` | warning | есть | — |
-| Текст обрезан краем слайда | `out_of_bounds` | error | есть | — |
+| Текст обрезан краем слайда | `out_of_bounds` | error | есть | `test_audit_catches_out_of_bounds` |
+| Нет изображения для блока-иллюстрации (остался слот) | `image_missing` | warning | есть | `test_image_widget_falls_back_to_slot` |
 | Блоки не выровнены по направляющим макета | `misaligned_to_grid` | warning | план (этап 3) | — |
 | Контент заходит в поля у краёв | `content_in_margins` | warning | план (этап 3) | — |
 | Картинка растянута, пропорции нарушены | `image_stretched` | error | план (этап 3) | — |
@@ -49,8 +50,8 @@
 |---|---|---|---|---|
 | Больше 6 буллетов на слайде | `too_many_bullets` | error | есть | — |
 | Буллет длиннее 15 слов | `bullet_too_long` | error | есть | — |
-| Таблица больше 7 строк или 5 колонок | `table_too_big` | error | **частично** (дефект: проверка недостижима, этап 1) | — |
-| Больше 5 серий на диаграмме | `too_many_series` | error | есть | — |
+| Таблица больше 7 строк или 5 колонок | `table_too_big` | error | есть | `test_audit_catches_table_too_big` |
+| Больше 5 серий на диаграмме | `too_many_series` | error | есть | `test_audit_catches_too_many_series` |
 | Слайд заполнен меньше чем на четверть | `slide_too_sparse` | warning | план (этап 3) | — |
 | Слайд заполнен больше чем на три четверти | `slide_too_dense` | warning | план (этап 3) | — |
 
@@ -58,13 +59,17 @@
 
 | Проверка | Код | Severity | Статус | Тест |
 |---|---|---|---|---|
-| Файл не открывается | — (исключение при разборе) | error | есть | `test_render_rejects_garbage` |
-| Текст-заглушка (lorem ipsum, XXX, TODO, «вставьте текст») | `placeholder_text` | warning | есть | — |
+| Файл не открывается | — (исключение при разборе) | error | есть | `test_render_rejects_garbage`, `test_audit_rejects_broken_file` |
+| Текст-заглушка (lorem ipsum, XXX, TODO, «вставьте текст») | `placeholder_text` | warning | есть | `test_audit_catches_placeholder_text` |
 | Пустой слайд или слайд с одним заголовком | `empty_slide` | warning | есть | — |
-| Слайд оказался картинкой, а не редактируемыми объектами | `raster_slide` | error | есть | — |
+| Слайд оказался картинкой, а не редактируемыми объектами | `raster_slide` | error | есть | `test_audit_catches_raster_slide` |
 | Диаграмма без подписей осей, единиц или легенды | `chart_unlabeled` | warning | план (этап 3) | — |
 | Два слайда дублируют друг друга | `duplicate_slide` | warning | план (этап 5, эмбеддинги BGE-M3) | — |
 | Повторяющийся заголовок | `duplicate_heading` | warning | есть | — |
+
+Сводка по шаблонам и вариантам — `python tools/audit_matrix.py`: на 3 шаблонах VK и
+3 синтетических фикстурах все три варианта вёрстки дают **0 ошибок и 0 замечаний**
+(проверено на дату 2026-09-23).
 
 ## 2. Контекстуальные проверки (VLM)
 
