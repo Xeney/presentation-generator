@@ -1,0 +1,55 @@
+{
+  "manifest_version": "1.0",
+  "note": "Манифест промптов и конфигов агентов. Хэши считает scripts/sync_prompts.py; версия и хэш использованного артефакта пишутся в результат каждого задания (ADR-013).",
+  "artifacts": [
+    {
+      "id": "planner/system",
+      "kind": "prompt",
+      "agent": "planner",
+      "version": "1.2",
+      "path": "planner/system.md",
+      "model": "qwen2.5:7b-instruct",
+      "purpose": "роль, жёсткие правила содержания и формат ответа планировщика колоды",
+      "hash": "91f3d5c869c93a41"
+    },
+    {
+      "id": "planner/user",
+      "kind": "prompt",
+      "agent": "planner",
+      "version": "1.2",
+      "path": "planner/user.md",
+      "model": "qwen2.5:7b-instruct",
+      "purpose": "шаблон запроса: бриф, контент-пакет, контекст шаблона, JSON-схема, доступные изображения",
+      "hash": "ae91375cb68802dd"
+    },
+    {
+      "id": "planner/purpose",
+      "kind": "config",
+      "agent": "planner",
+      "version": "1.0",
+      "path": "planner/purpose.json",
+      "purpose": "конфиг назначений презентации (feature/product/project/initiative) для офлайн-планировщика",
+      "hash": "59f17a2473167e80"
+    },
+    {
+      "id": "vlm/audit",
+      "kind": "prompt",
+      "agent": "vlm_auditor",
+      "version": "2.0",
+      "path": "vlm/system.md",
+      "model": "qwen2.5-vl:7b-instruct",
+      "purpose": "11 вопросов Приложения 1 ТЗ и формат JSON-ответа для недетерминированного аудита",
+      "hash": "799c8b467e8dea75"
+    },
+    {
+      "id": "vlm/user",
+      "kind": "prompt",
+      "agent": "vlm_auditor",
+      "version": "2.0",
+      "path": "vlm/user.md",
+      "model": "qwen2.5-vl:7b-instruct",
+      "purpose": "контекст слайда: номер, язык колоды, заголовки соседей, выжимка исходников",
+      "hash": "676666b6b963deb9"
+    }
+  ]
+}

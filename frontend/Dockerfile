@@ -1,8 +1,9 @@
 # Фронтенд Next.js (standalone-сборка)
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY frontend/package.json ./
-RUN npm install
+# lock-файл фиксирует версии: сборка воспроизводима (npm ci, а не npm install)
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 FROM node:20-alpine AS build
 WORKDIR /app

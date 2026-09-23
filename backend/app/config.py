@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     target_duration_min: int = 5
     vlm_audit_enabled: bool = True
     vlm_audit_all_variants: bool = False
+    grounding_enabled: bool = True
+    grounding_off_source_threshold: float = 0.55
+    grounding_duplicate_threshold: float = 0.92
 
     # --- Хранилище ---
     data_dir: str = "./data"

@@ -99,6 +99,9 @@ python tools/import_corpus.py data/templates/content_pack.pptx --text
 | `JOB_CLEANUP_HOURS` | `12.0` | TTL заданий и кэша миниатюр |
 | `VLM_AUDIT_ENABLED` | `true` | выключить VLM-аудит, если нет ресурсов/времени |
 | `VLM_AUDIT_ALL_VARIANTS` | `false` | `true` — VLM по всем трём вариантам, а не только по одному |
+| `GROUNDING_ENABLED` | `true` | проверка опоры на контент-пакет (числа и смысл) |
+| `GROUNDING_OFF_SOURCE_THRESHOLD` | `0.55` | порог косинусной близости слайда к корпусу |
+| `GROUNDING_DUPLICATE_THRESHOLD` | `0.92` | порог семантического дубля слайдов |
 
 ## 5. API (кратко)
 

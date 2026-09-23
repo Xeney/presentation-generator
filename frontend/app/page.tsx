@@ -15,6 +15,7 @@ type Variant = { name: string; passed: boolean; errors: number; warnings: number
 type JobSummary = {
   slides: number; used_llm: boolean; elapsed_s: number; variants: Variant[];
   stages?: Record<string, number>; vlm_available?: boolean; corpus_id?: string | null;
+  version?: number; fixes?: number;
 };
 
 type JobResp = { status: string; summary?: JobSummary; error?: string };
@@ -28,6 +29,24 @@ type Corpus = {
   stats: { slides: number; non_empty: number; images: number; numbers: number };
   preview?: CorpusSlide[];
   image_keys?: string[];
+};
+
+type VlmSlide = { slide: number; ok: boolean; violations: number[]; violations_text: string[]; summary: string };
+type VlmResult = {
+  available: boolean; model?: string; slides: VlmSlide[]; reason?: string;
+  criteria?: Record<string, string>; elapsed_s?: number; per_slide_s?: number[];
+  prompt?: { id: string; version: string; hash: string; model: string };
+};
+type GroundingIssue = { id: string; code: string; severity: string; slide: number; message: string };
+type GroundingResult = {
+  available: boolean; reason?: string; model?: string; issues: GroundingIssue[]; issues_count?: number;
+};
+type JobInfo = {
+  deck: { title: string; slides: unknown[] };
+  vlm: VlmResult;
+  grounding?: GroundingResult;
+  prompts?: Record<string, { version: string; hash: string; model: string }>;
+  stages?: Record<string, number>;
 };
 
 export default function Page() {
@@ -56,6 +75,7 @@ export default function Page() {
   const [corpus, setCorpus] = useState<Corpus | null>(null);
   const [corpusError, setCorpusError] = useState("");
   const [importing, setImporting] = useState(false);
+  const [info, setInfo] = useState<JobInfo | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const corpusRef = useRef<HTMLInputElement>(null);
 
@@ -91,16 +111,25 @@ export default function Page() {
     }
   }, []);
 
+  const loadInfo = useCallback(async (job: string) => {
+    try {
+      const r = await fetch(`${API}/api/jobs/${job}/info`);
+      if (!r.ok) return;
+      const data: JobInfo = await r.json();
+      setInfo(data);
+      if (data.deck) {
+        setDeckTitle(data.deck.title || "");
+        setSlidesCount(data.deck.slides?.length || 0);
+      }
+    } catch {
+      /* инфо-панель не критична для работы */
+    }
+  }, []);
+
   useEffect(() => {
     if (status !== "done" || !jobId) return;
-    const p = fetch(`${API}/api/jobs/${jobId}/info`).then((r) => r.json());
-    p.then((info) => {
-      if (info && info.deck) {
-        setDeckTitle(info.deck.title || "");
-        setSlidesCount(info.deck.slides?.length || 0);
-      }
-    }).catch(() => {});
-  }, [status, jobId]);
+    loadInfo(jobId);
+  }, [status, jobId, version, loadInfo]);
 
   const importCorpus = async () => {
     const file = corpusRef.current?.files?.[0];
@@ -185,6 +214,7 @@ export default function Page() {
         setVersion(j.version);
         if (j.summary) setSummary((prev) => (prev ? { ...prev, ...j.summary } : prev));
         await loadAudit(variant, jobId);
+        await loadInfo(jobId);
       }
     } catch (e) {
       setError(String(e));
@@ -435,6 +465,61 @@ export default function Page() {
                   </>
                 ) : (
                   <div style={{ opacity: 0.5, fontSize: 13 }}>загрузка аудита…</div>
+                )}
+
+                <h3 style={{ fontSize: 14, margin: "18px 0 10px" }}>Контекстуальный аудит (VLM)</h3>
+                {info?.vlm?.available ? (
+                  <>
+                    <div style={{ fontSize: 12.5, opacity: 0.7, marginBottom: 8 }}>
+                      {info.vlm.model} · слайдов {info.vlm.slides.length} · {info.vlm.elapsed_s} c
+                    </div>
+                    {info.vlm.slides.filter((s) => !s.ok).length === 0 ? (
+                      <div style={{ color: "#4ade80", fontSize: 13 }}>✓ смысловых замечаний нет</div>
+                    ) : (
+                      info.vlm.slides.filter((s) => !s.ok).map((s) => (
+                        <div key={s.slide} style={{ fontSize: 12.5, marginBottom: 6, padding: "6px 8px", background: "#1a1e26", borderRadius: 6 }}>
+                          <div style={{ color: "#fbbf24" }}>слайд {s.slide + 1}</div>
+                          {s.violations_text.map((t) => (
+                            <div key={t} style={{ opacity: 0.85 }}>• {t}</div>
+                          ))}
+                          {s.summary && <div style={{ opacity: 0.6 }}>{s.summary}</div>}
+                        </div>
+                      ))
+                    )}
+                  </>
+                ) : (
+                  <div style={{ opacity: 0.55, fontSize: 12.5 }}>
+                    {info?.vlm?.reason || "недоступен: нужна Ollama с Qwen2.5-VL"}
+                  </div>
+                )}
+
+                <h3 style={{ fontSize: 14, margin: "18px 0 10px" }}>Опора на источник (BGE-M3)</h3>
+                {info?.grounding?.available ? (
+                  <>
+                    <div style={{ fontSize: 12.5, opacity: 0.7 }}>
+                      замечаний: {info.grounding.issues_count ?? info.grounding.issues.length}
+                    </div>
+                    {info.grounding.issues.slice(0, 8).map((g) => (
+                      <div key={g.id} style={{ fontSize: 12.5, marginTop: 4 }}>
+                        <span style={{ color: "#fbbf24" }}>[слайд {g.slide + 1}]</span> {g.message}
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div style={{ opacity: 0.55, fontSize: 12.5 }}>
+                    {info?.grounding?.reason || "нужен контент-пакет"}
+                  </div>
+                )}
+
+                {info?.prompts && (
+                  <>
+                    <h3 style={{ fontSize: 14, margin: "18px 0 10px" }}>Версии промптов</h3>
+                    {Object.entries(info.prompts).map(([id, p]) => (
+                      <div key={id} style={{ fontSize: 12, opacity: 0.7 }}>
+                        {id} v{p.version} · {p.hash.slice(0, 8)}
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
             </div>

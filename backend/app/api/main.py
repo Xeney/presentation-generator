@@ -292,6 +292,11 @@ def job_fix(job_id: str, request: FixRequest):
     result["variants"] = [{"name": a.variant, "pptx": a.pptx, "audit": a.audit}
                           for a in artifacts]
     result["html"] = html_export(deck, result["profile"])
+    # VLM-аудит после фиксов не пересчитывается: это дорогая стадия, а честное
+    # «не проверялось» лучше устаревшей оценки
+    result["vlm"] = {"available": False, "slides": [],
+                     "reason": "после авто-фиксов VLM-аудит не пересчитывался",
+                     "criteria": result.get("vlm", {}).get("criteria", {})}
     result.setdefault("stages", {})["fix_s"] = round(time.time() - started, 2)
     job["fixes"] = (job.get("fixes", []) + outcomes)[-50:]
     job["version"] = job.get("version", 1) + 1
@@ -337,6 +342,8 @@ def job_info(job_id: str):
         "planner": r["planner"],
         "corpus": r.get("corpus"),
         "vlm": r["vlm"],
+        "grounding": r.get("grounding", {}),
+        "prompts": r.get("prompts", {}),
         "stages": r.get("stages", {}),
         "variants": [{"name": v["name"], "audit_summary": {
             "passed": v["audit"]["passed"], "errors": v["audit"]["errors"],

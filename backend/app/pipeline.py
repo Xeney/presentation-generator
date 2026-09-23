@@ -11,13 +11,17 @@ import time
 from dataclasses import dataclass, field
 
 from .audit.checks import Audit
-from .audit.vlm import VlmAudit
+from .audit.vlm import VlmAudit, violations_to_issues
+from .config import get_settings
 from .content.corpus import ContentCorpus
 from .export.html import deck_to_html
 from .layout.engine import DesignContext
 from .models.deck import Deck
+from .planner.llm import OllamaClient
 from .planner.planner import PlanningResult, Planner
+from . import prompts_meta
 from .render.pptx_renderer import Renderer
+from .retrieval.grounding import GroundingChecker, merge_issues
 
 log = logging.getLogger("pipeline")
 
@@ -63,8 +67,23 @@ def audit_variant(deck: Deck, artifact: VariantArtifact, profile: dict) -> dict:
     return Audit(profile).audit(deck, artifact.pptx)
 
 
-def audit_vlm(pptx_bytes: bytes, profile: dict) -> dict:
-    return VlmAudit(profile=profile).audit(pptx_bytes)
+def audit_vlm(pptx_bytes: bytes, profile: dict, deck: Deck | None = None,
+              source_digest: str = "") -> dict:
+    return VlmAudit(profile=profile).audit(pptx_bytes, deck=deck,
+                                           source_digest=source_digest)
+
+
+def ground_deck(deck: Deck, corpus: ContentCorpus | None) -> dict:
+    """Проверка опоры на источник: числа точно, смысл — эмбеддингами BGE-M3."""
+    settings = get_settings()
+    if not settings.grounding_enabled:
+        return {"available": False, "reason": "grounding выключен",
+                "issues": [], "issues_count": 0}
+    checker = GroundingChecker(
+        corpus, llm=OllamaClient(),
+        off_source_threshold=settings.grounding_off_source_threshold,
+        duplicate_threshold=settings.grounding_duplicate_threshold)
+    return checker.check(deck).to_dict()
 
 
 def html_export(deck: Deck, profile: dict) -> str:
@@ -107,10 +126,27 @@ def full_generate(brief: str, source: str, purpose: str,
         artifact.audit = audit_variant(deck, artifact, profile)
     stages["audit_s"] = round(time.perf_counter() - t0, 2)
 
-    vlm_result: dict = {"available": False, "slides": []}
+    # проверка опоры на источник: проблемы общие для всех вариантов (это контент),
+    # поэтому считаем один раз и добавляем в каждый отчёт
+    t0 = time.perf_counter()
+    grounding = ground_deck(deck, corpus)
+    for artifact in artifacts:
+        merge_issues(artifact.audit, [dict(issue) for issue in grounding.get("issues", [])])
+    stages["grounding_s"] = round(time.perf_counter() - t0, 2)
+
+    settings = get_settings()
+    vlm_result: dict = {"available": False, "slides": [], "reason": "стадия выключена"}
+    vlm_by_variant: dict = {}
     if vlm and artifacts:
         t0 = time.perf_counter()
-        vlm_result = audit_vlm(artifacts[0].pptx, profile)
+        digest = corpus.text()[:1200] if corpus is not None else ""
+        targets = artifacts if settings.vlm_audit_all_variants else artifacts[:1]
+        for artifact in targets:
+            verdict = audit_vlm(artifact.pptx, profile, deck=deck, source_digest=digest)
+            vlm_by_variant[artifact.variant] = verdict
+            merge_issues(artifact.audit,
+                         [dict(issue) for issue in violations_to_issues(verdict)])
+        vlm_result = vlm_by_variant.get(artifacts[0].variant, vlm_result)
         stages["vlm_s"] = round(time.perf_counter() - t0, 2)
 
     stages["total_s"] = round(sum(stages.values()), 2)
@@ -119,12 +155,15 @@ def full_generate(brief: str, source: str, purpose: str,
         "profile": profile,
         "deck": json.loads(deck.model_dump_json()),
         "planner": {"used_llm": result.used_llm, "attempts": result.attempts},
+        "prompts": prompts_meta.versions(),
         "corpus": corpus.to_dict() if corpus is not None else None,
         "variants": [
             {"name": a.variant, "pptx": a.pptx, "audit": a.audit}
             for a in artifacts
         ],
         "vlm": vlm_result,
+        "vlm_by_variant": vlm_by_variant,
+        "grounding": grounding,
         "stages": stages,
         "html": html_export(deck, profile),
     }
