@@ -18,7 +18,7 @@ from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
-from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.shapes import MSO_SHAPE, PP_PLACEHOLDER
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
@@ -66,7 +66,8 @@ def _color(h: Optional[str]) -> Optional[RGBColor]:
         return None
 
 
-def _set_run_font(r, name: str, size: float, bold: bool, color: str | None, italic: bool = False):
+def _apply_run_font(r, name: str, size: float, bold: bool, color: str | None,
+                    italic: bool = False):
     r.font.size = Pt(size)
     r.font.bold = bold
     r.font.italic = italic
@@ -278,9 +279,14 @@ class Renderer:
             placeholders = list(slide.placeholders)
         except Exception:  # noqa: BLE001
             return
+        keep = {PP_PLACEHOLDER.TITLE.value, PP_PLACEHOLDER.CENTER_TITLE.value,
+                PP_PLACEHOLDER.SLIDE_NUMBER.value, PP_PLACEHOLDER.FOOTER.value,
+                PP_PLACEHOLDER.HEADER.value, PP_PLACEHOLDER.DATE.value}
         for ph in placeholders:
             try:
-                if ph.placeholder_format.type in (1, 3):  # TITLE / CENTER_TITLE
+                ph_type = getattr(ph.placeholder_format.type, "value",
+                                  ph.placeholder_format.type)
+                if ph_type in keep:
                     continue
                 if ph.has_text_frame and not ph.text_frame.text.strip():
                     ph._element.getparent().remove(ph._element)
@@ -329,7 +335,7 @@ class Renderer:
         p = _add_para(tf, sl.heading, first=True)
         r = p.add_run()
         r.text = sl.heading
-        _set_run_font(r, self._headline_font(), size, True, color)
+        self._set_run_font(r, self._headline_font(), size, True, color)
         if sl.subheading and sl.slide_type == SlideType.SECTION:
             sub = slide.shapes.add_textbox(_in(rect.x), _in(rect.y + rect.h * 0.9),
                                            _in(rect.w), _in(0.5))
@@ -337,7 +343,7 @@ class Renderer:
             stf.word_wrap = True
             rr = stf.paragraphs[0].add_run()
             rr.text = sl.subheading
-            _set_run_font(rr, self._body_font(), max(11.0, size * 0.5), False,
+            self._set_run_font(rr, self._body_font(), max(11.0, size * 0.5), False,
                           self._text_color())
 
     def _style_placeholder(self, ph, text: str, size: float, color: str, headline_bold: bool):
@@ -346,7 +352,7 @@ class Renderer:
         p = tf.paragraphs[0]
         r = p.add_run()
         r.text = text
-        _set_run_font(r, self._headline_font(), size, headline_bold, color)
+        self._set_run_font(r, self._headline_font(), size, headline_bold, color)
         p.alignment = PP_ALIGN.LEFT
 
     # ------------------------------------------------------------ item drawing
@@ -375,6 +381,27 @@ class Renderer:
             log.warning("неизвестный виджет %s", widget)
 
     # ---------------------------------------------------------------- helpers
+    def _set_run_font(self, run, name: str, size: float, bold: bool,
+                      color: str | None, italic: bool = False) -> None:
+        """Единая точка установки шрифта run: кегль всегда из шкалы шаблона.
+
+        Аудит проверяет, что кегль входит в типографическую шкалу шаблона
+        (`font_size_not_in_scale`), поэтому производные размеры (например,
+        подпись в 0.35 от крупного числа) приводятся к ближайшему значению шкалы.
+        """
+        _apply_run_font(run, name, self._snap_size(size), bold, color, italic)
+
+    def _allowed_sizes(self) -> list[float]:
+        scale = self.profile.get("type_scale", {}) or {}
+        sizes = [float(x) for x in (scale.get("title") or []) + (scale.get("body") or [])]
+        return sorted(set(sizes))
+
+    def _snap_size(self, value: float) -> float:
+        allowed = self._allowed_sizes()
+        if not allowed:
+            return round(float(value), 1)
+        return min(allowed, key=lambda a: (abs(a - value), a))
+
     def _headline_font(self) -> str:
         return self.profile.get("headline_font") or self.profile.get("body_font") or "Arial"
 
@@ -385,15 +412,15 @@ class Renderer:
         scale = self.profile.get("type_scale", {}).get(kind) or []
         cands = [x for x in scale if default - 2 <= x <= default + 8]
         if cands:
-            return min(cands, key=lambda x: abs(x - default))
-        return default
+            return float(min(cands, key=lambda x: abs(x - default)))
+        return self._snap_size(default)
 
     def _body_size(self, default: float = 16.0) -> float:
         scale = self.profile.get("type_scale", {}).get("body") or []
         cands = [x for x in scale if 10 <= x <= 20]
         if cands:
-            return max(default, max(cands))
-        return default
+            return float(max(default, max(cands)))
+        return self._snap_size(default)
 
     def _palette(self) -> list[str]:
         return [p.get("hex") for p in self.profile.get("palette", []) if p.get("hex")]
@@ -435,10 +462,10 @@ class Renderer:
     def _fit_size(self, text: str, w: float, h: float, default: float,
                   min_size: float = 9.0) -> float:
         from ..layout.geometry import fit_font_size
-        sizes = self.profile.get("type_scale", {}).get("body") or [default]
-        sz, _ = fit_font_size(text, w, h, [float(x) for x in sizes if float(x) >= min_size] or [default],
-                              min_size=min_size)
-        return sz
+        sizes = self.profile.get("type_scale", {}).get("body") or []
+        candidates = [float(x) for x in sizes if float(x) >= min_size] or [default]
+        sz, _ = fit_font_size(text, w, h, candidates, min_size=min_size)
+        return self._snap_size(sz)
 
     # ----------------------------------------------------------------- bullets
     def _draw_bullets(self, slide, it: dict, rect: Rect) -> None:
@@ -474,7 +501,7 @@ class Renderer:
             self._set_bullet(p, accent, size)
             r = p.add_run()
             r.text = item
-            _set_run_font(r, body, size, False, text_color)
+            self._set_run_font(r, body, size, False, text_color)
 
     @staticmethod
     def _set_bullet(p, accent: str, size: float):
@@ -501,7 +528,7 @@ class Renderer:
         tf.word_wrap = True
         r = tf.paragraphs[0].add_run()
         r.text = title
-        _set_run_font(r, self._headline_font(), size, True,
+        self._set_run_font(r, self._headline_font(), size, True,
                       style.get("accent") or self._accent_color())
         return Rect(rect.x, rect.y + 0.42, rect.w, max(0.2, rect.h - 0.42))
 
@@ -541,7 +568,7 @@ class Renderer:
         r.text = text
         is_sub = data.get("is_sub", False)
         size = self._scale_pick("title", 20.0) * (0.55 if is_sub else 0.8)
-        _set_run_font(r, self._body_font(), max(11, size), False,
+        self._set_run_font(r, self._body_font(), max(11, size), False,
                       style.get("text_color") or self._text_color())
 
     def _draw_text_block(self, slide, it: dict, rect: Rect) -> None:
@@ -561,7 +588,7 @@ class Renderer:
         size = self._fit_size(text, inner.w, inner.h, default=15.0)
         r = tf.paragraphs[0].add_run()
         r.text = text
-        _set_run_font(r, self._body_font(), size, False,
+        self._set_run_font(r, self._body_font(), size, False,
                       style.get("text_color") or self._text_color())
 
     # ---------------------------------------------------------------- factoids
@@ -598,7 +625,7 @@ class Renderer:
             p = tf.paragraphs[0]
             r = p.add_run()
             r.text = value
-            _set_run_font(r, self._headline_font(), big, True, accent)
+            self._set_run_font(r, self._headline_font(), big, True, accent)
             if label:
                 lb = slide.shapes.add_textbox(_in(cell.x), _in(cell.y + cell.h * 0.5),
                                               _in(cell.w), _in(cell.h * 0.5))
@@ -606,7 +633,7 @@ class Renderer:
                 ltf.word_wrap = True
                 lr = ltf.paragraphs[0].add_run()
                 lr.text = label
-                _set_run_font(lr, self._body_font(), max(11.0, big * 0.35), False, label_c)
+                self._set_run_font(lr, self._body_font(), max(11.0, big * 0.35), False, label_c)
 
     # ------------------------------------------------------------------- table
     def _draw_table(self, slide, it: dict, rect: Rect) -> None:
@@ -659,15 +686,22 @@ class Renderer:
             pass
 
     def _header_font_size(self) -> float:
-        base = self._scale_pick("body", 14.0)
-        return max(14.0, base)
+        return self._snap_size(max(14.0, self._scale_pick("body", 14.0)))
 
     def _cell_font_size(self, text: str, w: float) -> float:
-        ts = self.profile.get("type_scale", {}).get("body") or [13]
-        cs = [x for x in ts if 11 <= x <= 15] or [13]
-        if len(text) * 0.53 * max(cs) / 72.0 > w * 2.2:
-            return max(cs)
-        return max(cs)
+        """Кегль ячейки таблицы: минимальный из шкалы, пригодный для текста.
+
+        Значения вне шкалы запрещены (аудит `font_size_not_in_scale`), поэтому
+        вместо «13 по умолчанию» берётся ближайший меньший размер шкалы.
+        """
+        scale = sorted(float(x) for x in
+                       (self.profile.get("type_scale", {}).get("body") or []))
+        small = [x for x in scale if 11.0 <= x <= 16.0]
+        if small:
+            return max(small)
+        if scale:
+            return scale[0]
+        return 12.0
 
     def _cell(self, cell, text: str, fg, font, size, light_text: bool, bg=None):
         cell.margin_left = cell.margin_right = Inches(0.08)
@@ -681,9 +715,9 @@ class Renderer:
         r = p.add_run()
         r.text = text
         if light_text:
-            _set_run_font(r, font, size, True, "#FFFFFF")
+            self._set_run_font(r, font, size, True, "#FFFFFF")
         else:
-            _set_run_font(r, font, size, False, fg)
+            self._set_run_font(r, font, size, False, fg)
         fill_hex = (bg or "#FFFFFF") if not light_text else fg
         cell.fill.solid()
         r_, g_, b_ = hex_to_rgb(fill_hex)
@@ -709,12 +743,13 @@ class Renderer:
         if ch.has_legend:
             ch.legend.position = XL_LEGEND_POSITION.BOTTOM
             ch.legend.include_in_layout = False
-            self._style_chart_generic_text(ch.legend._element, 11.0)
-        if not is_pie:
-            try:
-                ch.has_title = False
-            except Exception:
-                pass
+            self._style_chart_text(ch.legend, size=self._chart_font_size())
+        try:
+            ch.has_title = False
+        except Exception:
+            pass
+        self._style_chart_data(ch, chart, is_pie)
+        self._style_chart_axes(ch, chart, is_pie)
         # цвета серий из палитры
         pal = self._palette()[4:] or ["#4472C4", "#ED7D31", "#A5A5A5", "#FFC000", "#70AD47"]
         try:
@@ -749,15 +784,54 @@ class Renderer:
         except Exception:
             pass
 
-    @staticmethod
-    def _style_chart_generic_text(el, size: float):
-        """Задаёт кегль всем текстовым свойствам диаграммы (fallback снаружи)."""
+    def _chart_font_size(self) -> float:
+        """Кегль подписей диаграммы: из шкалы шаблона (аудит проверяет кегли)."""
+        return self._snap_size(min(self._body_size(12.0), 14.0))
+
+    def _style_chart_text(self, obj, size: float) -> None:
+        """Шрифт, кегль и цвет текста объекта диаграммы (легенда, подписи, оси)."""
         try:
-            txPr = el
-            for rPr in txPr.iter(qn("a:rPr")):
-                rPr.set("sz", str(int(size * 100)))
-        except Exception:
+            font = obj.font
+            font.size = Pt(size)
+            font.name = self._body_font()
+            color = _color(self._text_color())
+            if color is not None:
+                font.color.rgb = color
+        except Exception:  # noqa: BLE001 — не всякий объект поддерживает шрифт
             pass
+
+    def _style_chart_data(self, ch, chart: Chart, is_pie: bool) -> None:
+        """Подписи данных: без них диаграмма нечитаема (проверка chart_unlabeled)."""
+        if chart.labels is False:
+            return
+        try:
+            plot = ch.plots[0]
+            plot.has_data_labels = True
+            labels = plot.data_labels
+            labels.number_format_is_linked = False
+            labels.number_format = '0"%"' if chart.unit == "%" else "General"
+            if is_pie:
+                labels.show_percentage = True
+                labels.show_value = False
+                labels.show_category_name = True
+            self._style_chart_text(labels, self._chart_font_size())
+        except Exception as exc:  # noqa: BLE001
+            log.warning("не удалось включить подписи данных: %s", exc)
+
+    def _style_chart_axes(self, ch, chart: Chart, is_pie: bool) -> None:
+        """Единицы измерения: заголовок оси значений + формат подписей категорий."""
+        if is_pie:
+            return
+        try:
+            value_axis = ch.value_axis
+            if chart.unit:
+                value_axis.has_title = True
+                value_axis.axis_title.text_frame.text = f"Значение, {chart.unit}"
+                self._style_chart_text(value_axis.axis_title, self._chart_font_size())
+            self._style_chart_text(value_axis.tick_labels, self._chart_font_size())
+            self._style_chart_text(ch.category_axis.tick_labels, self._chart_font_size())
+        except Exception as exc:  # noqa: BLE001
+            log.warning("не удалось оформить оси диаграммы: %s", exc)
 
     # -------------------------------------------------------------------- quote
     def _draw_quote(self, slide, it: dict, rect: Rect) -> None:
@@ -778,7 +852,7 @@ class Renderer:
         p = tf.paragraphs[0]
         r = p.add_run()
         r.text = "«" + text + "»"
-        _set_run_font(r, self._headline_font(),
+        self._set_run_font(r, self._headline_font(),
                       self._fit_size(text, inner.w, inner.h * 0.8, default=20.0),
                       False, style.get("text_color") or self._text_color(), italic=True)
         if author:
@@ -786,7 +860,7 @@ class Renderer:
             ap.alignment = PP_ALIGN.LEFT
             ar = ap.add_run()
             ar.text = "— " + author
-            _set_run_font(ar, self._body_font(), 14, True, accent)
+            self._set_run_font(ar, self._body_font(), 14, True, accent)
 
     # -------------------------------------------------------------------- steps
     def _draw_steps(self, slide, it: dict, rect: Rect) -> None:
@@ -828,7 +902,7 @@ class Renderer:
             size = self._fit_size(txt, step_w - 0.2, step_h * 0.8, default=14.0)
             if size < 14:
                 size = 14.0
-            _set_run_font(r, self._body_font(), size,
+            self._set_run_font(r, self._body_font(), size,
                           True, "#FFFFFF" if white else self._text_color())
 
     # -------------------------------------------------------------------- image
@@ -863,7 +937,7 @@ class Renderer:
             tf.word_wrap = True
             run = tf.paragraphs[0].add_run()
             run.text = block.image_caption
-            _set_run_font(run, self._body_font(), 11.0, False,
+            self._set_run_font(run, self._body_font(), 11.0, False,
                           style.get("text_color") or self._text_color())
 
     def _resolve_image(self, block: Block) -> Optional[bytes]:
@@ -913,5 +987,5 @@ class Renderer:
             p.alignment = PP_ALIGN.CENTER
             run = p.add_run()
             run.text = caption[:120]
-            _set_run_font(run, self._body_font(), 12.0, False,
+            self._set_run_font(run, self._body_font(), 12.0, False,
                           style.get("text_color") or self._text_color())

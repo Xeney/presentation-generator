@@ -222,7 +222,9 @@
       "master_id": "M0",
       "name": "1_Титульный слайд",
       "role": "title",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: титульный слайд, блоков 1",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -274,6 +276,7 @@
         "h": 0.3125
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -286,7 +289,9 @@
       "master_id": "M0",
       "name": "2_Титульный слайд",
       "role": "title",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: титульный слайд, блоков 3",
+      "score": 0.9,
       "placeholders": [
         {
           "idx": 0,
@@ -373,6 +378,7 @@
           "h": 0.3125
         }
       ],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -387,7 +393,9 @@
       "master_id": "M0",
       "name": "1_Слайд \"Спасибо!\"",
       "role": "final",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: финальный слайд",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -453,6 +461,7 @@
         "h": 0.3125
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -467,7 +476,9 @@
       "master_id": "M1",
       "name": "1_Разделитель",
       "role": "section",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: раздел",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -519,6 +530,7 @@
         "h": 0.3125
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -531,7 +543,9 @@
       "master_id": "M1",
       "name": "4_Слайд \"Спасибо!\"",
       "role": "final",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: финальный слайд",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -583,6 +597,7 @@
         "h": 0.55001968503937
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -595,7 +610,9 @@
       "master_id": "M1",
       "name": "1_Содержание",
       "role": "agenda",
-      "score": 0.9500000000000001,
+      "kind": "multi_column",
+      "role_reason": "имя: оглавление, блоков 6",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -717,6 +734,7 @@
         "h": 0.4114588801399825
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -729,7 +747,9 @@
       "master_id": "M1",
       "name": "2_Содержание",
       "role": "agenda",
-      "score": 0.9500000000000001,
+      "kind": "multi_column",
+      "role_reason": "имя: оглавление, блоков 5",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -837,6 +857,7 @@
         "h": 0.4114588801399825
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -849,7 +870,9 @@
       "master_id": "M1",
       "name": "3_Содержание",
       "role": "agenda",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: оглавление, блоков 2",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -915,6 +938,7 @@
         "h": 4.086944444444445
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -929,7 +953,9 @@
       "master_id": "M1",
       "name": "1_Визитка",
       "role": "content",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "заголовок + 3 текстовый блок(ов)",
+      "score": 1.0,
       "placeholders": [
         {
           "idx": 1,
@@ -1016,6 +1042,7 @@
           "h": 1.6748501749781277
         }
       ],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1030,7 +1057,9 @@
       "master_id": "M1",
       "name": "4_Визитка",
       "role": "content",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "заголовок + 2 текстовый блок(ов)",
+      "score": 0.95,
       "placeholders": [
         {
           "idx": 1,
@@ -1096,6 +1125,7 @@
         "h": 1.6748501749781277
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1109,8 +1139,10 @@
       "id": "L10",
       "master_id": "M1",
       "name": "1_Свободный дизайн",
-      "role": "content",
-      "score": 0.65,
+      "role": "title",
+      "kind": "blank",
+      "role_reason": "крупный заголовок (0.79″) без контента",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -1143,6 +1175,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1165,7 +1198,9 @@
       "master_id": "M1",
       "name": "1_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -1198,6 +1233,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1215,7 +1251,9 @@
       "master_id": "M1",
       "name": "3_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -1248,6 +1286,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1260,7 +1299,9 @@
       "master_id": "M1",
       "name": "5_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -1293,6 +1334,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1307,7 +1349,9 @@
       "master_id": "M1",
       "name": "7_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -1340,6 +1384,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1357,7 +1402,9 @@
       "master_id": "M1",
       "name": "8_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -1390,6 +1437,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1405,7 +1453,9 @@
       "master_id": "M1",
       "name": "13_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -1438,6 +1488,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1453,11 +1504,14 @@
       "master_id": "M1",
       "name": "DEFAULT",
       "role": "content",
-      "score": 0.5,
+      "kind": "blank",
+      "role_reason": "пустой/декоративный макет без контентных рамок",
+      "score": 0.25,
       "placeholders": [],
       "title_ph": null,
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1479,8 +1533,10 @@
       "id": "L18",
       "master_id": "M1",
       "name": "2_Свободный дизайн",
-      "role": "content",
-      "score": 0.65,
+      "role": "title",
+      "kind": "blank",
+      "role_reason": "крупный заголовок (0.99″) без контента",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -1513,6 +1569,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1525,7 +1582,9 @@
       "master_id": "M1",
       "name": "2_Разделитель",
       "role": "section",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: раздел",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -1577,6 +1636,7 @@
         "h": 0.3125
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1589,7 +1649,9 @@
       "master_id": "M1",
       "name": "1_Титульный слайд",
       "role": "title",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: титульный слайд, блоков 1",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -1641,6 +1703,7 @@
         "h": 0.3125
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1653,7 +1716,9 @@
       "master_id": "M1",
       "name": "2_Титульный слайд",
       "role": "title",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: титульный слайд, блоков 3",
+      "score": 0.9,
       "placeholders": [
         {
           "idx": 0,
@@ -1740,6 +1805,7 @@
           "h": 0.3125
         }
       ],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1752,7 +1818,9 @@
       "master_id": "M1",
       "name": "1_Слайд \"Спасибо!\"",
       "role": "final",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: финальный слайд",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -1818,6 +1886,7 @@
         "h": 0.3125
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1830,7 +1899,9 @@
       "master_id": "M1",
       "name": "2_Слайд \"Спасибо!\"",
       "role": "final",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: финальный слайд",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -1896,6 +1967,7 @@
         "h": 0.3125
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1908,7 +1980,9 @@
       "master_id": "M1",
       "name": "3_Слайд \"Спасибо!\"",
       "role": "final",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: финальный слайд",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -1960,6 +2034,7 @@
         "h": 0.55001968503937
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1972,7 +2047,9 @@
       "master_id": "M1",
       "name": "5_Содержание",
       "role": "agenda",
-      "score": 0.9500000000000001,
+      "kind": "multi_column",
+      "role_reason": "имя: оглавление, блоков 6",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -2094,6 +2171,7 @@
         "h": 0.4114588801399825
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2106,7 +2184,9 @@
       "master_id": "M1",
       "name": "6_Содержание",
       "role": "agenda",
-      "score": 0.9500000000000001,
+      "kind": "multi_column",
+      "role_reason": "имя: оглавление, блоков 5",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -2214,6 +2294,7 @@
         "h": 0.4114588801399825
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2226,7 +2307,9 @@
       "master_id": "M1",
       "name": "4_Содержание",
       "role": "agenda",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "имя: оглавление, блоков 2",
+      "score": 0.85,
       "placeholders": [
         {
           "idx": 0,
@@ -2292,6 +2375,7 @@
         "h": 4.086944444444445
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2304,7 +2388,9 @@
       "master_id": "M1",
       "name": "3_Визитка",
       "role": "content",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "заголовок + 3 текстовый блок(ов)",
+      "score": 1.0,
       "placeholders": [
         {
           "idx": 1,
@@ -2391,6 +2477,7 @@
           "h": 1.6748501749781277
         }
       ],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2403,7 +2490,9 @@
       "master_id": "M1",
       "name": "2_Визитка",
       "role": "content",
-      "score": 0.9500000000000001,
+      "kind": "bullets",
+      "role_reason": "заголовок + 2 текстовый блок(ов)",
+      "score": 0.95,
       "placeholders": [
         {
           "idx": 1,
@@ -2469,6 +2558,7 @@
         "h": 1.6748501749781277
       },
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2481,7 +2571,9 @@
       "master_id": "M1",
       "name": "2_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -2514,6 +2606,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2526,7 +2619,9 @@
       "master_id": "M1",
       "name": "4_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -2559,6 +2654,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2571,7 +2667,9 @@
       "master_id": "M1",
       "name": "6_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -2604,6 +2702,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2616,7 +2715,9 @@
       "master_id": "M1",
       "name": "12_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -2649,6 +2750,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2661,7 +2763,9 @@
       "master_id": "M1",
       "name": "9_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -2694,6 +2798,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2706,7 +2811,9 @@
       "master_id": "M1",
       "name": "10_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -2739,6 +2846,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2751,7 +2859,9 @@
       "master_id": "M1",
       "name": "11_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -2784,6 +2894,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2796,7 +2907,9 @@
       "master_id": "M1",
       "name": "14_Контент",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -2829,6 +2942,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2841,11 +2955,14 @@
       "master_id": "M1",
       "name": "1_DEFAULT",
       "role": "content",
-      "score": 0.5,
+      "kind": "blank",
+      "role_reason": "пустой/декоративный макет без контентных рамок",
+      "score": 0.25,
       "placeholders": [],
       "title_ph": null,
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2858,6 +2975,8 @@
     "title": [
       "L0",
       "L1",
+      "L10",
+      "L18",
       "L20",
       "L21"
     ],
@@ -2883,7 +3002,6 @@
     "content": [
       "L8",
       "L9",
-      "L10",
       "L11",
       "L12",
       "L13",
@@ -2891,7 +3009,6 @@
       "L15",
       "L16",
       "L17",
-      "L18",
       "L28",
       "L29",
       "L30",

@@ -19,57 +19,79 @@
 
 ## 1. Детерминированные проверки
 
+Все проверки возвращают код, severity, сообщение, `bbox` (для красных рамок в UI),
+стабильный `id` и признак `deterministic = true`.
+
 ### 1.1 Вёрстка
 
-| Проверка | Код | Severity | Статус | Тест |
-|---|---|---|---|---|
-| Элемент вышел за границы слайда | `out_of_bounds` | error | есть | `test_audit_catches_out_of_bounds` |
-| Два блока наложились друг на друга | `overlap` | warning | есть | `test_audit_positive_case` (негативный кейс) |
-| Текст не поместился в свою рамку | `text_overflow` | warning | есть | — |
-| Текст обрезан краем слайда | `out_of_bounds` | error | есть | `test_audit_catches_out_of_bounds` |
-| Нет изображения для блока-иллюстрации (остался слот) | `image_missing` | warning | есть | `test_image_widget_falls_back_to_slot` |
-| Блоки не выровнены по направляющим макета | `misaligned_to_grid` | warning | план (этап 3) | — |
-| Контент заходит в поля у краёв | `content_in_margins` | warning | план (этап 3) | — |
-| Картинка растянута, пропорции нарушены | `image_stretched` | error | план (этап 3) | — |
+| Проверка | Код | Severity | Тест |
+|---|---|---|---|
+| Элемент вышел за границы слайда | `out_of_bounds` | error | `test_audit_catches_out_of_bounds` |
+| Два блока наложились друг на друга | `overlap` | warning | `test_audit_positive_case` (базис чист) |
+| Текст не поместился в свою рамку | `text_overflow` | warning | — |
+| Текст обрезан краем слайда | `out_of_bounds` | error | `test_audit_catches_out_of_bounds` |
+| Нет изображения для блока-иллюстрации (остался слот) | `image_missing` | warning | `test_image_widget_falls_back_to_slot` |
+| Блоки одной колонки не выровнены между собой | `misaligned_to_grid` | warning | `test_misaligned_to_grid` |
+| Контент заходит в поля у краёв слайда | `content_in_margins` | warning | `test_content_in_margins` |
+| Картинка растянута, пропорции нарушены (>5%) | `image_stretched` | error | `test_image_stretched` |
+| Слайд заполнен меньше чем на четверть | `slide_too_sparse` | warning | `test_slide_too_sparse` |
+| Слайд заполнен больше чем на три четверти | `slide_too_dense` | warning | `test_slide_too_dense` |
 
 ### 1.2 Соответствие шаблону
 
-| Проверка | Код | Severity | Статус | Тест |
-|---|---|---|---|---|
-| Шрифт не из шаблона | `font_not_allowed` | error | есть | — |
-| Гарнитур больше двух на колоду | `too_many_typefaces` | warning | план (этап 3) | — |
-| Кегль не из типографической шкалы шаблона | `font_size_not_in_scale` | error | план (этап 3) | — |
-| Цвет не из палитры шаблона | `color_not_allowed` | error | есть | — |
-| Слайд собран не на макете из шаблона | `layout_not_from_template` | error | план (этап 3) | — |
-| Логотип или колонтитул сдвинуты с места | `branding_shifted` | warning | план (этап 3) | — |
-| Контраст текста к фону ниже 4.5:1 | `contrast_too_low` | error | есть | — |
+| Проверка | Код | Severity | Тест |
+|---|---|---|---|
+| Шрифт не из шаблона | `font_not_allowed` | error | базис `test_audit_positive_case` |
+| Гарнитур больше двух на колоду | `too_many_typefaces` | warning | `test_too_many_typefaces` |
+| Кегль не из типографической шкалы шаблона | `font_size_not_in_scale` | error | `test_font_size_not_in_scale` |
+| Цвет текста не из палитры шаблона | `color_not_allowed` | error | базис `test_audit_positive_case` |
+| Заливка не из палитры и не её смесь | `color_not_allowed` | warning | `test_fill_color_not_allowed` |
+| Слайд собран не на макете из шаблона | `layout_not_from_template` | error | `test_layout_not_from_template` |
+| Логотип или колонтитул сдвинуты с места | `branding_shifted` | warning | `test_branding_shifted` |
+| Контраст текста к фону ниже 4.5:1 (3:1 для крупного) | `contrast_too_low` | error | базис `test_audit_positive_case` |
 
 ### 1.3 Плотность
 
-| Проверка | Код | Severity | Статус | Тест |
-|---|---|---|---|---|
-| Больше 6 буллетов на слайде | `too_many_bullets` | error | есть | — |
-| Буллет длиннее 15 слов | `bullet_too_long` | error | есть | — |
-| Таблица больше 7 строк или 5 колонок | `table_too_big` | error | есть | `test_audit_catches_table_too_big` |
-| Больше 5 серий на диаграмме | `too_many_series` | error | есть | `test_audit_catches_too_many_series` |
-| Слайд заполнен меньше чем на четверть | `slide_too_sparse` | warning | план (этап 3) | — |
-| Слайд заполнен больше чем на три четверти | `slide_too_dense` | warning | план (этап 3) | — |
+| Проверка | Код | Severity | Тест |
+|---|---|---|---|
+| Больше 6 буллетов на слайде | `too_many_bullets` | error | базис `test_audit_positive_case` |
+| Буллет длиннее 15 слов | `bullet_too_long` | error | базис `test_audit_positive_case` |
+| Таблица больше 7 строк или 5 колонок | `table_too_big` | error | `test_audit_catches_table_too_big` |
+| Больше 5 серий на диаграмме | `too_many_series` | error | `test_audit_catches_too_many_series` |
 
-### 1.4 Целостность
+### 1.4 Данные и целостность
 
-| Проверка | Код | Severity | Статус | Тест |
-|---|---|---|---|---|
-| Файл не открывается | — (исключение при разборе) | error | есть | `test_render_rejects_garbage`, `test_audit_rejects_broken_file` |
-| Текст-заглушка (lorem ipsum, XXX, TODO, «вставьте текст») | `placeholder_text` | warning | есть | `test_audit_catches_placeholder_text` |
-| Пустой слайд или слайд с одним заголовком | `empty_slide` | warning | есть | — |
-| Слайд оказался картинкой, а не редактируемыми объектами | `raster_slide` | error | есть | `test_audit_catches_raster_slide` |
-| Диаграмма без подписей осей, единиц или легенды | `chart_unlabeled` | warning | план (этап 3) | — |
-| Два слайда дублируют друг друга | `duplicate_slide` | warning | план (этап 5, эмбеддинги BGE-M3) | — |
-| Повторяющийся заголовок | `duplicate_heading` | warning | есть | — |
+| Проверка | Код | Severity | Тест |
+|---|---|---|---|
+| Диаграмма без подписей данных, единиц или легенды | `chart_unlabeled` | warning | `test_chart_unlabeled` |
+| Файл не открывается | — (исключение при разборе) | error | `test_render_rejects_garbage`, `test_audit_rejects_broken_file` |
+| Текст-заглушка (lorem ipsum, XXX, TODO, «вставьте текст») | `placeholder_text` | warning | `test_audit_catches_placeholder_text` |
+| Пустой слайд или слайд с одним заголовком | `empty_slide` | warning | — |
+| Слайд оказался картинкой, а не редактируемыми объектами | `raster_slide` | error | `test_audit_catches_raster_slide` |
+| Два слайда дублируют друг друга | `duplicate_slide` | warning | `test_duplicate_slide` |
+| Повторяющийся заголовок | `duplicate_heading` | warning | `test_duplicate_slide` |
 
-Сводка по шаблонам и вариантам — `python tools/audit_matrix.py`: на 3 шаблонах VK и
-3 синтетических фикстурах все три варианта вёрстки дают **0 ошибок и 0 замечаний**
-(проверено на дату 2026-09-23).
+### 1.5 Сводка
+
+Все проверки — `python -m pytest backend/tests/test_audit.py backend/tests/test_audit_checks.py`.
+Проверка на всех доступных шаблонах и вариантах — `python tools/audit_matrix.py`:
+на 3 шаблонах VK и 3 синтетических фикстурах все три варианта вёрстки дают
+**0 ошибок и 0 замечаний** (замер 2026-09-23).
+
+Проверки, где сознательно выбраны другие пороги, чем в ориентире Приложения 1:
+
+* **`misaligned_to_grid`** — сравниваются блоки одной колонки между собой
+  (расхождение 0.1–2.3 мм). Сравнение с направляющими макета давало ложные
+  срабатывания: у макетов есть несколько близких направляющих (заголовок, тело),
+  и блок, выровненный по одной, «не выровнен» относительно другой.
+* **`slide_too_sparse`** — порог четверти сохранён, но проверка не применяется к
+  витринным слайдам (титул, раздел, финал): у них мало контента по замыслу.
+* **`content_in_margins`** — поля берутся как *минимальные* отступы по всем
+  макетам шаблона, а не из одного: у разных макетов поля разные, и вёрстка имеет
+  право использовать любую из них.
+* **`branding_shifted`** проверяет только те фирменные элементы, которые реально
+  есть на слайде: `python-pptx` не переносит дату/колонтитул/номер с макета на
+  слайд, поэтому наследуемый декор сдвинуть нельзя по определению.
 
 ## 2. Контекстуальные проверки (VLM)
 

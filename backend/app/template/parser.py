@@ -16,6 +16,7 @@ from typing import Optional
 from zipfile import ZipFile
 
 from pptx import Presentation
+from pptx.enum.shapes import PP_PLACEHOLDER
 from pptx.util import Emu
 
 from .profile import (
@@ -30,23 +31,33 @@ A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
 R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
+# Имена типов плейсхолдеров берём из перечисления python-pptx: магические числа
+# в прошлой версии частично не соответствовали спецификации (11 — это org_chart,
+# 12 — table, 16 — date), из-за чего роли макетов определялись неверно.
 PLACEHOLDER_TYPES = {
-    1: "title",
-    2: "body",
-    3: "center_title",
-    4: "subtitle",
-    5: "vertical_text",
-    6: "title",
-    7: "object",
-    11: "caption",
-    12: "slide_image",
-    13: "slide_number",
-    14: "footer",
-    15: "header",
-    16: "object",
-    17: "table",
-    18: "picture",
+    PP_PLACEHOLDER.TITLE.value: "title",
+    PP_PLACEHOLDER.BODY.value: "body",
+    PP_PLACEHOLDER.CENTER_TITLE.value: "center_title",
+    PP_PLACEHOLDER.SUBTITLE.value: "subtitle",
+    PP_PLACEHOLDER.VERTICAL_TITLE.value: "vertical_title",
+    PP_PLACEHOLDER.VERTICAL_BODY.value: "vertical_text",
+    PP_PLACEHOLDER.OBJECT.value: "object",
+    PP_PLACEHOLDER.VERTICAL_OBJECT.value: "vertical_object",
+    PP_PLACEHOLDER.CHART.value: "chart",
+    PP_PLACEHOLDER.TABLE.value: "table",
+    PP_PLACEHOLDER.BITMAP.value: "bitmap",
+    PP_PLACEHOLDER.MEDIA_CLIP.value: "media",
+    PP_PLACEHOLDER.ORG_CHART.value: "org_chart",
+    PP_PLACEHOLDER.PICTURE.value: "picture",
+    PP_PLACEHOLDER.SLIDE_IMAGE.value: "slide_image",
+    PP_PLACEHOLDER.SLIDE_NUMBER.value: "slide_number",
+    PP_PLACEHOLDER.FOOTER.value: "footer",
+    PP_PLACEHOLDER.HEADER.value: "header",
+    PP_PLACEHOLDER.DATE.value: "date",
 }
+
+# типы плейсхолдеров, отвечающие за фирменные элементы (логотип, колонтитул, номер)
+BRANDING_TYPES = ("slide_number", "footer", "header", "date")
 
 ROLE_KEYWORDS_RU = {
     "title": ["титул", "обложк", "первый слайд", "first", "cover", "заставк"],
@@ -571,6 +582,7 @@ class TemplateParser:
                 shapes = self._layout_shape_kinds(layout, slide_w, slide_h)
                 role, kind, reason = self._classify_layout(
                     layout.name, layout.slide_master.name, phs, shapes, slide_w, slide_h)
+                branding = self._layout_branding(layout, slide_w, slide_h)
                 profs.append(LayoutProfile(
                     id=f"L{idx}",
                     master_id=f"M{self._master_index(layout.slide_master)}",
@@ -583,11 +595,41 @@ class TemplateParser:
                     title_ph=title_ph,
                     body=body,
                     columns=columns,
+                    branding=branding,
+                    has_logo=any(item["type"] == "logo" for item in branding),
                     style_sample=self._layout_style_sample(layout, by_layout.get(id(layout), [])),
                 ))
             except Exception:
                 continue
         return profs
+
+    def _layout_branding(self, layout, slide_w: float, slide_h: float) -> list[dict]:
+        """Фирменные элементы макета и их координаты: колонтитулы, номер, логотип.
+
+        Нужны аудиту для проверки `branding_shifted`: если элемент уехал с места,
+        это заметно по расхождению с профилем.
+        """
+        out: list[dict] = []
+        slide_area = max(1e-6, slide_w * slide_h)
+        for shape in layout.shapes:
+            try:
+                geo = self._shape_geo(shape)
+                if geo is None:
+                    continue
+                if shape.is_placeholder:
+                    info = self._placeholder_info(shape)
+                    if info and info.type in BRANDING_TYPES:
+                        out.append({"name": shape.name, "type": info.type,
+                                    "x": geo[0], "y": geo[1], "w": geo[2], "h": geo[3]})
+                    continue
+                shape_type = getattr(shape, "shape_type", None)
+                if shape_type is not None and str(shape_type).endswith("PICTURE"):
+                    if geo[2] * geo[3] <= 0.04 * slide_area:
+                        out.append({"name": shape.name, "type": "logo",
+                                    "x": geo[0], "y": geo[1], "w": geo[2], "h": geo[3]})
+            except Exception:  # noqa: BLE001
+                continue
+        return out
 
     @staticmethod
     def _layout_score(role: str, kind: str, title_ph, body, columns) -> float:

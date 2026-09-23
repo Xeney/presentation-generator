@@ -194,7 +194,9 @@
       "master_id": "M0",
       "name": "7_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -227,6 +229,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -244,7 +247,9 @@
       "master_id": "M0",
       "name": "9_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -277,6 +282,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -294,7 +300,9 @@
       "master_id": "M0",
       "name": "19_Заголовок",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -327,6 +335,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -345,7 +354,9 @@
       "master_id": "M0",
       "name": "18_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -378,6 +389,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -395,7 +407,9 @@
       "master_id": "M0",
       "name": "15_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -428,6 +442,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -450,7 +465,9 @@
       "master_id": "M0",
       "name": "13_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -483,6 +500,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -503,7 +521,9 @@
       "master_id": "M0",
       "name": "8_Заголовок",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -536,6 +556,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -557,7 +578,9 @@
       "master_id": "M0",
       "name": "17_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -590,6 +613,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -607,7 +631,9 @@
       "master_id": "M0",
       "name": "14_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -640,6 +666,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -660,7 +687,9 @@
       "master_id": "M0",
       "name": "11_Заголовок",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -693,6 +722,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -712,7 +742,9 @@
       "master_id": "M0",
       "name": "17_Заголовок",
       "role": "content",
-      "score": 0.65,
+      "kind": "bullets",
+      "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+      "score": 0.7,
       "placeholders": [
         {
           "idx": 0,
@@ -745,6 +777,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -761,7 +794,9 @@
       "master_id": "M0",
       "name": "11_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -794,6 +829,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -810,7 +846,9 @@
       "master_id": "M0",
       "name": "16_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -843,6 +881,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -857,7 +896,9 @@
       "master_id": "M0",
       "name": "12_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -890,6 +931,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -907,7 +949,9 @@
       "master_id": "M0",
       "name": "10_Титульный слайд",
       "role": "title",
-      "score": 0.65,
+      "kind": "blank",
+      "role_reason": "имя: титульный слайд, контента нет",
+      "score": 0.35,
       "placeholders": [
         {
           "idx": 0,
@@ -940,6 +984,7 @@
       },
       "body": null,
       "columns": [],
+      "branding": [],
       "has_logo": false,
       "style_sample": {
         "font": null,

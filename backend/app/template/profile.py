@@ -61,6 +61,9 @@ class LayoutProfile:
     title_ph: Optional[dict] = None
     body: Optional[dict] = None       # главная свободная зона под контент
     columns: list[dict] = field(default_factory=list)
+    # фирменные элементы макета: колонтитул, номер слайда, дата, логотип.
+    # Позиции нужны аудиту, чтобы заметить сдвиг (проверка branding_shifted).
+    branding: list[dict] = field(default_factory=list)
     has_logo: bool = False
     style_sample: dict = field(default_factory=dict)
 

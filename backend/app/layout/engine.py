@@ -288,26 +288,49 @@ class LayoutEngine:
 
 
 # ---------------------------------------------------------------- полосы (compact)
+def fit_heights(heights: list[float], avail: float, gap: float,
+                max_growth: float = 2.0) -> list[float]:
+    """Высоты блоков под доступную область: сжатие при переполнении, рост при запасе.
+
+    Свободное место распределяется пропорционально содержимому, но не более чем
+    в `max_growth` раз на блок: иначе один короткий блок растянулся бы на весь
+    слайд. Рост нужен, чтобы плотный вариант не оставлял низ слайда пустым.
+    """
+    if not heights:
+        return []
+    usable = max(0.4, avail - gap * (len(heights) - 1))
+    total = sum(heights)
+    if total <= 0:
+        return [usable / len(heights)] * len(heights)
+    if total > usable:
+        scale = usable / total
+        return [max(0.3, h * scale) for h in heights]
+    grown = []
+    for h in heights:
+        grown.append(min(h * max_growth, h + (usable - total) * (h / total)))
+    # если после ограничения остался запас — раздаём его поровну
+    leftover = usable - sum(grown)
+    if leftover > 0.01:
+        grown = [h + leftover / len(grown) for h in grown]
+    return grown
+
+
 def compact(engine: LayoutEngine, slide: Slide, blocks: list[Block], canvas: Rect) -> list[dict]:
     dc, cfg = engine.dc, engine.cfg
     gap = cfg["gap"]
-    inner = canvas.padded(cfg["padding"] * 0.8)
-    n_blocks = len(blocks)
-    items = []
-    if n_blocks == 0:
-        return items
+    inner = canvas.padded(cfg["padding"])
+    if not blocks:
+        return []
 
-    # сохраняем порядок (variant compact не переставляет) и помещаемся в канву
-    heights = [_block_min_h(b, dc, inner.w) for b in blocks]
-    total_needed = sum(heights) + gap * (n_blocks - 1)
-    avail = max(0.5, inner.h)
-    scale = min(1.0, avail / total_needed) if total_needed > 0 else 1.0
-    heights = [h * scale for h in heights]
-    y = inner.y
-    for bp, h in zip(blocks, heights):
-        rect = Rect(inner.x, y, inner.w, max(0.3, h))
-        items.append(engine._widget_item(bp, rect.to_dict(), canvas))
-        y += max(0.3, h) + gap
+    heights = fit_heights([_block_min_h(b, dc, inner.w) for b in blocks], inner.h, gap)
+    # стек центрируется по вертикали: остаток воздуха делится сверху и снизу
+    used = sum(heights) + gap * (len(heights) - 1)
+    y = inner.y + max(0.0, (inner.h - used) / 2)
+    items = []
+    for block, height in zip(blocks, heights):
+        rect = Rect(inner.x, y, inner.w, height)
+        items.append(engine._widget_item(block, rect.to_dict(), canvas))
+        y += height + gap
     return items
 
 
@@ -350,14 +373,16 @@ def split(engine: LayoutEngine, slide: Slide, blocks: list[Block], canvas: Rect)
         right = Rect(inner.x + left_w + gap, inner.y, right_w, inner.h)
 
         def _stack(box: Rect, parts: list[Block], min_h: float) -> list[dict]:
-            hsum = sum(_block_min_h(b, dc, box.w) for b in parts) + 0.12 * max(0, len(parts) - 1)
-            sc = min(1.0, box.h / hsum) if hsum > 0 else 1.0
-            inner_items, yy = [], box.y
-            for b in parts:
-                h = max(min_h, _block_min_h(b, dc, box.w) * sc)
-                inner_items.append(engine._widget_item(b, Rect(box.x, yy, box.w, min(box.bottom - yy, h)).to_dict(), canvas))
-                yy += h + 0.12
-            return inner_items
+            heights = fit_heights([_block_min_h(b, dc, box.w) for b in parts],
+                                  box.h, 0.12)
+            used = sum(heights) + 0.12 * max(0, len(heights) - 1)
+            yy = box.y + max(0.0, (box.h - used) / 2)
+            stack = []
+            for block, height in zip(parts, heights):
+                rect = Rect(box.x, yy, box.w, max(min_h, height))
+                stack.append(engine._widget_item(block, rect.to_dict(), canvas))
+                yy += max(min_h, height) + 0.12
+            return stack
 
         items += _stack(left, text_blocks, 0.4)
         items += _stack(right, data_blocks, 0.6)

@@ -12,8 +12,9 @@ import re
 from dataclasses import dataclass, field, asdict
 
 from pptx import Presentation
+from pptx.enum.chart import XL_CHART_TYPE
 from pptx.enum.dml import MSO_FILL_TYPE
-from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
 
 from ..content.corpus import looks_like_placeholder
 from ..models.deck import Deck
@@ -61,6 +62,50 @@ class Audit:
             self.fonts_allowed.add((fb.get("name") or "").lower())
         self.bg_color = self._default_bg()
 
+        # разрешённая типографическая шкала и макеты шаблона
+        scale = profile.get("type_scale", {}) or {}
+        self.allowed_sizes = sorted({
+            round(float(x), 2)
+            for key in ("title", "body")
+            for x in (scale.get(key) or [])
+        })
+        self.layouts = profile.get("layouts", []) or []
+        self.layouts_by_name = {l.get("name"): l for l in self.layouts}
+        self.layout_names = set(self.layouts_by_name)
+        self.grid = profile.get("grid") or {}
+        self.max_typefaces = int(profile.get("max_typefaces", 2))
+        self.safe_area = self._compute_safe_area(profile)
+
+    def _compute_safe_area(self, profile: dict) -> tuple[float, float, float, float]:
+        """Безопасная зона слайда: ближайший к краю контент из всех макетов шаблона.
+
+        Используется проверкой `content_in_margins`: если шаблон нигде не ставит
+        контент ближе 1.2″ к краю, то и сгенерированный слайд не должен. Так
+        проверка самосогласована: она не ругает вёрстку за то, что делает сам
+        шаблон (у разных макетов поля разные).
+        """
+        size = profile.get("slide_size") or {}
+        w = float(size.get("w_in") or 13.333)
+        h = float(size.get("h_in") or 7.5)
+        lefts, tops, rights, bottoms = [], [], [], []
+        for layout in self.layouts:
+            body = layout.get("body") or {}
+            if body.get("w"):
+                lefts.append(float(body["x"]))
+                tops.append(float(body["y"]))
+                rights.append(w - (float(body["x"]) + float(body["w"])))
+                bottoms.append(h - (float(body["y"]) + float(body["h"])))
+        grid = self.grid or {}
+        if grid.get("body_w"):
+            lefts.append(float(grid.get("body_x", 0.5)))
+            tops.append(float(grid.get("body_y", 1.0)))
+            rights.append(float(grid.get("margin_right", 0.5)))
+            bottoms.append(float(grid.get("margin_bottom", 0.5)))
+        if not lefts:
+            return (0.2, 0.2, w - 0.4, h - 0.4)
+        return (max(0.0, min(lefts)), max(0.0, min(tops)),
+                w - max(0.0, min(rights)), h - max(0.0, min(bottoms)))
+
     def _default_bg(self) -> str:
         hs = [p.get("hex") for p in self.profile.get("palette", []) if p.get("hex")]
         for h in hs:
@@ -76,6 +121,8 @@ class Audit:
 
         slide_objs = list(prs.slides)
         headings: dict[str, int] = {}
+        fonts_per_slide: dict[int, set] = {}
+        fingerprints: dict[str, int] = {}
 
         for si, slide in enumerate(slide_objs):
             geo = self._shape_geoms(slide)
@@ -85,29 +132,46 @@ class Audit:
             self._check_overlaps(slide, geo, si, issues)
             # 3. обрезка текста
             self._check_text_overflow(slide, si, issues)
-            # 4. токены
+            # 4. токены: шрифты, цвета, кегли
             self._check_tokens(slide, si, issues)
+            self._check_font_sizes(slide, si, issues)
+            self._check_fill_colors(slide, si, issues, geo)
             # 5. контраст
             self._check_contrast(slide, si, issues)
             # 6. плотность контента
             self._check_density(slide, si, issues)
-            # 6b. объекты: таблицы, диаграммы, слоты изображений
+            # 6b. объекты: таблицы, диаграммы, подписи, слоты изображений
             self._check_objects(slide, si, issues)
+            # 6c. геометрия и композиция
+            self._check_layout_from_template(slide, si, issues)
+            self._check_content_area(slide, si, issues, geo)
+            self._check_grid_alignment(slide, si, issues)
+            self._check_images(slide, si, issues, geo)
+            self._check_branding(slide, si, issues)
+            self._check_fill_ratio(slide, si, issues, geo)
             # 7. пустой слайд
             self._check_empty(slide, si, issues, geo)
             # 8. заполнители-заглушки
             self._check_placeholders(slide, si, issues, geo)
             # 9. слайд-картинка
             self._check_raster_slide(slide, si, issues, geo)
-            # заголовки для дубликатов
-            h = self._heading(slide)
-            if h:
-                headings[h.lower()] = headings.get(h.lower(), 0) + 1
+            # заголовки и шрифты для сквозных проверок
+            heading = self._heading(slide)
+            if heading:
+                headings[heading.lower()] = headings.get(heading.lower(), 0) + 1
+            fonts_per_slide[si] = {it["font"].lower() for it in self._scan_runs(slide)
+                                   if it["font"]}
+            fingerprint = self._fingerprint(slide)
+            if fingerprint:
+                fingerprints[fingerprint] = fingerprints.get(fingerprint, 0) + 1
 
-        for h, n in headings.items():
+        for heading, n in headings.items():
             if n > 1:
                 issues.append(Issue.at("duplicate_heading", "warning", -1,
-                                       f"повторяющийся заголовок «{h[:60]}» встречается {n} раза"))
+                                       f"повторяющийся заголовок «{heading[:60]}» встречается {n} раза"))
+
+        self._check_deck_typefaces(fonts_per_slide, issues)
+        self._check_duplicate_slides(fingerprints, issues)
 
         for n, issue in enumerate(issues):
             issue.id = f"{issue.code}-{issue.slide}-{n}"
@@ -322,6 +386,62 @@ class Audit:
     def allowed_extra(self):
         return {"#FFFFFF", "#000000"}
 
+    def is_derived_color(self, hex_color: str, tolerance: float = 14.0) -> bool:
+        """Является ли цвет смесью двух разрешённых цветов палитры.
+
+        Вёрстка получает светлые подложки смешением акцента с фоном. Это
+        осознанное производное токена, а не «левый» цвет, поэтому для ЗАЛИВОК
+        такие оттенки разрешены (ADR-008). Для текста правило строже: только
+        точные цвета палитры.
+        """
+        if not hex_color:
+            return False
+        try:
+            target = hex_to_rgb(hex_color)
+        except Exception:  # noqa: BLE001
+            return False
+        palette = [hex_to_rgb(h) for h in self.allowed_colors
+                   if h and len(h.lstrip("#")) == 6]
+        for first in palette:
+            for second in palette:
+                if self._point_on_segment(target, first, second, tolerance):
+                    return True
+        return False
+
+    @staticmethod
+    def _point_on_segment(point, start, end, tolerance: float) -> bool:
+        """Лежит ли точка на отрезке start→end (с допуском по расстоянию)."""
+        vector = [end[i] - start[i] for i in range(3)]
+        length_sq = sum(v * v for v in vector)
+        if length_sq == 0:
+            return all(abs(point[i] - start[i]) <= tolerance for i in range(3))
+        t = sum((point[i] - start[i]) * vector[i] for i in range(3)) / length_sq
+        if t < -0.02 or t > 1.02:
+            return False
+        projection = [start[i] + t * vector[i] for i in range(3)]
+        distance = sum((point[i] - projection[i]) ** 2 for i in range(3)) ** 0.5
+        return distance <= tolerance
+
+    def _check_fill_colors(self, slide, si, issues, geo):
+        """Заливки должны быть из палитры шаблона или её смесями."""
+        for g in geo:
+            shape = g["shape"]
+            if g["type"] not in (MSO_SHAPE_TYPE.AUTO_SHAPE.value,
+                                 MSO_SHAPE_TYPE.TEXT_BOX.value):
+                continue
+            color = self._shape_fill(shape)
+            if not color:
+                continue
+            key = "#" + color.lstrip("#").upper()[-6:]
+            if key in self.allowed_colors or key in self.allowed_extra():
+                continue
+            if self.is_derived_color(key):
+                continue
+            issues.append(Issue.at(
+                "color_not_allowed", "warning", si,
+                f"заливка «{key}» не из палитры шаблона и не является её смесью",
+                self._shape_bbox(shape, slide)))
+
     def _shape_bbox(self, sh, slide):
         if sh.left is None:
             return []
@@ -422,6 +542,280 @@ class Audit:
                 "too_many_series", "error", si,
                 f"в диаграмме {n_series} серий (максимум 5)",
                 self._shape_bbox(sh, slide)))
+        self._check_chart_labels(sh, slide, si, issues, n_series)
+
+    def _check_chart_labels(self, sh, slide, si, issues, n_series: int) -> None:
+        """Диаграмма должна читаться без пояснений: легенда, категории, единицы.
+
+        Проверяется: легенда при нескольких сериях, непустые категории и наличие
+        подписей данных либо заголовка оси значений (единицы измерения).
+        """
+        chart = sh.chart
+        problems: list[str] = []
+        plots = list(chart.plots)
+        if not plots:
+            problems.append("нет данных")
+        else:
+            plot = plots[0]
+            if n_series > 1 and not chart.has_legend:
+                problems.append("нет легенды")
+            if not list(plot.categories):
+                problems.append("нет подписей категорий")
+            has_labels = bool(getattr(plot, "has_data_labels", False))
+            axis_titled = False
+            if chart.chart_type not in (XL_CHART_TYPE.PIE, XL_CHART_TYPE.DOUGHNUT):
+                try:
+                    axis_titled = bool(chart.value_axis.has_title)
+                except Exception:  # noqa: BLE001
+                    axis_titled = False
+            if not has_labels and not axis_titled:
+                problems.append("нет подписей данных и единиц измерения")
+        if problems:
+            issues.append(Issue.at(
+                "chart_unlabeled", "warning", si,
+                f"диаграмма нечитаема: {', '.join(problems)}",
+                self._shape_bbox(sh, slide)))
+
+    # ------------------------------------------------ шаблон, сетка, композиция
+    def _check_font_sizes(self, slide, si, issues):
+        """Кегль должен входить в типографическую шкалу шаблона."""
+        if not self.allowed_sizes:
+            return
+        for it in self._scan_runs(slide):
+            size = it["size"]
+            if not size:
+                continue
+            if not any(abs(size - allowed) <= 0.6 for allowed in self.allowed_sizes):
+                issues.append(Issue.at(
+                    "font_size_not_in_scale", "error", si,
+                    f"кегль {size:g} pt не из типографической шкалы шаблона "
+                    f"({', '.join(f'{s:g}' for s in self.allowed_sizes[:8])}…)",
+                    self._shape_bbox(it["shape"], slide)))
+
+    def _check_layout_from_template(self, slide, si, issues):
+        """Слайд обязан быть собран на макете из шаблона."""
+        if not self.layout_names:
+            return
+        name = self._layout_name(slide)
+        if name not in self.layout_names:
+            issues.append(Issue.at(
+                "layout_not_from_template", "error", si,
+                f"слайд собран на макете «{name}», которого нет в шаблоне"))
+
+    def _check_content_area(self, slide, si, issues, geo, tolerance_in: float = 0.08):
+        """Контент не должен заходить в поля у краёв слайда.
+
+        Поля берутся из безопасной зоны шаблона (см. `_compute_safe_area`), а не
+        из одного макета: у разных макетов поля разные, и вёрстка имеет право
+        использовать любую из них.
+        """
+        left, top, right, bottom = (v * 914400 for v in self.safe_area)
+        tol = tolerance_in * 914400
+        for shape in self._text_shapes(slide):
+            if shape.left is None or shape.width is None:
+                continue
+            if (shape.left < left - tol or (shape.top or 0) < top - tol
+                    or shape.left + shape.width > right + tol
+                    or (shape.top or 0) + (shape.height or 0) > bottom + tol):
+                issues.append(Issue.at(
+                    "content_in_margins", "warning", si,
+                    f"блок «{shape.name}» заходит в поля у края слайда",
+                    self._shape_bbox(shape, slide)))
+
+    def _check_grid_alignment(self, slide, si, issues,
+                              band: tuple[float, float] = (0.005, 0.09)):
+        """Блоки одной колонки должны быть выровнены между собой.
+
+        Сравниваются блоки, которые заведомо задуманы в одной колонке (близкие
+        левые края и сопоставимая ширина). Микро-расхождение в пределах `band`
+        (0.1–2.3 мм) выглядит как случайный сдвиг — это и есть «блок не выровнен
+        по направляющим». Отступы внутренних элементов карточек больше band и
+        не считаются ошибкой.
+        """
+        lo, hi = (v * 914400 for v in band)
+        # блоки заголовочной зоны (заголовок и подзаголовок) в проверке не
+        # участвуют: они выравниваются по плейсхолдеру заголовка макета
+        header_limit = self.safe_area[1] * 914400 - 0.02 * 914400
+        shapes = [s for s in self._text_shapes(slide)
+                  if s.left is not None and (s.width or 0) > 0
+                  and (s.top or 0) >= header_limit]
+        for index, first in enumerate(shapes):
+            for second in shapes[index + 1:]:
+                delta = abs(first.left - second.left)
+                if not (lo < delta <= hi):
+                    continue
+                # одна колонка — это не только близкий край, но и совпадающая
+                # ширина: внутренние элементы блока (ячейки фактоидов, карточки)
+                # заведомо уже родительской рамки
+                if abs(first.width - second.width) > 0.01 * 914400:
+                    continue
+                issues.append(Issue.at(
+                    "misaligned_to_grid", "warning", si,
+                    f"блоки «{first.name}» и «{second.name}» не выровнены: "
+                    f"расхождение левых краёв {delta / 914400:.3f}″",
+                    self._shape_bbox(second, slide)))
+
+    def _check_images(self, slide, si, issues, geo, tolerance: float = 0.05):
+        """Пропорции картинки не должны быть нарушены (растяжение > 5%)."""
+        for g in geo:
+            if g["type"] != MSO_SHAPE_TYPE.PICTURE.value:
+                continue
+            shape = g["shape"]
+            if not shape.width or not shape.height:
+                continue
+            try:
+                native_w, native_h = shape.image.size
+            except Exception:  # noqa: BLE001
+                continue
+            if not native_w or not native_h:
+                continue
+            source_ratio = native_w / native_h
+            rendered_ratio = shape.width / shape.height
+            if abs(rendered_ratio - source_ratio) / source_ratio > tolerance:
+                issues.append(Issue.at(
+                    "image_stretched", "error", si,
+                    f"картинка «{shape.name}» растянута: пропорции "
+                    f"{rendered_ratio:.2f} против исходных {source_ratio:.2f}",
+                    self._shape_bbox(shape, slide)))
+
+    def _check_branding(self, slide, si, issues, tolerance_in: float = 0.12):
+        """Логотип и колонтитулы должны оставаться на местах макета.
+
+        Проверяются только те фирменные элементы, которые реально перенесены на
+        слайд: позиции берутся из профиля макета. Если шаблон держит логотип
+        только на макете, проверка для слайда молчит — это ожидаемо, потому что
+        наследуемый декор сдвинуть со слайда нельзя.
+        """
+        layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
+        branding = layout.get("branding") or []
+        if not branding:
+            return
+        by_name = {}
+        for shape in slide.shapes:
+            try:
+                by_name[shape.name] = shape
+            except Exception:  # noqa: BLE001
+                continue
+        tol = tolerance_in * 914400
+        for item in branding:
+            shape = by_name.get(item.get("name"))
+            if shape is None or shape.left is None:
+                continue
+            expected_x = float(item.get("x", 0.0)) * 914400
+            expected_y = float(item.get("y", 0.0)) * 914400
+            if abs(shape.left - expected_x) > tol or abs((shape.top or 0) - expected_y) > tol:
+                issues.append(Issue.at(
+                    "branding_shifted", "warning", si,
+                    f"фирменный элемент «{item.get('name')}» "
+                    f"({item.get('type')}) сдвинут с места макета",
+                    self._shape_bbox(shape, slide)))
+
+    CONTENT_TYPES = (MSO_SHAPE_TYPE.TABLE.value, MSO_SHAPE_TYPE.CHART.value,
+                     MSO_SHAPE_TYPE.PICTURE.value, MSO_SHAPE_TYPE.AUTO_SHAPE.value,
+                     MSO_SHAPE_TYPE.TEXT_BOX.value, MSO_SHAPE_TYPE.PLACEHOLDER.value)
+    FILL_GRID = 100  # разрешение растеризации при подсчёте занятой площади
+
+    def _check_fill_ratio(self, slide, si, issues, geo, sparse: float = 0.25,
+                          dense: float = 0.75):
+        """Заполненность слайда: меньше четверти — пусто, больше трёх четвертей — тесно.
+
+        Считается доля площади слайда, занятая контентными объектами (рамки
+        текстовых блоков, таблицы, диаграммы, картинки). Заголовок, декор и
+        полноэкранный фон не учитываются. Витринные слайды (титул, раздел,
+        финал) из проверки исключены: у них мало контента по замыслу макета.
+        """
+        layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
+        if layout.get("role") not in (None, "content", "agenda"):
+            return
+        grid = self.FILL_GRID
+        cells: set[tuple[int, int]] = set()
+        for g in geo:
+            shape = g["shape"]
+            if self._is_title_shape(shape) or not g["filled"]:
+                continue
+            if g["type"] not in self.CONTENT_TYPES:
+                continue
+            if g["type"] == MSO_SHAPE_TYPE.PICTURE.value \
+                    and g["w"] >= 0.9 * self.W and g["h"] >= 0.9 * self.H:
+                continue  # фон слайда, а не контент
+            x0 = max(0, int(g["x"] / self.W * grid))
+            x1 = min(grid, int((g["x"] + g["w"]) / self.W * grid) + 1)
+            y0 = max(0, int(g["y"] / self.H * grid))
+            y1 = min(grid, int((g["y"] + g["h"]) / self.H * grid) + 1)
+            for cx in range(x0, x1):
+                for cy in range(y0, y1):
+                    cells.add((cx, cy))
+        if not cells and not geo:
+            return
+        ratio = len(cells) / float(grid * grid)
+        if ratio < sparse:
+            issues.append(Issue.at(
+                "slide_too_sparse", "warning", si,
+                f"слайд заполнен на {ratio * 100:.0f}% (меньше четверти)"))
+        elif ratio > dense:
+            issues.append(Issue.at(
+                "slide_too_dense", "warning", si,
+                f"слайд заполнен на {ratio * 100:.0f}% (больше трёх четвертей)"))
+
+    @staticmethod
+    def _layout_name(slide) -> str:
+        try:
+            return slide.slide_layout.name
+        except Exception:  # noqa: BLE001
+            return ""
+
+    def _text_shapes(self, slide) -> list:
+        """Уникальные текстовые фигуры слайда (без заголовка и без дублей по run)."""
+        seen: set[int] = set()
+        out = []
+        for it in self._scan_runs(slide):
+            shape = it["shape"]
+            if id(shape) in seen or self._is_title_shape(shape):
+                continue
+            seen.add(id(shape))
+            out.append(shape)
+        return out
+
+    @staticmethod
+    def _is_title_shape(shape) -> bool:
+        try:
+            if not shape.is_placeholder:
+                return False
+            return getattr(shape.placeholder_format.type, "value",
+                           shape.placeholder_format.type) in (
+                PP_PLACEHOLDER.TITLE.value, PP_PLACEHOLDER.CENTER_TITLE.value)
+        except Exception:  # noqa: BLE001
+            return False
+
+    # ------------------------------------------------------------- сквозные
+    def _fingerprint(self, slide) -> str:
+        """Отпечаток содержимого слайда для поиска дублей."""
+        parts = [self._heading(slide)]
+        for it in self._scan_runs(slide):
+            parts.append(it["ptext"])
+        text = re.sub(r"\s+", " ", " ".join(parts)).strip().lower()
+        return text if len(text) >= 24 else ""
+
+    def _check_deck_typefaces(self, fonts_per_slide: dict, issues):
+        """Гарнитур в колоде должно быть не больше двух (правило шаблона)."""
+        counter: dict[str, int] = {}
+        for fonts in fonts_per_slide.values():
+            for font in fonts:
+                counter[font] = counter.get(font, 0) + 1
+        if len(counter) > self.max_typefaces:
+            names = ", ".join(sorted(counter))
+            issues.append(Issue.at(
+                "too_many_typefaces", "warning", -1,
+                f"в колоде {len(counter)} гарнитур ({names}); "
+                f"рекомендуется не больше {self.max_typefaces}"))
+
+    def _check_duplicate_slides(self, fingerprints: dict, issues):
+        for fingerprint, count in fingerprints.items():
+            if count > 1:
+                issues.append(Issue.at(
+                    "duplicate_slide", "warning", -1,
+                    f"слайды дублируют друг друга: «{fingerprint[:60]}…» "
+                    f"встречается {count} раза"))
 
     @staticmethod
     def _is_bullet(p, run) -> bool:
