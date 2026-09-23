@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 from ..config import get_settings
-from ..planner.llm import OllamaClient
+from ..planner.llm import OllamaClient, get_llm_client
 from ..render.pdf import pptx_to_pngs
 
 log = logging.getLogger("audit_vlm")
@@ -69,7 +69,7 @@ class VlmAudit:
 
     def __init__(self, llm: Optional[OllamaClient] = None, profile: Optional[dict] = None):
         self.settings = get_settings()
-        self.llm = llm or OllamaClient()
+        self.llm = llm or get_llm_client()
         self.profile = profile or {}
         self.system = (PROMPTS / "system.md").read_text(encoding="utf-8")
         self.user_template = (PROMPTS / "user.md").read_text(encoding="utf-8")
@@ -90,7 +90,7 @@ class VlmAudit:
             "id": "vlm/audit",
             "version": registered.get("version", "?"),
             "hash": registered.get("hash", ""),
-            "model": self.settings.vlm_model,
+            "model": self.settings.active_vlm_model,
         }
 
     # ------------------------------------------------------------------ run
@@ -111,11 +111,16 @@ class VlmAudit:
         started = time.perf_counter()
         slides = []
         per_slide_seconds = []
+        errors = 0
+        last_error = ""
         for index, image in enumerate(images):
             context = self._context(index, len(images), deck, source_digest)
             began = time.perf_counter()
             verdict = self._ask_one(image, context)
             per_slide_seconds.append(round(time.perf_counter() - began, 2))
+            if verdict.get("error"):
+                errors += 1
+                last_error = verdict["error"]
             failed = sorted(verdict.get("answers_no", []))
             slides.append({
                 "slide": index,
@@ -125,10 +130,16 @@ class VlmAudit:
                 "criteria_yes": sorted(verdict.get("answers_yes", [])),
                 "summary": (verdict.get("summary") or "")[:300],
             })
+        if errors and errors == len(images):
+            # модель ответила отказом на каждый слайд: честнее сказать «недоступно»,
+            # чем показать «замечаний нет»
+            return {"available": False, "slides": [], "criteria": CRITERIA,
+                    "reason": f"VLM не ответила ни на один слайд: {last_error[:200]}"}
         return {
             "available": True,
-            "model": self.settings.vlm_model,
+            "model": self.settings.active_vlm_model,
             "slides": slides,
+            "errors": errors,
             "criteria": CRITERIA,
             "elapsed_s": round(time.perf_counter() - started, 2),
             "per_slide_s": per_slide_seconds,
@@ -162,14 +173,16 @@ class VlmAudit:
         prompt = self.user_template.format(**context)
         try:
             text = self.llm.generate_text(
-                prompt, self.system, model=self.settings.vlm_model,
+                prompt, self.system, model=self.settings.active_vlm_model,
                 temperature=0.0, json_mode=True, images=[image_b64])
         except Exception as exc:  # noqa: BLE001
             log.warning("VLM-запрос не удался: %s", exc)
-            return {"answers_yes": [], "answers_no": [], "summary": ""}
+            return {"answers_yes": [], "answers_no": [], "summary": "",
+                    "error": str(exc)}
         data = self.llm._parse_json(text)
         if not data:
-            return {"answers_yes": [], "answers_no": [], "summary": ""}
+            return {"answers_yes": [], "answers_no": [], "summary": "",
+                    "error": "ответ модели не является JSON"}
         yes = [int(x) for x in data.get("answers_yes", []) if str(x).isdigit()]
         no = [int(x) for x in data.get("answers_no", []) if str(x).isdigit()]
         return {

@@ -160,8 +160,10 @@ start_local() {
   fi
 
   info "запускаю backend (uvicorn) и frontend (next dev)…"
-  ( cd backend && DISABLE_LLM="${DISABLE_LLM:-false}" \
-      python -m uvicorn app.api.main:app --host 127.0.0.1 --port "$BACKEND_PORT" ) &
+  # запускаем из корня: каталог data/ тогда один и тот же, что и в Docker
+  ( cd "$ROOT" && DISABLE_LLM="${DISABLE_LLM:-false}" \
+      python -m uvicorn app.api.main:app --app-dir backend \
+      --host 127.0.0.1 --port "$BACKEND_PORT" ) &
   BACKEND_PID=$!
   ( cd frontend && NEXT_PUBLIC_API_URL="http://localhost:${BACKEND_PORT}" \
       npm run dev -- --port "$FRONTEND_PORT" ) &

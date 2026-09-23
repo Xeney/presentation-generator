@@ -17,6 +17,10 @@ import pytest
 # Тесты не должны ждать Ollama: недоступный адрес даёт мгновенный отказ,
 # а сервис обязан деградировать к офлайн-планировщику (ADR-005).
 os.environ.setdefault("OLLAMA_BASE_URL", "http://127.0.0.1:1")
+# Тесты герметичны: внешний шлюз (если он включён в локальном .env) не должен
+# получать запросы с реальным ключом. Тесты провайдера задают окружение сами
+# и подменяют HTTP-вызовы.
+os.environ.setdefault("LLM_PROVIDER", "ollama")
 
 ROOT = Path(__file__).resolve().parents[2]
 BACKEND = ROOT / "backend"

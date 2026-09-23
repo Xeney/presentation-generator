@@ -17,7 +17,7 @@ from .content.corpus import ContentCorpus
 from .export.html import deck_to_html
 from .layout.engine import DesignContext
 from .models.deck import Deck
-from .planner.llm import OllamaClient
+from .planner.llm import get_llm_client
 from .planner.planner import PlanningResult, Planner
 from . import prompts_meta
 from .render.pptx_renderer import Renderer
@@ -80,7 +80,7 @@ def ground_deck(deck: Deck, corpus: ContentCorpus | None, brief: str = "") -> di
         return {"available": False, "reason": "grounding выключен",
                 "issues": [], "issues_count": 0}
     checker = GroundingChecker(
-        corpus, llm=OllamaClient(), brief=brief,
+        corpus, llm=get_llm_client(), brief=brief,
         off_source_threshold=settings.grounding_off_source_threshold,
         duplicate_threshold=settings.grounding_duplicate_threshold)
     return checker.check(deck).to_dict()

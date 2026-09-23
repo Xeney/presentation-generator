@@ -39,15 +39,23 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+    # Секреты и настройки провайдера берём из локального .env на этапе запуска
+    # (в самом compose-файле ключей нет, `docker compose config` их не покажет).
+    # Значения из `environment` ниже имеют приоритет над файлом.
+    env_file:
+      - path: .env
+        required: false
     environment:
       OLLAMA_BASE_URL: http://ollama:11434
       DISABLE_LLM: "false"
       CORS_ORIGINS: "http://localhost:3000"
+      # абсолютный путь: каталог данных один и тот же при любом рабочем каталоге
+      DATA_DIR: /app/data
     ports:
       - "8000:8000"
     volumes:
       # задания, контент-пакеты и кэш миниатюр переживают перезапуск контейнера
-      - ./data:/app/backend/data
+      - ./data:/app/data
     restart: unless-stopped
 
   frontend:

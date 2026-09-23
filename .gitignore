@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------ секреты
+# любой .env-файл остаётся локальным; в репозиторий попадает только пример
 .env
-.env.local
-.env.*.local
+.env.*
 !.env.example
 
 # ------------------------------------------------------------------ python
@@ -30,6 +30,9 @@ data/*
 !data/templates/
 data/templates/*
 !data/templates/.gitkeep
+# на случай запуска из подкаталогов: артефакты не должны утекать в git
+backend/data/
+frontend/data/
 exports/
 *.export.html
 *.export.pdf

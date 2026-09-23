@@ -88,11 +88,20 @@ python tools/import_corpus.py data/templates/content_pack.pptx --text
 
 ## 4. Переменные окружения
 
-Все параметры читаются из `.env` (шаблон — `.env.example`). Секретов сервис не
-требует: платные API не используются.
+Все параметры читаются из `.env` (шаблон — `.env.example`). Для зачётной
+конфигурации секретов не требуется: работает локальная Ollama. Если вы включили
+внешний шлюз (`LLM_PROVIDER=openai_compat`), ключ лежит только в `.env` —
+этот файл в `.gitignore`, в репозиторий попадает лишь `.env.example`.
+
+> `docker compose config` печатает уже разрешённые значения, включая ключ, —
+> не публикуйте вывод этой команды.
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
+| `LLM_PROVIDER` | `ollama` | `ollama` (открытые веса, требование ТЗ) или `openai_compat` (внешний шлюз, только для разработки, ADR-019) |
+| `OPENAI_COMPAT_BASE_URL` | — | база OpenAI-совместимого шлюза, например `https://opencode.ai/zen/v1` |
+| `OPENAI_COMPAT_API_KEY` | — | ключ шлюза; хранится только в `.env` (в git не попадает) |
+| `OPENAI_COMPAT_MODEL` / `_VLM_MODEL` / `_EMBEDDING_MODEL` | — | модели шлюза; пустые значения означают «использовать локальные» |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | адрес Ollama; в compose подставляется `http://ollama:11434` |
 | `LLM_MODEL` | `qwen2.5:7b-instruct` | планировщик колоды |
 | `LLM_MODEL_14B` | `qwen2.5:14b-instruct` | более сильный планировщик (если есть ресурсы) |
@@ -186,6 +195,8 @@ uvicorn app.api.main:app --reload --app-dir backend --port 8000
 | `next start` предупреждает про `output: standalone` | для локальной проверки сборки используйте `npm run dev` или `node .next/standalone/server.js` (как в Dockerfile) |
 | Задания/миниатюры пропали после рестарта | они лежат в `data/jobs/` и `data/cache/`; проверьте права на каталог `data/` и значение `JOB_CLEANUP_HOURS` |
 | `503 нужен LibreOffice для миниатюр` | контейнер backend собран без LibreOffice либо локальный запуск без `soffice` в PATH |
+| В отчёте «планировщик: офлайн-fallback», хотя ключ задан | проверьте провайдера: `python tools/llm_check.py --json-call`. Частые ответы шлюзов: `403 FreeTierError` (бесплатные модели доступны только внутри клиента провайдера) и `402 Insufficient account funds` (нет баланса). До пополнения сервис работает на офлайн-планировщике |
+| Нужно вернуться к локальным открытым весам | `LLM_PROVIDER=ollama` в `.env` и `docker compose up -d backend` |
 | Генерация идёт дольше 5 минут | модели ещё скачиваются (`docker compose logs ollama`) либо нет GPU; проверьте `docker compose exec ollama ollama list` |
 | `LLM: offline-fallback` в отчёте | Ollama недоступна или `DISABLE_LLM=true`; проверьте `GET /api/health` |
 | Пустой результат VLM-аудита | `VLM_AUDIT_ENABLED=false` или модель `qwen2.5-vl:7b-instruct` не скачана |

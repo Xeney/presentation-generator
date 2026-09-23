@@ -13,7 +13,7 @@ from pathlib import Path
 from ..config import get_settings
 from ..models.deck import Deck
 from .fallback import FallbackPlanner
-from .llm import OllamaClient
+from .llm import LlmError, OllamaClient, get_llm_client
 
 log = logging.getLogger("planner")
 
@@ -45,8 +45,8 @@ def _profile_summary(profile: dict) -> str:
 
 
 class Planner:
-    def __init__(self, llm: OllamaClient | None = None):
-        self.llm = llm or OllamaClient()
+    def __init__(self, llm=None):
+        self.llm = llm or get_llm_client()
         self.settings = get_settings()
         self.fallback = FallbackPlanner()
 
@@ -78,9 +78,15 @@ class Planner:
 
         user = self._render_user(brief, source, purpose, profile, corpus)
         system = self._load_prompt("system.md")
-        model = self.settings.llm_model
+        model = self.settings.active_llm_model
         for attempt in range(1, self.settings.planner_llm_max_retries + 1):
-            raw = self.llm.generate_text(user, system, model=model, temperature=0.3)
+            try:
+                raw = self.llm.generate_text(user, system, model=model, temperature=0.3)
+            except LlmError as exc:
+                # провайдер недоступен/отказал (нет баланса, нет модели, сеть):
+                # не роняем задание, а честно уходим в офлайн-планировщик
+                log.warning("LLM недоступна (попытка %s): %s", attempt, exc)
+                break
             data = self.llm._parse_json(raw)
             if data is None:
                 log.warning("LLM ответ не JSON (попытка %s)", attempt)
