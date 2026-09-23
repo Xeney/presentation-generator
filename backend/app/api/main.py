@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import io
+import json
 import threading
 import time
 import uuid
@@ -18,6 +19,7 @@ import uuid
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 
 from ..config import get_settings
 from ..content.corpus import ContentCorpus, list_corpora
@@ -106,8 +108,11 @@ async def generate(template: UploadFile = File(...),
     if corpus_id and ContentCorpus.load(corpus_id, settings.data_path) is None:
         raise HTTPException(404, f"контент-пакет {corpus_id} не найден")
     job_id = uuid.uuid4().hex[:12]
+    # байты шаблона храним в задании: они нужны для повторного рендера после
+    # авто-фиксов и для сборки вариантов на исходных макетах
     JOBS[job_id] = {"id": job_id, "status": "pending", "created": time.time(),
-                    "corpus_id": corpus_id or None}
+                    "corpus_id": corpus_id or None,
+                    "template": data, "template_name": template.filename or "template.pptx"}
     t = threading.Thread(target=_job_worker,
                          args=(job_id, brief, source, purpose, data,
                                template.filename or "template.pptx", corpus_id),
@@ -171,7 +176,8 @@ def content_image(corpus_id: str, key: str):
 @app.get("/api/jobs/{job_id}")
 def job_status(job_id: str):
     job = _get_job(job_id)
-    resp = {k: v for k, v in job.items() if k != "result"}
+    # наружу не отдаём ни результат (в нём байты PPTX), ни сам шаблон
+    resp = {k: v for k, v in job.items() if k not in ("result", "template")}
     if job.get("status") == "done":
         r = job["result"]
         resp["summary"] = {
@@ -180,6 +186,8 @@ def job_status(job_id: str):
             "elapsed_s": job.get("elapsed_s"),
             "stages": r.get("stages", {}),
             "corpus_id": job.get("corpus_id"),
+            "version": job.get("version", 1),
+            "fixes": len(job.get("fixes", [])),
             "vlm_available": r.get("vlm", {}).get("available", False),
             "variants": [{"name": v["name"], "passed": v["audit"]["passed"],
                           "errors": v["audit"]["errors"],
@@ -234,6 +242,71 @@ def thumbnail(job_id: str, variant: str = "compact", s: int = 0, boxes: int = 0)
     res = Response(content=png, media_type="image/png")
     res.headers["Cache-Control"] = "public, max-age=3600"
     return res
+
+
+class FixRequest(BaseModel):
+    """Тело запроса авто-фиксов: какие проблемы исправляем и в каком варианте."""
+
+    issue_ids: list[str] = Field(default_factory=list)
+    variant: str = "compact"
+
+
+@app.post("/api/jobs/{job_id}/fix")
+def job_fix(job_id: str, request: FixRequest):
+    """Применяет детерминированные авто-фиксы к выбранным проблемам.
+
+    Колода пере-рендерится во все три варианта и пере-аудитится; в ответе —
+    список того, что реально исправлено, и что пропущено (с причиной).
+    """
+    from ..audit.fixes import FixEngine
+    from ..models.deck import Deck
+    from ..pipeline import audit_variant, html_export, render_variants
+
+    job = _get_job(job_id)
+    if job.get("status") != "done":
+        raise HTTPException(409, "задание ещё выполняется")
+    template_bytes = job.get("template")
+    if not template_bytes:
+        raise HTTPException(409, "исходный шаблон недоступен: перезапустите генерацию")
+    if not request.issue_ids:
+        raise HTTPException(422, "не выбрано ни одной проблемы")
+
+    result = job["result"]
+    item = _find_variant(job, request.variant)
+    issues = item["audit"]["issues"]
+
+    corpus = (ContentCorpus.load(job["corpus_id"], settings.data_path)
+              if job.get("corpus_id") else None)
+    images = corpus.images if corpus is not None else None
+
+    deck = Deck.model_validate(result["deck"])
+    started = time.time()
+    engine = FixEngine(result["profile"])
+    deck, outcomes = engine.apply(deck, issues, request.issue_ids)
+
+    artifacts = render_variants(deck, result["profile"], template_bytes, images=images)
+    for artifact in artifacts:
+        artifact.audit = audit_variant(deck, artifact, result["profile"])
+
+    result["deck"] = json.loads(deck.model_dump_json())
+    result["variants"] = [{"name": a.variant, "pptx": a.pptx, "audit": a.audit}
+                          for a in artifacts]
+    result["html"] = html_export(deck, result["profile"])
+    result.setdefault("stages", {})["fix_s"] = round(time.time() - started, 2)
+    job["fixes"] = (job.get("fixes", []) + outcomes)[-50:]
+    job["version"] = job.get("version", 1) + 1
+
+    return {
+        "applied": [o for o in outcomes if o["status"] == "applied"],
+        "skipped": [o for o in outcomes if o["status"] == "skipped"],
+        "version": job["version"],
+        "summary": {
+            "slides": len(deck.slides),
+            "variants": [{"name": a.variant, "passed": a.audit["passed"],
+                          "errors": a.audit["errors"], "warnings": a.audit["warnings"]}
+                         for a in artifacts],
+        },
+    }
 
 
 def _find_variant(job: dict, variant: str) -> dict:

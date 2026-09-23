@@ -115,16 +115,31 @@
 
 ## 3. Авто-фиксы
 
-Детерминированные исправления выбранных пользователем проблем (без LLM):
+Детерминированные исправления выбранных пользователем проблем (`audit/fixes.py`),
+без обращения к LLM: `POST /api/jobs/{id}/fix {issue_ids, variant}` возвращает
+список применённых и пропущенных фиксов с причиной. Порядок применения: замена
+визуала → удаление блока → разбиение → объединение → смена макета → кегль.
+Повторные проблемы одного типа на одном слайде исправляются одним изменением.
 
-| Проблема | Фикс | Статус |
+| Проблема | Фикс | Тест |
 |---|---|---|
-| `text_overflow`, `bullet_too_long` | уменьшить кегль на шаг типографической шкалы | план (этап 4) |
-| `out_of_bounds`, `content_in_margins` | подвинуть блок в границы/поля макета | план (этап 4) |
-| `slide_too_dense` | разбить слайд на два | план (этап 4) |
-| `layout_not_from_template`, `misaligned_to_grid` | сменить макет на подходящий по роли | план (этап 4) |
-| `chart_unlabeled`, `table_too_big` | заменить визуал (таблица ↔ диаграмма) | план (этап 4) |
-| `placeholder_text` | удалить блок-заглушку | план (этап 4) |
+| `font_size_not_in_scale`, `text_overflow`, `contrast_too_low` | уменьшить кегль на ступень типографической шкалы (`Slide.type_scale_step`) | `test_shrink_font_fixes_scale_violation` |
+| `too_many_bullets`, `slide_too_dense`, `bullet_too_long` | разбить слайд: часть блоков/пунктов уезжает на слайд-продолжение | `test_split_slide_moves_overflow_bullets` |
+| `slide_too_sparse`, `empty_slide` | объединить с соседним контентным слайдом (если блоки помещаются) | `test_merge_sparse_slide` |
+| `table_too_big` | таблица → диаграмма (если значения числовые), иначе обрезка до 7×5 | `test_table_to_chart_only_for_numeric` |
+| `chart_unlabeled`, `too_many_series` | диаграмма → таблица, иначе ограничение числа серий | `test_chart_to_table_roundtrip` |
+| `image_missing`, `image_stretched` | убрать блок-иллюстрацию (если это не единственный блок) | — |
+| `placeholder_text` | удалить блок-заглушку | `test_drop_placeholder_block` |
+| `content_in_margins`, `misaligned_to_grid`, `layout_not_from_template`, `branding_shifted` | сменить макет на лучший альтернативный (`Slide.layout_hint`) | `test_switch_layout_sets_hint` |
+| `duplicate_slide` | удалить дубликат (первый остаётся) | `test_drop_duplicate_slide` |
+| `duplicate_heading` | уточнить заголовок «(2)» | — |
+
+Не исправляются на уровне контента и честно пропускаются с причиной:
+`raster_slide`, `overlap`, `out_of_bounds`, `font_not_allowed`, `too_many_typefaces`,
+`color_not_allowed`, `chart_unlabeled` при отсутствии данных.
+Причина в том, что это свойства артефакта или шаблона, а не колоды; для их
+устранения нужно менять вёрстку или сам шаблон — фикс не должен «делать вид»,
+что проблема решена (ADR-007).
 
 ## 4. Область покрытия
 

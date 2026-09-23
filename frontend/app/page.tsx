@@ -5,7 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const VARIANTS = ["compact", "cards", "split"] as const;
 
-type Issue = { code: string; severity: string; slide: number; message: string; bbox: number[] };
+type Issue = {
+  id: string; code: string; severity: string; slide: number; message: string;
+  bbox: number[]; deterministic: boolean;
+};
+type FixOutcome = { issue_id: string; code: string; slide: number; status: string; action: string; detail: string };
 type Audit = { passed: boolean; errors: number; warnings: number; issues: Issue[] };
 type Variant = { name: string; passed: boolean; errors: number; warnings: number };
 type JobSummary = {
@@ -46,6 +50,9 @@ export default function Page() {
   const [deckTitle, setDeckTitle] = useState("");
   const [slidesCount, setSlidesCount] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [version, setVersion] = useState(1);
+  const [fixing, setFixing] = useState(false);
+  const [fixReport, setFixReport] = useState<{ applied: FixOutcome[]; skipped: FixOutcome[] } | null>(null);
   const [corpus, setCorpus] = useState<Corpus | null>(null);
   const [corpusError, setCorpusError] = useState("");
   const [importing, setImporting] = useState(false);
@@ -60,6 +67,7 @@ export default function Page() {
         if (j.status === "done" && j.summary) {
           setStatus("done");
           setSummary(j.summary);
+          setVersion(j.summary.version || 1);
           const first = j.summary.variants[0];
           if (first) setVariant(first.name as typeof VARIANTS[number]);
         } else if (j.status === "error") {
@@ -146,30 +154,47 @@ export default function Page() {
     setSlideIdx(0);
   };
 
-  const toggleIssue = (code: string) => {
+  const toggleIssue = (id: string) => {
     setSelected((s) => {
       const next = new Set(s);
-      if (next.has(code)) next.delete(code);
-      else next.add(code);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
-  const fixSelected = () => {
-    const notes = audit?.issues
-      .filter((i) => selected.has(i.code) && i.severity === "error")
-      .map((i) => `[слайд ${i.slide}] ${i.message}`)
-      .join("\n");
-    if (!notes) {
-      setError("Выбери хотя бы одну ошибку для исправления");
+  const fixSelected = async () => {
+    if (!jobId || selected.size === 0) {
+      setError("Отметь хотя бы одну проблему для исправления");
       return;
     }
-    setSelected(new Set());
-    generate(notes);
+    setFixing(true);
+    setError("");
+    try {
+      const r = await fetch(`${API}/api/jobs/${jobId}/fix`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ issue_ids: Array.from(selected), variant }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        setError(j.detail || "Не удалось применить фиксы");
+      } else {
+        setFixReport({ applied: j.applied, skipped: j.skipped });
+        setSelected(new Set());
+        setVersion(j.version);
+        if (j.summary) setSummary((prev) => (prev ? { ...prev, ...j.summary } : prev));
+        await loadAudit(variant, jobId);
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setFixing(false);
+    }
   };
 
   const thumbUrl = (name: string, s: number) =>
-    `${API}/api/jobs/${jobId}/thumb?variant=${name}&s=${s}&boxes=${showBoxes ? 1 : 0}`;
+    `${API}/api/jobs/${jobId}/thumb?variant=${name}&s=${s}&boxes=${showBoxes ? 1 : 0}&v=${version}`;
 
   const thumb = (name: string, s: number, active: boolean) => (
     <img
@@ -357,13 +382,13 @@ export default function Page() {
                     {audit.issues.map((i) => {
                       const onSlide = i.slide < 0 || i.slide === slideIdx;
                       return (
-                        <label key={i.code + i.slide + i.message} style={{
+                        <label key={i.id} style={{
                           display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.45, padding: "6px 8px",
                           borderRadius: 6, marginBottom: 6, background: onSlide ? "#1a1e26" : "transparent",
                           opacity: onSlide ? 1 : 0.45, cursor: "pointer",
                         }}>
-                          <input type="checkbox" checked={selected.has(i.code)}
-                            onChange={() => toggleIssue(i.code)} />
+                          <input type="checkbox" checked={selected.has(i.id)}
+                            onChange={() => toggleIssue(i.id)} />
                           <span>
                             <span style={{ color: i.severity === "error" ? "#f87171" : "#fbbf24" }}>
                               [{i.severity === "error" ? "ошибка" : "замечание"}] слайд {i.slide < 0 ? "все" : i.slide + 1}
@@ -373,10 +398,40 @@ export default function Page() {
                         </label>
                       );
                     })}
-                    <button onClick={fixSelected} disabled={selected.size === 0}
-                      style={{ ...btn, ...(selected.size === 0 ? { opacity: 0.4 } : {}), marginTop: 8 }}>
-                      Исправить выбранное и перегенерировать
-                    </button>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <button onClick={fixSelected} disabled={selected.size === 0 || fixing}
+                        style={{ ...btn, ...(selected.size === 0 || fixing ? { opacity: 0.4 } : {}), flex: 1 }}>
+                        {fixing ? "Применяю фиксы…" : `Исправить выбранное (${selected.size})`}
+                      </button>
+                      <button
+                        onClick={() => setSelected(new Set(audit.issues.map((i) => i.id)))}
+                        style={{ ...tab, background: "#1c2433", color: "#cfe3ff" }}>
+                        все
+                      </button>
+                    </div>
+                    {fixReport && (
+                      <div style={{ marginTop: 12, fontSize: 12, background: "#121a22", border: "1px solid #23262e", borderRadius: 8, padding: 10 }}>
+                        <div style={{ fontWeight: 600 }}>Авто-фиксы</div>
+                        <div style={{ color: "#4ade80" }}>исправлено: {fixReport.applied.length}</div>
+                        {fixReport.applied.map((f) => (
+                          <div key={f.issue_id} style={{ opacity: 0.85 }}>
+                            слайд {f.slide < 0 ? "все" : f.slide + 1}: {f.action} — {f.detail}
+                          </div>
+                        ))}
+                        {fixReport.skipped.length > 0 && (
+                          <>
+                            <div style={{ color: "#fbbf24", marginTop: 6 }}>
+                              пропущено: {fixReport.skipped.length}
+                            </div>
+                            {fixReport.skipped.map((f) => (
+                              <div key={f.issue_id} style={{ opacity: 0.7 }}>
+                                {f.code}: {f.detail}
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div style={{ opacity: 0.5, fontSize: 13 }}>загрузка аудита…</div>

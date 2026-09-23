@@ -106,6 +106,8 @@ class Renderer:
         self.template_bytes = template_bytes
         # реестр картинок контент-пакета: ключ (имя файла/подпись) -> байты изображения
         self.images = images or {}
+        # сдвиг по типографической шкале для текущего слайда (авто-фикс кегля)
+        self._size_step = 0
 
     # ------------------------------------------------------------- layout choice
     @staticmethod
@@ -130,12 +132,17 @@ class Renderer:
         """Выбирает макет шаблона под тип слайда и его содержимое.
 
         Роль макета пришла из структурной классификации профиля; композиционный
-        тип (`kind`) даёт бонус, если совпадает с содержимым слайда. Если макетов
-        нужной роли в шаблоне нет, используется контентный — деградация без ошибок.
+        тип (`kind`) даёт бонус, если совпадает с содержимым слайда. Явный
+        `slide.layout_hint` (ставится авто-фиксом «сменить макет») имеет
+        приоритет. Если макетов нужной роли нет — используется контентный.
         """
         layouts = self.profile.get("layouts", [])
         if not layouts:
             raise RenderError("в профиле шаблона нет макетов — нечего использовать")
+        if slide is not None and slide.layout_hint:
+            forced = [l for l in layouts if l.get("id") == slide.layout_hint]
+            if forced:
+                return forced[0]
         target = "title" if stype == SlideType.TITLE else \
             "section" if stype == SlideType.SECTION else \
             "final" if stype in (SlideType.FINAL,) else \
@@ -226,6 +233,7 @@ class Renderer:
         self._drop_original_slides(prs)
 
         for i, sl in enumerate(deck.slides):
+            self._size_step = int(getattr(sl, "type_scale_step", 0) or 0)
             layout = self._pick_layout(sl.slide_type, sl)
             new = prs.slides.add_slide(self._layout_object(prs, layout))
             # add_slide уже переносит плейсхолдеры макета: заголовок остаётся,
@@ -397,10 +405,17 @@ class Renderer:
         return sorted(set(sizes))
 
     def _snap_size(self, value: float) -> float:
+        """Ближайший размер из шкалы шаблона с учётом сдвига слайда.
+
+        `type_scale_step` (авто-фикс «уменьшить шрифт») сдвигает выбор на
+        соответствующее число позиций по шкале.
+        """
         allowed = self._allowed_sizes()
         if not allowed:
             return round(float(value), 1)
-        return min(allowed, key=lambda a: (abs(a - value), a))
+        index = min(range(len(allowed)), key=lambda i: (abs(allowed[i] - value), allowed[i]))
+        index = max(0, min(len(allowed) - 1, index + self._size_step))
+        return allowed[index]
 
     def _headline_font(self) -> str:
         return self.profile.get("headline_font") or self.profile.get("body_font") or "Arial"

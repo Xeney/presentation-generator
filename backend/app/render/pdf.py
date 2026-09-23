@@ -46,7 +46,11 @@ def pptx_to_pdf(pptx_bytes: bytes, soffice: str | None = None, timeout_s: int = 
 
 def pptx_to_pngs(pptx_bytes: bytes, dpi: int = 90, **kw) -> list[bytes]:
     """Миниатюры слайдов PNG. Требует LibreOffice + PyMuPDF (fitz)."""
-    import fitz  # PyMuPDF
+    try:
+        import fitz  # PyMuPDF
+    except ImportError as exc:  # noqa: BLE001 — сообщаем как ошибку экспорта, а не 500
+        raise PdfExportError(
+            "PyMuPDF не установлен: миниатюры недоступны (pip install PyMuPDF)") from exc
 
     pdf = pptx_to_pdf(pptx_bytes, **kw)
     out = []

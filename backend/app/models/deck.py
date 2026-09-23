@@ -104,7 +104,12 @@ class Slide(BaseModel):
     slide_type: SlideType = SlideType.CONTENT
     heading: str = Field(min_length=3, max_length=120)
     subheading: Optional[str] = Field(default=None, max_length=160)
+    # layout_hint — id макета шаблона (например, «L12»), принудительно выбранный
+    # для этого слайда; ставится авто-фиксом «сменить макет»
     layout_hint: Optional[str] = Field(default=None, max_length=60)
+    # type_scale_step — сдвиг по типографической шкале шаблона (отрицательный —
+    # мельче); ставится авто-фиксом «уменьшить шрифт»
+    type_scale_step: int = Field(default=0, ge=-3, le=3)
     blocks: list[Block] = Field(default_factory=list, max_length=6)
 
 
