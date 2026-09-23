@@ -15,6 +15,7 @@ import json
 import threading
 import time
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,23 +26,38 @@ from ..config import get_settings
 from ..content.corpus import ContentCorpus, list_corpora
 from ..content.importer import ContentImportError, import_content_pack
 from ..pipeline import VARIANTS, full_generate
-from ..render.images import draw_issue_boxes
-from ..render.pdf import pdf_bytes_for, pptx_to_pngs
+from ..render.images import draw_issue_boxes, png_bytes
+from ..render.pdf import PdfExportError, pdf_bytes_for, pptx_to_pngs
+from ..storage import JobStore, ThumbCache
 
-app = FastAPI(title="Цифровой дизайнер презентаций", version="0.1.0")
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """При старте подчищаем задания и кэш миниатюр старше TTL (ADR-016)."""
+    JOBS.cleanup(force=True)
+    THUMBS.prune(force=True)
+    yield
+
+
+app = FastAPI(title="Цифровой дизайнер презентаций", version="1.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list, allow_methods=["*"], allow_headers=["*"])
 
-JOBS: dict[str, dict] = {}
+# задания и миниатюры переживают перезапуск: метаданные и артефакты на диске
+JOBS = JobStore(settings.data_path, settings.job_cleanup_hours)
+THUMBS = ThumbCache(settings.data_path, settings.job_cleanup_hours)
 
 MAX_TEMPLATE = settings.max_upload_mb * 1024 * 1024
 
 
 def _job_worker(job_id: str, brief: str, source: str, purpose: str,
                 tpl: bytes, tpl_name: str, corpus_id: str = ""):
-    job = JOBS[job_id]
+    job = JOBS.get(job_id)
+    if job is None:
+        return
     try:
         started = time.time()
         corpus = ContentCorpus.load(corpus_id, settings.data_path) if corpus_id else None
@@ -56,6 +72,7 @@ def _job_worker(job_id: str, brief: str, source: str, purpose: str,
 
         job.update({"status": "error", "error": f"{type(exc).__name__}: {exc}",
                     "trace": traceback.format_exc()[-2000:]})
+    JOBS.put(job)
 
 
 def _get_job(job_id: str) -> dict:
@@ -63,6 +80,12 @@ def _get_job(job_id: str) -> dict:
     if not job:
         raise HTTPException(404, "задание не найдено")
     return job
+
+
+def _housekeeping() -> None:
+    """Ленивая очистка по TTL: запускается не чаще раза в 10 минут."""
+    JOBS.cleanup()
+    THUMBS.prune()
 
 
 @app.get("/api/health")
@@ -107,12 +130,13 @@ async def generate(template: UploadFile = File(...),
         raise HTTPException(422, "бриф слишком короткий (минимум 20 символов)")
     if corpus_id and ContentCorpus.load(corpus_id, settings.data_path) is None:
         raise HTTPException(404, f"контент-пакет {corpus_id} не найден")
+    _housekeeping()
     job_id = uuid.uuid4().hex[:12]
     # байты шаблона храним в задании: они нужны для повторного рендера после
     # авто-фиксов и для сборки вариантов на исходных макетах
-    JOBS[job_id] = {"id": job_id, "status": "pending", "created": time.time(),
-                    "corpus_id": corpus_id or None,
-                    "template": data, "template_name": template.filename or "template.pptx"}
+    JOBS.put({"id": job_id, "status": "pending", "created": time.time(),
+              "corpus_id": corpus_id or None,
+              "template": data, "template_name": template.filename or "template.pptx"})
     t = threading.Thread(target=_job_worker,
                          args=(job_id, brief, source, purpose, data,
                                template.filename or "template.pptx", corpus_id),
@@ -300,6 +324,7 @@ def job_fix(job_id: str, request: FixRequest):
     result.setdefault("stages", {})["fix_s"] = round(time.time() - started, 2)
     job["fixes"] = (job.get("fixes", []) + outcomes)[-50:]
     job["version"] = job.get("version", 1) + 1
+    JOBS.put(job)
 
     return {
         "applied": [o for o in outcomes if o["status"] == "applied"],
@@ -353,29 +378,27 @@ def job_info(job_id: str):
 
 
 def _thumb(item: dict, s: int, boxes: bool) -> bytes:
-    from ..render.pdf import PdfExportError
+    """Миниатюра слайда из кэша; при промахе рендерит всю колоду за один прогон.
 
+    Ключ кэша — хэш PPTX, поэтому после авто-фиксов (файл меняется) миниатюры
+    пересобираются сами, а рамки проблем берутся из актуального аудита.
+    """
+    digest = THUMBS.digest(item["pptx"])
+    cached = THUMBS.get(digest, s, boxes)
+    if cached is not None:
+        return cached
     try:
         pngs = pptx_to_pngs(item["pptx"])
     except PdfExportError as exc:
         raise HTTPException(503, f"нужен LibreOffice для миниатюр: {exc}") from exc
-    if s < len(pngs):
-        png = pngs[s]
-    else:
-        return pngs[0]
-    if boxes:
-        import base64
+    issues = item["audit"]["issues"]
+    for index, raw in enumerate(pngs):
+        THUMBS.put(digest, index, False, raw)
+        spec = [issue["bbox"] for issue in issues
+                if issue["slide"] == index and len(issue["bbox"]) == 4]
+        if spec:
+            from PIL import Image
 
-        from PIL import Image
-
-        issues = item["audit"]["issues"]
-        slide_issues = [i for i in issues if i["slide"] == s]
-        if slide_issues:
-            img = Image.open(io.BytesIO(png))
-            spec = [(i["bbox"][0], i["bbox"][1], i["bbox"][2], i["bbox"][3])
-                    for i in slide_issues if len(i["bbox"]) == 4]
-            out = draw_issue_boxes(img, spec)
-            buf = io.BytesIO()
-            out.save(buf, format="PNG")
-            return buf.getvalue()
-    return png
+            marked = draw_issue_boxes(Image.open(io.BytesIO(raw)), spec)
+            THUMBS.put(digest, index, True, png_bytes(marked))
+    return THUMBS.get(digest, s, boxes) or (pngs[s] if s < len(pngs) else pngs[0])
