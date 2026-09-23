@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Блокирует коммит, если в индекс попал похожий на секрет ключ.
+#
+# Включение (один раз на клон):
+#     git config core.hooksPath scripts/hooks
+#
+# Смысл: .env с ключами не коммитится (он в .gitignore), а этот хук ловит
+# случайную вставку ключа в код, документацию или пример конфигурации.
+set -uo pipefail
+
+# шаблоны ключей: OpenCode/OpenAI-подобные, длинные токены в переменных
+PATTERNS='oc_sk_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9_-]{20,}|OPENAI_COMPAT_API_KEY=[^[:space:]]{10,}|OPENAI_API_KEY=[^[:space:]]{10,}|ANTHROPIC_API_KEY=[^[:space:]]{10,}'
+# исключение: тестовые заглушки в тестах
+ALLOW='oc_sk_test_key_do_not_leak'
+
+# сам хук содержит шаблоны ключей — из проверки его исключаем
+staged=$(git diff --cached -U0 -- . ':(exclude)scripts/hooks/pre-commit' \
+  | grep -E '^\+' | grep -v '^+++' || true)
+if [[ -z "$staged" ]]; then
+  exit 0
+fi
+
+if printf '%s\n' "$staged" | grep -v "$ALLOW" | grep -Eq "$PATTERNS"; then
+  echo "Коммит заблокирован: в индексе найден секрет (API-ключ)." >&2
+  echo "Строки-нарушители (значения замаскированы):" >&2
+  printf '%s\n' "$staged" | grep -v "$ALLOW" | grep -E "$PATTERNS" \
+    | sed -E 's/(^\+.{0,60}).*/\1…/' >&2
+  echo >&2
+  echo "Ключ должен жить только в .env (файл в .gitignore)." >&2
+  echo "Если это тестовая заглушка — добавьте её имя в ALLOW в scripts/hooks/pre-commit." >&2
+  exit 1
+fi
+
+exit 0
