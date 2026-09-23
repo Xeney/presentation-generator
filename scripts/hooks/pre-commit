@@ -20,10 +20,10 @@ if [[ -z "$staged" ]]; then
   exit 0
 fi
 
-if printf '%s\n' "$staged" | grep -v "$ALLOW" | grep -Eq "$PATTERNS"; then
+if printf '%s\n' "$staged" | grep -Ev "$ALLOW" | grep -Eq "$PATTERNS"; then
   echo "Коммит заблокирован: в индексе найден секрет (API-ключ)." >&2
   echo "Строки-нарушители (значения замаскированы):" >&2
-  printf '%s\n' "$staged" | grep -v "$ALLOW" | grep -E "$PATTERNS" \
+  printf '%s\n' "$staged" | grep -Ev "$ALLOW" | grep -E "$PATTERNS" \
     | sed -E 's/(^\+.{0,60}).*/\1…/' >&2
   echo >&2
   echo "Ключ должен жить только в .env (файл в .gitignore)." >&2
