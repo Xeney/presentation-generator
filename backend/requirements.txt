@@ -1,3 +1,5 @@
+# Бэкенд: FastAPI + разбор/рендер PPTX + миниатюры.
+# Версии зафиксированы: воспроизводимая сборка в Docker (python:3.11-slim).
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 python-pptx==1.0.2
@@ -7,8 +9,9 @@ lxml==5.3.0
 Pillow==11.1.0
 python-dotenv==1.0.1
 httpx==0.28.1
+python-multipart==0.0.20
+# PDF-экспорт и миниатюры (LibreOffice ставится в Dockerfile)
 PyMuPDF==1.25.3
+# CV-утилиты: анализ изображений шаблона и контент-пакета
 numpy==2.2.3
 opencv-python-headless==4.11.0.86
-python-multipart==0.0.20
-orjson==3.10.15

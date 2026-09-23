@@ -1,4 +1,9 @@
+# Явное имя проекта: не зависит от имени каталога (в т.ч. кириллического),
+# поэтому `docker compose up` работает из любой папки
+name: digital-designer
+
 services:
+  # Локальный инференс LLM/VLM/эмбеддингов. Платные API не используются (ADR-001).
   ollama:
     image: ollama/ollama:latest
     container_name: dp-ollama
@@ -6,16 +11,25 @@ services:
       - ollama_data:/root/.ollama
     ports:
       - "11434:11434"
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:11434"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-    # держим нужные модели запущенными (первый запуск скачает их)
+    # первый запуск скачивает модели (несколько ГБ); маркер /tmp/models-ready
+    # создаётся в любом случае, чтобы офлайн-режим тоже стартовал
     entrypoint:
       - /bin/sh
       - -c
-      - "ollama serve & sleep 5 && (ollama pull qwen2.5:7b-instruct || true) && (ollama pull qwen2.5-vl:7b-instruct || true) && wait"
+      - >-
+        ollama serve &
+        sleep 5 &&
+        (ollama pull qwen2.5:7b-instruct || true) &&
+        (ollama pull qwen2.5-vl:7b-instruct || true) &&
+        touch /tmp/models-ready &&
+        wait
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && test -f /tmp/models-ready"]
+      interval: 15s
+      timeout: 10s
+      retries: 120
+      start_period: 30s
+    restart: unless-stopped
 
   backend:
     build:
@@ -32,10 +46,16 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # задания, контент-пакеты и кэш миниатюр переживают перезапуск контейнера
       - ./data:/app/backend/data
+    restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    # контекст — корень репозитория: так работает общий .dockerignore
+    # и путь COPY frontend/... внутри Dockerfile
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: dp-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
@@ -43,6 +63,7 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    restart: unless-stopped
 
 volumes:
   ollama_data:
