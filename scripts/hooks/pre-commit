@@ -10,8 +10,8 @@ set -uo pipefail
 
 # шаблоны ключей: OpenCode/OpenAI-подобные, длинные токены в переменных
 PATTERNS='oc_sk_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9_-]{20,}|OPENAI_COMPAT_API_KEY=[^[:space:]]{10,}|OPENAI_API_KEY=[^[:space:]]{10,}|ANTHROPIC_API_KEY=[^[:space:]]{10,}'
-# исключение: тестовые заглушки в тестах
-ALLOW='oc_sk_test_key_do_not_leak'
+# исключение: тестовые заглушки в тестах (совпадают по форме, но это не секреты)
+ALLOW='oc_sk_test_key_do_not_leak|sk-aitunnel-test'
 
 # сам хук содержит шаблоны ключей — из проверки его исключаем
 staged=$(git diff --cached -U0 -- . ':(exclude)scripts/hooks/pre-commit' \

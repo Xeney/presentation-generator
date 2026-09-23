@@ -171,6 +171,223 @@ def test_planner_falls_back_when_provider_refuses(compat):
     assert len(result.deck.slides) >= 4
 
 
+# ---------------------------------------------------------------- AITUNNEL
+AITUNNEL_KEY = "sk-aitunnel-test-0123456789abcdef"
+
+PLAN_JSON = {
+    "title": "Платформа аналитики",
+    "language": "ru",
+    "slides": [
+        {"slide_type": "title", "heading": "Платформа аналитики ускорила отчёты",
+         "subheading": "Итоги квартала"},
+        {"slide_type": "content", "heading": "Отчёты готовятся втрое быстрее",
+         "blocks": [{"kind": "bullets", "items": ["Минус 40% времени", "12 задач"]}]},
+        {"slide_type": "final", "heading": "Следующие шаги"},
+    ],
+}
+
+
+@pytest.fixture
+def aitunnel(monkeypatch):
+    """AITUNNEL с подменёнными HTTP-вызовами: ключ тестовый, сеть не нужна."""
+    monkeypatch.setenv("LLM_PROVIDER", "aitunnel")
+    monkeypatch.setenv("VLM_PROVIDER", "aitunnel")
+    monkeypatch.setenv("AITUNNEL_BASE_URL", "https://api.aitunnel.ru/v1")
+    monkeypatch.setenv("AITUNNEL_API_KEY", AITUNNEL_KEY)
+    monkeypatch.setenv("AITUNNEL_LLM_MODEL", "qwen3.5-9b")
+    monkeypatch.setenv("AITUNNEL_VLM_MODEL", "qwen3.5-9b")
+    monkeypatch.setenv("AITUNNEL_TIMEOUT_SEC", "120")
+    monkeypatch.setenv("AITUNNEL_MAX_RETRIES", "1")
+    monkeypatch.setenv("DEMO_MODE", "false")
+    # окружение CI может выключать модели — для этого теста они нужны включёнными
+    monkeypatch.setenv("DISABLE_LLM", "false")
+    get_settings.cache_clear()
+
+    calls: list[dict] = []
+    state = {"failures": 0, "status": 200, "body": ""}
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        calls.append({"url": url, "headers": headers or {}, "payload": json})
+        if state["failures"] > 0:
+            state["failures"] -= 1
+            return _FakeResponse(503, text='{"error":"temporary"}')
+        if state["status"] != 200:
+            return _FakeResponse(state["status"], text=state["body"])
+        return _FakeResponse(200, {"choices": [{"message": {
+            "content": __import__("json").dumps(PLAN_JSON, ensure_ascii=False)}}]})
+
+    def fake_get(url, headers=None, timeout=None):
+        calls.append({"url": url, "headers": headers or {}})
+        if state["failures"] > 0:
+            state["failures"] -= 1
+            return _FakeResponse(503, text='{"error":"temporary"}')
+        if state["status"] != 200:
+            return _FakeResponse(state["status"], text=state["body"])
+        return _FakeResponse(200, {"data": [{"id": "qwen3.5-9b"}, {"id": "qwen3-max"}]})
+
+    monkeypatch.setattr("app.planner.llm.httpx.post", fake_post)
+    monkeypatch.setattr("app.planner.llm.httpx.get", fake_get)
+    yield state, calls
+    get_settings.cache_clear()
+
+
+def test_aitunnel_is_selected_and_configured(aitunnel):
+    from app.planner.llm import aitunnel_client
+
+    client = aitunnel_client()
+    assert isinstance(client, OpenAICompatClient)
+    assert client.base_url == "https://api.aitunnel.ru/v1"
+    assert client.provider_name == "AITUNNEL"
+    assert client.max_retries == 1
+    assert client.timeout.read == 120
+    assert get_settings().active_llm_provider == "aitunnel"
+    assert get_settings().planner_label == "aitunnel/qwen3.5-9b"
+    assert get_settings().vlm_label == "aitunnel/qwen3.5-9b"
+
+
+def test_aitunnel_planner_returns_valid_plan(aitunnel):
+    """С мок-сервером AITUNNEL планировщик собирает валидную колоду."""
+    from app.planner.llm import aitunnel_client
+    from app.planner.planner import Planner
+
+    result = Planner(llm=aitunnel_client()).plan(
+        "Платформа аналитики: отчёты быстрее на 40%, 12 задач, 5 подразделений.",
+        "", "project")
+
+    assert result.used_llm is True
+    assert result.provider == "aitunnel"
+    assert result.model == "qwen3.5-9b"
+    assert result.label == "aitunnel/qwen3.5-9b"
+    assert len(result.deck.slides) == 3
+    assert result.deck.slides[0].slide_type.value == "title"
+    assert result.to_dict()["label"] == "aitunnel/qwen3.5-9b"
+
+
+def test_aitunnel_missing_key_is_explained(monkeypatch):
+    """Без ключа — понятная ошибка и мягкий откат на Ollama."""
+    monkeypatch.setenv("LLM_PROVIDER", "aitunnel")
+    monkeypatch.setenv("AITUNNEL_API_KEY", "")
+    get_settings.cache_clear()
+    try:
+        from app.planner.llm import aitunnel_client, get_llm_client
+
+        assert isinstance(get_llm_client(), OllamaClient)
+        assert get_settings().active_llm_provider == "ollama"
+
+        with pytest.raises(LlmError) as error:
+            aitunnel_client().list_models()
+        message = str(error.value)
+        assert "AITUNNEL_API_KEY" in message
+        assert ".env" in message
+    finally:
+        get_settings.cache_clear()
+
+
+def test_aitunnel_retries_once_on_server_error(aitunnel):
+    from app.planner.llm import aitunnel_client
+
+    state, calls = aitunnel
+    state["failures"] = 1
+    client = aitunnel_client()
+    client.retry_backoff_s = 0.0
+
+    assert client.health() is True
+    assert len(calls) == 2, "после 503 должен быть один повтор"
+
+
+def test_aitunnel_does_not_retry_client_error(aitunnel):
+    """4xx (кроме 408/409/425/429) повторять бессмысленно."""
+    from app.planner.llm import aitunnel_client
+
+    state, calls = aitunnel
+    state["status"] = 402
+    state["body"] = '{"error":"Insufficient account funds"}'
+    client = aitunnel_client()
+    client.retry_backoff_s = 0.0
+
+    with pytest.raises(LlmError) as error:
+        client.generate_text("привет")
+    assert "402" in str(error.value)
+    assert len(calls) == 1
+
+
+def test_aitunnel_key_is_masked_in_logs(aitunnel, caplog):
+    import logging
+
+    from app.planner.llm import aitunnel_client
+
+    state, _ = aitunnel
+    state["failures"] = 1
+    client = aitunnel_client()
+    client.retry_backoff_s = 0.0
+
+    with caplog.at_level(logging.WARNING, logger="llm"):
+        client.health()
+
+    assert AITUNNEL_KEY not in caplog.text
+    assert AITUNNEL_KEY[:8] in caplog.text  # маска присутствует
+
+
+def test_aitunnel_key_not_in_error_text(aitunnel):
+    from app.planner.llm import aitunnel_client
+
+    state, _ = aitunnel
+    state["status"] = 403
+    state["body"] = '{"error":"Model access is disabled"}'
+    with pytest.raises(LlmError) as error:
+        aitunnel_client().generate_text("привет")
+    assert AITUNNEL_KEY not in str(error.value)
+
+
+def test_vlm_client_honours_vlm_provider(aitunnel, monkeypatch):
+    from app.planner.llm import get_vlm_client
+
+    assert isinstance(get_vlm_client(), OpenAICompatClient)
+
+    monkeypatch.setenv("VLM_PROVIDER", "off")
+    get_settings.cache_clear()
+    assert get_vlm_client() is None
+    assert get_settings().vlm_label == "off"
+
+    monkeypatch.setenv("VLM_PROVIDER", "ollama")
+    get_settings.cache_clear()
+    assert isinstance(get_vlm_client(), OllamaClient)
+    get_settings.cache_clear()
+
+
+def test_vlm_audit_reports_off_reason(monkeypatch):
+    monkeypatch.setenv("VLM_PROVIDER", "off")
+    get_settings.cache_clear()
+    try:
+        from app.audit.vlm import VlmAudit
+
+        audit = VlmAudit(profile={})
+        assert audit.available() is False
+        result = audit.audit(b"PK", deck=None)
+        assert result["available"] is False
+        assert "off" in result["reason"]
+    finally:
+        get_settings.cache_clear()
+
+
+def test_demo_mode_disables_silent_fallback(aitunnel, monkeypatch):
+    """DEMO_MODE=true: недоступная модель — ошибка, а не офлайн-колода."""
+    from app.planner.llm import aitunnel_client
+    from app.planner.planner import Planner
+
+    monkeypatch.setenv("DEMO_MODE", "true")
+    get_settings.cache_clear()
+
+    state, _ = aitunnel
+    state["status"] = 402
+    state["body"] = '{"error":"Insufficient account funds"}'
+
+    with pytest.raises(LlmError) as error:
+        Planner(llm=aitunnel_client()).plan("Платформа аналитики ускорила отчёты.", "", "project")
+    assert "DEMO_MODE" in str(error.value)
+    get_settings.cache_clear()
+
+
 # --------------------------------------------------------------- секретность
 def test_env_files_are_ignored_by_git():
     """Секреты живут только в .env: он обязан быть в .gitignore."""

@@ -98,7 +98,13 @@ python tools/import_corpus.py data/templates/content_pack.pptx --text
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `LLM_PROVIDER` | `ollama` | `ollama` (открытые веса, требование ТЗ) или `openai_compat` (внешний шлюз, только для разработки, ADR-019) |
+| `LLM_PROVIDER` | `aitunnel` | `aitunnel` (шлюз с моделями Qwen, ADR-020), `ollama` (эталон сдачи: открытые веса, локально) или `openai_compat` (ADR-019) |
+| `VLM_PROVIDER` | `aitunnel` | провайдер VLM-аудита: `aitunnel`, `ollama`, `openai_compat` или `off` |
+| `AITUNNEL_BASE_URL` | `https://api.aitunnel.ru/v1` | адрес OpenAI-совместимого API AITUNNEL |
+| `AITUNNEL_API_KEY` | — | ключ AITUNNEL; хранится только в `.env` |
+| `AITUNNEL_LLM_MODEL` / `_VLM_MODEL` | `qwen3.5-9b` | мультимодальная Qwen: планировщик и VLM-аудит |
+| `AITUNNEL_TIMEOUT_SEC` / `_MAX_RETRIES` | `120` / `1` | таймаут запроса и один повтор на сетевых сбоях и 5xx/429 |
+| `DEMO_MODE` | `false` | `true` — не подменять недоступную модель офлайн-колодой (для живого демо) |
 | `OPENAI_COMPAT_BASE_URL` | — | база OpenAI-совместимого шлюза, например `https://opencode.ai/zen/v1` |
 | `OPENAI_COMPAT_API_KEY` | — | ключ шлюза; хранится только в `.env` (в git не попадает) |
 | `OPENAI_COMPAT_MODEL` / `_VLM_MODEL` / `_EMBEDDING_MODEL` | — | модели шлюза; пустые значения означают «использовать локальные» |
@@ -197,6 +203,9 @@ uvicorn app.api.main:app --reload --app-dir backend --port 8000
 | `503 нужен LibreOffice для миниатюр` | контейнер backend собран без LibreOffice либо локальный запуск без `soffice` в PATH |
 | В отчёте «планировщик: офлайн-fallback», хотя ключ задан | проверьте провайдера: `python tools/llm_check.py --json-call`. Частые ответы шлюзов: `403 FreeTierError` (бесплатные модели доступны только внутри клиента провайдера) и `402 Insufficient account funds` (нет баланса). До пополнения сервис работает на офлайн-планировщике |
 | Нужно вернуться к локальным открытым весам | `LLM_PROVIDER=ollama` в `.env` и `docker compose up -d backend` |
+| `LLM_PROVIDER=aitunnel`, но в логе «AITUNNEL_API_KEY пуст» | ключ не вставлен в `.env` (сервис при этом работает на Ollama, а без неё — на офлайн-планировщике) |
+| `AITUNNEL вернул 401/402/403` | неверный ключ, нет баланса или модель закрыта для аккаунта — проверьте `python tools/llm_check.py --json-call` |
+| В отчёте «планировщик: offline-fallback» при включённом `DEMO_MODE=false` | модель недоступна: смотрите причину в логе (`llm`), при `DEMO_MODE=true` задание завершится ошибкой с тем же текстом |
 | Генерация идёт дольше 5 минут | модели ещё скачиваются (`docker compose logs ollama`) либо нет GPU; проверьте `docker compose exec ollama ollama list` |
 | `LLM: offline-fallback` в отчёте | Ollama недоступна или `DISABLE_LLM=true`; проверьте `GET /api/health` |
 | Пустой результат VLM-аудита | `VLM_AUDIT_ENABLED=false` или модель `qwen2.5-vl:7b-instruct` не скачана |

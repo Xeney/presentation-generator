@@ -51,7 +51,8 @@ export function ContextPanel({ info }: { info: JobInfo | null }) {
             {vlm?.available ? (
               <>
                 <p className="text-muted-foreground">
-                  {vlm.model} · слайдов {vlm.slides.length} · {vlm.elapsed_s} c
+                  {vlm.provider ? `${vlm.provider}/` : ""}{vlm.model} · слайдов{" "}
+                  {vlm.slides.length} · {vlm.elapsed_s} c
                 </p>
                 {vlmIssues.length === 0 && (
                   <p className="text-[hsl(var(--success))]">смысловых замечаний нет</p>

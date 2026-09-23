@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 from ..config import get_settings
-from ..planner.llm import OllamaClient, get_llm_client
+from ..planner.llm import OllamaClient, get_vlm_client
 from ..render.pdf import pptx_to_pngs
 
 log = logging.getLogger("audit_vlm")
@@ -69,13 +69,25 @@ class VlmAudit:
 
     def __init__(self, llm: Optional[OllamaClient] = None, profile: Optional[dict] = None):
         self.settings = get_settings()
-        self.llm = llm or get_llm_client()
+        # клиент выбирается по VLM_PROVIDER (aitunnel | openai_compat | ollama | off)
+        self.llm = llm if llm is not None else get_vlm_client()
         self.profile = profile or {}
         self.system = (PROMPTS / "system.md").read_text(encoding="utf-8")
         self.user_template = (PROMPTS / "user.md").read_text(encoding="utf-8")
 
     def available(self) -> bool:
-        return (not self.settings.disable_llm) and self.llm.health()
+        if self.llm is None or self.settings.disable_llm:
+            return False
+        return self.llm.health()
+
+    def unavailable_reason(self) -> str:
+        """Почему стадия недоступна — это уходит в отчёт задания."""
+        if self.llm is None:
+            return "VLM-аудит выключен (VLM_PROVIDER=off)"
+        if self.settings.disable_llm:
+            return "DISABLE_LLM=true: модели отключены"
+        return (f"VLM {self.settings.vlm_label} недоступна "
+                f"(проверьте адрес, ключ и сеть)")
 
     def prompt_version(self) -> dict:
         """Версия промпта из манифеста prompts/registry.json (ADR-013)."""
@@ -98,8 +110,10 @@ class VlmAudit:
               source_digest: str = "") -> dict:
         """Возвращает результат по слайдам: {'slides': [{violations, summary, ok}...]}."""
         if not self.available():
-            log.info("VLM-аудит недоступен (Ollama/VLM не в сети)")
-            return {"available": False, "slides": [], "reason": "Ollama/VLM недоступны",
+            reason = self.unavailable_reason()
+            log.info("VLM-аудит недоступен: %s", reason)
+            return {"available": False, "slides": [], "reason": reason,
+                    "provider": self.settings.active_vlm_provider,
                     "criteria": CRITERIA}
         try:
             images = self._slide_pngs_b64(pptx_bytes)
@@ -134,9 +148,11 @@ class VlmAudit:
             # модель ответила отказом на каждый слайд: честнее сказать «недоступно»,
             # чем показать «замечаний нет»
             return {"available": False, "slides": [], "criteria": CRITERIA,
+                    "provider": self.settings.active_vlm_provider,
                     "reason": f"VLM не ответила ни на один слайд: {last_error[:200]}"}
         return {
             "available": True,
+            "provider": self.settings.active_vlm_provider,
             "model": self.settings.active_vlm_model,
             "slides": slides,
             "errors": errors,

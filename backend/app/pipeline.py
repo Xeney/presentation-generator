@@ -154,7 +154,7 @@ def full_generate(brief: str, source: str, purpose: str,
     return {
         "profile": profile,
         "deck": json.loads(deck.model_dump_json()),
-        "planner": {"used_llm": result.used_llm, "attempts": result.attempts},
+        "planner": result.to_dict(),
         "prompts": prompts_meta.versions(),
         "corpus": corpus.to_dict() if corpus is not None else None,
         "variants": [

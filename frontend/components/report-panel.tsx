@@ -79,7 +79,9 @@ export function ReportPanel({
 
             <p className="text-muted-foreground">
               слайдов {summary.slides} · время {summary.elapsed_s} c · планировщик:{" "}
-              {summary.used_llm ? "Qwen2.5" : "офлайн-fallback"}
+              <span className="text-foreground/80">
+                {summary.planner_label ?? (summary.used_llm ? "llm" : "офлайн-fallback")}
+              </span>
             </p>
 
             {summary.stages && (
@@ -93,7 +95,7 @@ export function ReportPanel({
             )}
 
             <p className="text-muted-foreground">
-              VLM-аудит: {summary.vlm_available ? "выполнен" : "недоступен"}
+              VLM-аудит: {summary.vlm_label ?? (summary.vlm_available ? "выполнен" : "недоступен")}
               {summary.corpus_id ? ` · контент-пакет ${summary.corpus_id}` : ""}
               {summary.version && summary.version > 1 ? ` · версия ${summary.version}` : ""}
             </p>

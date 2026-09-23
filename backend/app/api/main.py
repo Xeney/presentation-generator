@@ -204,9 +204,14 @@ def job_status(job_id: str):
     resp = {k: v for k, v in job.items() if k not in ("result", "template")}
     if job.get("status") == "done":
         r = job["result"]
+        vlm = r.get("vlm", {})
+        vlm_label = ("off" if not vlm.get("available")
+                     else f"{vlm.get('provider', '?')}/{vlm.get('model', '?')}")
         resp["summary"] = {
             "slides": len(r["deck"]["slides"]),
             "used_llm": r["planner"]["used_llm"],
+            "planner_label": r["planner"].get("label", "offline-fallback"),
+            "vlm_label": vlm_label,
             "elapsed_s": job.get("elapsed_s"),
             "stages": r.get("stages", {}),
             "corpus_id": job.get("corpus_id"),

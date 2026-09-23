@@ -11,11 +11,15 @@
 from __future__ import annotations
 
 import json
+import logging
+import time
 from typing import Optional
 
 import httpx
 
 from ..config import get_settings
+
+log = logging.getLogger("llm")
 
 
 class LlmError(RuntimeError):
@@ -116,19 +120,37 @@ class OllamaClient:
 class OpenAICompatClient:
     """Клиент OpenAI-совместимого шлюза (chat/completions + embeddings).
 
-    Назначение — локальная разработка без GPU: тот же интерфейс, что у
-    `OllamaClient`, поэтому планировщик, VLM-аудит и grounding работают без
-    изменений. Ключ не логируется и не возвращается в текстах ошибок.
+    Используется для AITUNNEL (`https://api.aitunnel.ru/v1`) и любых других
+    совместимых шлюзов: тот же интерфейс, что у `OllamaClient`, поэтому
+    планировщик, VLM-аудит и grounding работают без изменений.
+
+    Безопасность: ключ не логируется (в сообщениях только маска из первых
+    восьми символов) и вырезается из текстов ответов провайдера.
     """
 
+    RETRY_STATUSES = (408, 409, 425, 429, 500, 502, 503, 504)
+
     def __init__(self, base_url: Optional[str] = None, api_key: Optional[str] = None,
-                 timeout_s: Optional[int] = None):
+                 timeout_s: Optional[int] = None, max_retries: int = 0,
+                 provider_name: str = "шлюз", key_env: str = "OPENAI_COMPAT_API_KEY",
+                 retry_backoff_s: float = 1.5):
         s = get_settings()
+        self.provider_name = provider_name
+        self.key_env = key_env
         self.base_url = (base_url or s.openai_compat_base_url or "").rstrip("/")
         self.api_key = api_key if api_key is not None else s.openai_compat_api_key
         self.timeout = httpx.Timeout(timeout_s or s.llm_timeout_s)
+        self.max_retries = max(0, int(max_retries))
+        self.retry_backoff_s = retry_backoff_s
 
     # ------------------------------------------------------------- служебное
+    def masked_key(self) -> str:
+        """Маска ключа для логов: первые 8 символов, дальше — звёздочки."""
+        if not self.api_key:
+            return "(нет ключа)"
+        head = self.api_key[:8]
+        return f"{head}…({len(self.api_key)} символов)"
+
     def _headers(self) -> dict:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
@@ -140,25 +162,67 @@ class OpenAICompatClient:
         """Обрезает ответ провайдера: наружу не уходят длинные тела и заголовки."""
         return (text or "")[:limit]
 
+    def _missing_key_error(self) -> LlmError:
+        return LlmError(
+            f"{self.provider_name}: не задан ключ ({self.key_env}). "
+            "Ключ хранится только в локальном .env — он в .gitignore и в "
+            "репозиторий не попадает.")
+
+    def _request(self, method: str, path: str, *, payload: Optional[dict] = None,
+                 timeout: Optional[httpx.Timeout] = None) -> httpx.Response:
+        """HTTP-вызов с повторами на сетевых сбоях и 5xx/429.
+
+        Повторы не применяются к 4xx (кроме 408/409/425/429): неверный ключ или
+        отключённая модель повторным запросом не исправятся.
+        """
+        url = f"{self.base_url}{path}"
+        attempts = self.max_retries + 1
+        last_error = ""
+        for attempt in range(1, attempts + 1):
+            try:
+                if method == "GET":
+                    response = httpx.get(url, headers=self._headers(),
+                                         timeout=timeout or self.timeout)
+                else:
+                    response = httpx.post(url, json=payload, headers=self._headers(),
+                                          timeout=timeout or self.timeout)
+            except Exception as exc:  # noqa: BLE001 — сеть может моргнуть
+                last_error = str(exc)
+                log.warning("%s: сетевой сбой (попытка %s/%s): %s",
+                            self.provider_name, attempt, attempts, exc)
+                if attempt < attempts:
+                    time.sleep(self.retry_backoff_s * attempt)
+                    continue
+                raise LlmError(f"{self.provider_name}: сеть недоступна ({exc})") from exc
+
+            if response.status_code in self.RETRY_STATUSES and attempt < attempts:
+                log.warning("%s: ответ %s, повтор через %.1f c (ключ %s)",
+                            self.provider_name, response.status_code,
+                            self.retry_backoff_s * attempt, self.masked_key())
+                time.sleep(self.retry_backoff_s * attempt)
+                continue
+            return response
+        raise LlmError(f"{self.provider_name}: запрос не удался ({last_error})")
+
     def health(self) -> bool:
-        if not self.base_url:
+        if not self.base_url or not self.api_key:
             return False
         try:
-            r = httpx.get(f"{self.base_url}/models", headers=self._headers(), timeout=10)
-            return r.status_code == 200
-        except Exception:
+            response = self._request("GET", "/models", timeout=httpx.Timeout(15))
+            return response.status_code == 200
+        except Exception:  # noqa: BLE001
             return False
 
     def list_models(self) -> list[str]:
         if not self.base_url:
-            raise LlmError("не задан OPENAI_COMPAT_BASE_URL")
-        try:
-            r = httpx.get(f"{self.base_url}/models", headers=self._headers(), timeout=15)
-        except Exception as exc:
-            raise LlmError(f"шлюз недоступен: {exc}") from exc
-        if r.status_code != 200:
-            raise LlmError(f"шлюз вернул {r.status_code}: {self._safe(r.text)}")
-        payload = r.json()
+            raise LlmError(f"{self.provider_name}: не задан адрес API")
+        if not self.api_key:
+            raise self._missing_key_error()
+        response = self._request("GET", "/models", timeout=httpx.Timeout(20))
+        if response.status_code != 200:
+            raise LlmError(f"{self.provider_name} вернул {response.status_code}: "
+                           f"{self._safe(response.text)}")
+        payload = response.json()
         items = payload.get("data", payload if isinstance(payload, list) else [])
         return [item.get("id", "") for item in items if isinstance(item, dict)]
 
@@ -169,7 +233,9 @@ class OpenAICompatClient:
                       images: Optional[list[str]] = None) -> str:
         """Запрос к /chat/completions. images — base64 PNG для VLM-моделей."""
         if not self.base_url:
-            raise LlmError("не задан OPENAI_COMPAT_BASE_URL")
+            raise LlmError(f"{self.provider_name}: не задан адрес API")
+        if not self.api_key:
+            raise self._missing_key_error()
         s = get_settings()
         content: object = prompt
         if images:
@@ -189,25 +255,23 @@ class OpenAICompatClient:
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
 
-        response = self._post(payload)
-        if response.status_code >= 400 and json_mode:
-            # часть шлюзов не поддерживает response_format — повторяем без него
+        response = self._request("POST", "/chat/completions", payload=payload)
+        if response.status_code in (400, 422) and json_mode:
+            # часть шлюзов не поддерживает response_format: повторяем без него.
+            # На 401/402/403/404 повтор бессмысленен — ключ и баланс не изменятся.
             payload.pop("response_format", None)
-            response = self._post(payload)
+            response = self._request("POST", "/chat/completions", payload=payload)
         if response.status_code != 200:
-            raise LlmError(f"шлюз вернул {response.status_code}: {self._safe(response.text)}")
+            raise LlmError(
+                f"{self.provider_name} вернул {response.status_code}: "
+                f"{self._safe(response.text)}")
         try:
             data = response.json()
             return data["choices"][0]["message"]["content"] or ""
         except Exception as exc:  # noqa: BLE001
-            raise LlmError(f"неожиданный ответ шлюза: {self._safe(response.text)}") from exc
-
-    def _post(self, payload: dict) -> httpx.Response:
-        try:
-            return httpx.post(f"{self.base_url}/chat/completions", json=payload,
-                              headers=self._headers(), timeout=self.timeout)
-        except Exception as exc:
-            raise LlmError(f"ошибка вызова шлюза: {exc}") from exc
+            raise LlmError(
+                f"{self.provider_name}: неожиданный ответ ({self._safe(response.text)})"
+            ) from exc
 
     def generate_json(self, prompt: str, system: Optional[str] = None, *,
                       model: Optional[str] = None) -> Optional[dict]:
@@ -220,25 +284,63 @@ class OpenAICompatClient:
     # ------------------------------------------------------------ эмбеддинги
     def embed(self, texts: list[str], model: Optional[str] = None) -> list[list[float]]:
         """Эмбеддинги через /embeddings; при неудаче — пустой список (не критично)."""
-        if not self.base_url:
+        if not self.base_url or not self.api_key:
             return []
         s = get_settings()
         try:
-            r = httpx.post(f"{self.base_url}/embeddings",
-                           json={"model": model or s.active_embedding_model, "input": texts},
-                           headers=self._headers(), timeout=httpx.Timeout(120))
-            r.raise_for_status()
-            data = r.json().get("data", [])
+            response = self._request(
+                "POST", "/embeddings",
+                payload={"model": model or s.active_embedding_model, "input": texts},
+                timeout=httpx.Timeout(120))
+            if response.status_code != 200:
+                return []
+            data = response.json().get("data", [])
             return [item.get("embedding", []) for item in data]
-        except Exception:
+        except Exception:  # noqa: BLE001
             return []
 
     _parse_json = staticmethod(OllamaClient._parse_json)
 
 
+def aitunnel_client(vlm: bool = False) -> OpenAICompatClient:
+    """Клиент AITUNNEL: OpenAI-совместимый шлюз с моделями Qwen (ADR-020)."""
+    s = get_settings()
+    return OpenAICompatClient(
+        base_url=s.aitunnel_base_url,
+        api_key=s.aitunnel_api_key,
+        timeout_s=s.aitunnel_timeout_sec,
+        max_retries=s.aitunnel_max_retries,
+        provider_name="AITUNNEL",
+        key_env="AITUNNEL_API_KEY",
+    )
+
+
 def get_llm_client():
-    """Клиент по конфигурации: Ollama (по умолчанию) или внешний шлюз."""
+    """Клиент планировщика по конфигурации: aitunnel | openai_compat | ollama."""
     settings = get_settings()
-    if settings.uses_external_provider:
-        return OpenAICompatClient()
+    if settings.llm_provider == "aitunnel" and not settings.aitunnel_api_key:
+        log.warning("LLM_PROVIDER=aitunnel, но AITUNNEL_API_KEY пуст — использую "
+                    "локальную Ollama (ключ хранится только в .env)")
+    provider = settings.active_llm_provider
+    if provider == "aitunnel":
+        return aitunnel_client()
+    if provider == "openai_compat":
+        return OpenAICompatClient(provider_name="шлюз")
+    return OllamaClient()
+
+
+def get_vlm_client():
+    """Клиент VLM-аудита: учитывает отдельный `VLM_PROVIDER`, умеет `off`."""
+    settings = get_settings()
+    provider = settings.active_vlm_provider
+    if provider == "off":
+        log.info("VLM-аудит выключен (VLM_PROVIDER=off)")
+        return None
+    if settings.vlm_provider.strip().lower() == "aitunnel" and not settings.aitunnel_api_key:
+        log.warning("VLM_PROVIDER=aitunnel, но AITUNNEL_API_KEY пуст — использую "
+                    "локальную Ollama")
+    if provider == "aitunnel":
+        return aitunnel_client(vlm=True)
+    if provider == "openai_compat":
+        return OpenAICompatClient(provider_name="шлюз")
     return OllamaClient()

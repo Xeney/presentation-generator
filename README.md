@@ -33,11 +33,20 @@ docker compose up --build
 сервис работает в режиме офлайн-планировщика: колода, вёрстка, аудит и экспорт
 доступны полностью, в отчёте честно помечается `offline-fallback`.
 
-**Провайдеры моделей.** По умолчанию — Ollama с открытыми весами (Qwen2.5,
-Qwen2.5-VL, BGE-M3), как требует ТЗ. Для разработки без GPU можно включить
-внешний OpenAI-совместимый шлюз: `LLM_PROVIDER=openai_compat` и ключ в `.env`
-(файл не коммитится). Проверка настройки — `python tools/llm_check.py --json-call`.
-Подробности и оговорка про соответствие ТЗ — `docs/MODELS.md` §6, ADR-019.
+**Провайдеры моделей.** Выбираются переменными `LLM_PROVIDER` и `VLM_PROVIDER`:
+
+| Значение | Что это |
+|---|---|
+| `aitunnel` | OpenAI-совместимый шлюз AITUNNEL, модель `qwen3.5-9b` (Qwen, Apache 2.0) — и планировщик, и VLM-аудит (ADR-020) |
+| `ollama` | локальные открытые веса: Qwen2.5 7B/14B, Qwen2.5-VL 7B, BGE-M3 — эталон для сдачи по ТЗ |
+| `openai_compat` | любой другой OpenAI-совместимый шлюз (ADR-019) |
+| `off` | только для `VLM_PROVIDER`: VLM-аудит выключен |
+
+Ключи живут исключительно в `.env` (файл в `.gitignore`, страхует
+`scripts/hooks/pre-commit`). Проверка настройки — `python tools/llm_check.py
+--json-call` (и `--vlm` для аудита). В отчёте задания видно, кто собрал колоду:
+`planning: aitunnel/qwen3.5-9b` или `offline-fallback`. Подробности —
+`docs/MODELS.md`, `docs/DECISIONS.md` (ADR-019, ADR-020).
 
 ## Состояние по требованиям ТЗ
 

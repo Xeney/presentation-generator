@@ -22,10 +22,27 @@ PLANNER_DIR = PROMPTS / "planner"
 
 
 class PlanningResult:
-    def __init__(self, deck: Deck, used_llm: bool, attempts: int):
+    """Результат планирования: колода плюс сведения о том, кто её собрал."""
+
+    def __init__(self, deck: Deck, used_llm: bool, attempts: int,
+                 provider: str = "offline", model: str = ""):
         self.deck = deck
         self.used_llm = used_llm
         self.attempts = attempts
+        self.provider = provider
+        self.model = model
+
+    @property
+    def label(self) -> str:
+        """Строка для отчёта задания: «aitunnel/qwen3.5-9b» или «offline». """
+        if not self.used_llm:
+            return "offline-fallback"
+        return f"{self.provider}/{self.model}" if self.model else self.provider
+
+    def to_dict(self) -> dict:
+        return {"used_llm": self.used_llm, "attempts": self.attempts,
+                "provider": self.provider, "model": self.model,
+                "label": self.label}
 
 
 def _profile_summary(profile: dict) -> str:
@@ -71,8 +88,15 @@ class Planner:
              profile: dict | None = None, corpus=None) -> PlanningResult:
         profile = profile or {}
         brief = (brief or "").strip()
+        label = self.settings.planner_label
+        last_error = ""
+
         if self.settings.disable_llm or not self.llm.health():
-            log.info("Ollama недоступна/выключена — офлайн-планировщик")
+            last_error = (f"планировщик {label} недоступен "
+                          f"(проверьте адрес, ключ и сеть)")
+            if self.settings.demo_mode:
+                raise LlmError(f"DEMO_MODE: {last_error}; офлайн-fallback отключён")
+            log.info("%s — офлайн-планировщик", last_error)
             return PlanningResult(self.fallback.plan(brief, source, purpose, corpus=corpus),
                                   used_llm=False, attempts=0)
 
@@ -83,26 +107,37 @@ class Planner:
             try:
                 raw = self.llm.generate_text(user, system, model=model, temperature=0.3)
             except LlmError as exc:
-                # провайдер недоступен/отказал (нет баланса, нет модели, сеть):
-                # не роняем задание, а честно уходим в офлайн-планировщик
+                # провайдер отказал (нет баланса, нет модели, сеть): не роняем
+                # задание, а честно уходим в офлайн-планировщик
+                last_error = str(exc)
                 log.warning("LLM недоступна (попытка %s): %s", attempt, exc)
                 break
             data = self.llm._parse_json(raw)
             if data is None:
                 log.warning("LLM ответ не JSON (попытка %s)", attempt)
+                last_error = "ответ модели не является JSON"
                 continue
             try:
                 deck = Deck.model_validate(data)
-                log.info("LLM-планировщик: колода из %s слайдов (попытка %s)", len(deck.slides), attempt)
-                return PlanningResult(deck, used_llm=True, attempts=attempt)
+                log.info("LLM-планировщик %s: колода из %s слайдов (попытка %s)",
+                         label, len(deck.slides), attempt)
+                return PlanningResult(deck, used_llm=True, attempts=attempt,
+                                      provider=self.settings.active_llm_provider,
+                                      model=model)
             except Exception as exc:
-                log.warning("LLM не прошёл Pydantic-валидацию (попытка %s): %s", attempt, str(exc)[:300])
+                last_error = f"ответ не прошёл валидацию: {str(exc)[:200]}"
+                log.warning("LLM не прошёл Pydantic-валидацию (попытка %s): %s",
+                            attempt, str(exc)[:300])
                 user += (
                     "\n\nПоследняя попытка не прошла валидацию. Ошибки:\n"
                     + str(exc)[:800]
                     + "\nВерни исправленный JSON строго по схеме."
                 )
-        log.info("LLM-планировщик исчерпал попытки — офлайн-fallback")
+
+        if self.settings.demo_mode:
+            raise LlmError(f"DEMO_MODE: планировщик {label} не дал валидную колоду "
+                           f"({last_error}); офлайн-fallback отключён")
+        log.info("LLM-планировщик исчерпал попытки — офлайн-fallback (%s)", last_error)
         return PlanningResult(self.fallback.plan(brief, source, purpose, corpus=corpus),
                               used_llm=False,
                               attempts=self.settings.planner_llm_max_retries)

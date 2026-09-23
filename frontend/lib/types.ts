@@ -37,6 +37,10 @@ export type JobSummary = {
   variants: VariantSummary[];
   stages?: StageTimings;
   vlm_available?: boolean;
+  /** «провайдер/модель» планировщика: aitunnel/qwen3.5-9b или offline-fallback */
+  planner_label?: string;
+  /** «провайдер/модель» VLM-аудита или off */
+  vlm_label?: string;
   corpus_id?: string | null;
   version?: number;
   fixes?: number;
@@ -93,7 +97,9 @@ export type VlmSlide = {
 
 export type VlmResult = {
   available: boolean;
+  provider?: string;
   model?: string;
+  errors?: number;
   slides: VlmSlide[];
   reason?: string;
   criteria?: Record<string, string>;

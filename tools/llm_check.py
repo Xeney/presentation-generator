@@ -23,8 +23,10 @@ from app.planner.llm import OllamaClient, OpenAICompatClient, get_llm_client  # 
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Проверка провайдера LLM")
-    parser.add_argument("--provider", choices=["ollama", "openai_compat"],
+    parser.add_argument("--provider", choices=["ollama", "openai_compat", "aitunnel"],
                         help="переопределить провайдера из .env")
+    parser.add_argument("--vlm", action="store_true",
+                        help="проверить провайдера VLM-аудита (VLM_PROVIDER)")
     parser.add_argument("--json-call", action="store_true",
                         help="сделать крошечный запрос и проверить JSON-режим")
     args = parser.parse_args(argv)
@@ -36,15 +38,26 @@ def main(argv: list[str]) -> int:
         get_settings.cache_clear()
 
     settings = get_settings()
-    client = get_llm_client()
+    if args.vlm:
+        from app.planner.llm import get_vlm_client
+
+        client = get_vlm_client()
+        if client is None:
+            print("VLM_PROVIDER=off — VLM-аудит выключен")
+            return 0
+    else:
+        client = get_llm_client()
     kind = "openai_compat" if isinstance(client, OpenAICompatClient) else "ollama"
 
-    print(f"провайдер:      {kind}")
+    print(f"провайдер:      {settings.active_vlm_provider if args.vlm else settings.active_llm_provider}")
+    print(f"режим запроса:  {'VLM' if args.vlm else 'LLM'}")
     if kind == "openai_compat":
         print(f"шлюз:           {client.base_url or '(не задан)'}")
-        key = client.api_key or ""
-        print(f"ключ:           {'есть' if key else 'НЕТ'} "
-              f"(длина {len(key)}, значение не печатается)")
+        print(f"имя в отчёте:   {client.provider_name}")
+        print(f"ключ:           {'есть' if client.api_key else 'НЕТ'} "
+              f"({client.masked_key()}, значение не печатается)")
+        print(f"таймаут/повтор: {settings.aitunnel_timeout_sec} c / "
+              f"{client.max_retries} (актуально для AITUNNEL)")
         print(f"модель LLM:     {settings.active_llm_model or '(не задана)'}")
         print(f"модель VLM:     {settings.active_vlm_model or '(не задана)'}")
         print(f"эмбеддинги:     {settings.active_embedding_model or '(не заданы)'}")
@@ -53,6 +66,7 @@ def main(argv: list[str]) -> int:
         print(f"модель LLM:     {settings.active_llm_model}")
         print(f"модель VLM:     {settings.active_vlm_model}")
         print(f"эмбеддинги:     {settings.active_embedding_model}")
+    print(f"DEMO_MODE:      {settings.demo_mode}")
 
     if not client.health():
         print("\nдоступность:    НЕТ — проверьте адрес, ключ и сеть")
