@@ -1,0 +1,3909 @@
+{
+  "template_id": "ЛЦТ2026_Шаблон_презентации.pptx",
+  "source_file": "ЛЦТ2026 Шаблон презентации.pptx",
+  "slide_size": {
+    "w_in": 13.333333333333334,
+    "h_in": 7.5,
+    "w_emus": 12192000,
+    "h_emus": 6858000
+  },
+  "theme_fonts": {
+    "major": {
+      "latin": "Calibri Light",
+      "ea": ""
+    },
+    "minor": {
+      "latin": "Calibri",
+      "ea": ""
+    }
+  },
+  "theme_colors": {
+    "dk1": "#000000",
+    "lt1": "#FFFFFF",
+    "dk2": "#1C1D22",
+    "lt2": "#E5E7E9",
+    "accent1": "#FF0053",
+    "accent2": "#FFD6E3",
+    "accent3": "#FC3777",
+    "accent4": "#8A83D1",
+    "accent5": "#520977",
+    "accent6": "#2D1451",
+    "hlink": "#FF0053",
+    "folHlink": "#5D2B84"
+  },
+  "palette": [
+    {
+      "hex": "#000000",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#FFFFFF",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#1C1D22",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#E5E7E9",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#FF0053",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#FFD6E3",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#FC3777",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#8A83D1",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#520977",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#2D1451",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#5D2B84",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#2D1551",
+      "count": 18,
+      "source": "shape"
+    },
+    {
+      "hex": "#E4EAE9",
+      "count": 6,
+      "source": "text"
+    },
+    {
+      "hex": "#753A93",
+      "count": 2,
+      "source": "shape"
+    },
+    {
+      "hex": "#976BAE",
+      "count": 1,
+      "source": "shape"
+    },
+    {
+      "hex": "#DCCEE4",
+      "count": 1,
+      "source": "shape"
+    },
+    {
+      "hex": "#F92571",
+      "count": 1,
+      "source": "text"
+    }
+  ],
+  "text_colors": [
+    "#E4EAE9",
+    "#F92571"
+  ],
+  "fonts": [
+    {
+      "name": "Calibri Light",
+      "bold": false,
+      "count": 17
+    },
+    {
+      "name": "Calibri",
+      "bold": false,
+      "count": 15
+    },
+    {
+      "name": "Calibri Light",
+      "bold": true,
+      "count": 1
+    },
+    {
+      "name": "Montserrat Medium",
+      "bold": false,
+      "count": 1
+    }
+  ],
+  "headline_font": "Calibri Light",
+  "body_font": "Calibri Light",
+  "type_scale": {
+    "title": [
+      36.0,
+      24.0,
+      20.0,
+      16.0
+    ],
+    "body": [
+      36.0,
+      24.0,
+      20.0,
+      18.67,
+      16.0,
+      15.0,
+      14.0,
+      13.0
+    ],
+    "min_body": 13.0,
+    "max_title": 36.0
+  },
+  "grid": {
+    "margin_left": 0.345,
+    "margin_top": 1.111,
+    "margin_right": 0.345,
+    "margin_bottom": 0.745,
+    "body_x": 0.345,
+    "body_y": 1.111,
+    "body_w": 12.644,
+    "body_h": 5.644
+  },
+  "layouts": [
+    {
+      "id": "L0",
+      "master_id": "M0",
+      "name": "Титульный слайд",
+      "role": "title",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 10,
+          "type": "picture",
+          "name": "Рисунок 10",
+          "x": 7.427821522309712,
+          "y": 0.4322922134733158,
+          "w": 5.905511811023622,
+          "h": 5.905511811023622,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "center_title",
+          "name": "Заголовок 1",
+          "x": 0.0,
+          "y": 4.728171478565179,
+          "w": 9.766667760279965,
+          "h": 0.9044302274715661,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 11,
+          "type": "picture",
+          "name": "Рисунок 41",
+          "x": 0.8777777777777778,
+          "y": 3.1845800524934385,
+          "w": 3.7038199912510934,
+          "h": 1.1839337270341208,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "body",
+          "name": "Текст 4",
+          "x": 0.0,
+          "y": 5.631945538057742,
+          "w": 9.766667760279965,
+          "h": 0.8280555555555555,
+          "font": null,
+          "size": 16.0,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "center_title",
+        "name": "Заголовок 1",
+        "x": 0.0,
+        "y": 4.728171478565179,
+        "w": 9.766667760279965,
+        "h": 0.9044302274715661,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.0,
+        "y": 5.631945538057742,
+        "w": 9.766667760279965,
+        "h": 0.8280555555555555
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L1",
+      "master_id": "M0",
+      "name": "1_Описание команды",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 10,
+          "type": "picture",
+          "name": "Рисунок 10",
+          "x": 7.5394739720035,
+          "y": 1.1418208661417324,
+          "w": 5.427540463692038,
+          "h": 2.4298162729658794,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.3784722222222222,
+          "y": 0.4322922134733158,
+          "w": 12.297432195975503,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.3784722222222222,
+        "y": 0.4322922134733158,
+        "w": 12.297432195975503,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [
+          16.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L2",
+      "master_id": "M0",
+      "name": "Команда",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.3784722222222222,
+          "y": 0.4322922134733158,
+          "w": 12.297432195975503,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 27,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 0.8818055555555555,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 33,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 3.296771653543307,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 35,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 5.677156605424322,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 37,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 8.056259842519685,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 39,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 10.435363079615048,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.3784722222222222,
+        "y": 0.4322922134733158,
+        "w": 12.297432195975503,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.8818055555555555,
+        "y": 4.584562554680665,
+        "w": 2.0161646981627297,
+        "h": 1.7240791776027997
+      },
+      "columns": [
+        {
+          "x": 0.8818055555555555,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997
+        },
+        {
+          "x": 3.296771653543307,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997
+        },
+        {
+          "x": 5.677156605424322,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997
+        },
+        {
+          "x": 8.056259842519685,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997
+        },
+        {
+          "x": 10.435363079615048,
+          "y": 4.584562554680665,
+          "w": 2.0161646981627297,
+          "h": 1.7240791776027997
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": "+mn-lt",
+        "sizes": [
+          16.0,
+          36.0,
+          12.0,
+          20.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L3",
+      "master_id": "M0",
+      "name": "Пустой с заголовком",
+      "role": "content",
+      "score": 0.8,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": null,
+      "body": {
+        "x": 0.3350721784776903,
+        "y": 6.951402012248469,
+        "w": 1.145738188976378,
+        "h": 0.3993055555555556
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "+mj-lt",
+        "sizes": [
+          16.0,
+          12.0,
+          13.0,
+          20.0
+        ],
+        "colors": [
+          "#E4EAE9",
+          "#F92571"
+        ]
+      }
+    },
+    {
+      "id": "L4",
+      "master_id": "M0",
+      "name": "Заголовок и объект",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 1,
+          "type": "object",
+          "name": "Текст 2",
+          "x": 0.34491688538932636,
+          "y": 1.111304680664917,
+          "w": 12.64351377952756,
+          "h": 5.643911854768154,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.3784722222222222,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.3784722222222222,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.34491688538932636,
+        "y": 1.111304680664917,
+        "w": 12.64351377952756,
+        "h": 5.643911854768154
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L5",
+      "master_id": "M0",
+      "name": "Два объекта",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 1,
+          "type": "object",
+          "name": "Объект 2",
+          "x": 0.34491141732283465,
+          "y": 1.1111122047244095,
+          "w": 6.23842738407699,
+          "h": 5.670137795275591,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Объект 3",
+          "x": 6.75000656167979,
+          "y": 1.1111122047244095,
+          "w": 6.201304680664917,
+          "h": 5.670137795275591,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.3784722222222222,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.3784722222222222,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.34491141732283465,
+        "y": 1.1111122047244095,
+        "w": 6.23842738407699,
+        "h": 5.670137795275591
+      },
+      "columns": [
+        {
+          "x": 6.75000656167979,
+          "y": 1.1111122047244095,
+          "w": 6.201304680664917,
+          "h": 5.670137795275591
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L6",
+      "master_id": "M0",
+      "name": "Сравнение",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Текст 2",
+          "x": 0.3449103237095363,
+          "y": 1.1104844706911636,
+          "w": 6.214121828521435,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Объект 3",
+          "x": 0.38203630796150484,
+          "y": 1.7482666229221346,
+          "w": 6.177001312335958,
+          "h": 5.032983377077866,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Текст 4",
+          "x": 6.750005468066492,
+          "y": 1.1104844706911636,
+          "w": 6.217017716535433,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "object",
+          "name": "Объект 5",
+          "x": 6.750002187226596,
+          "y": 1.7482666229221346,
+          "w": 6.201304680664917,
+          "h": 5.032983377077866,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.38203630796150484,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.38203630796150484,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 6.750002187226596,
+        "y": 1.7482666229221346,
+        "w": 6.201304680664917,
+        "h": 5.032983377077866
+      },
+      "columns": [
+        {
+          "x": 6.750002187226596,
+          "y": 1.7482666229221346,
+          "w": 6.201304680664917,
+          "h": 5.032983377077866
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L7",
+      "master_id": "M0",
+      "name": "Пустой слайд",
+      "role": "content",
+      "score": 0.8,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": null,
+      "body": {
+        "x": 0.3350721784776903,
+        "y": 6.951402012248469,
+        "w": 1.145738188976378,
+        "h": 0.3993055555555556
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L8",
+      "master_id": "M0",
+      "name": "Объект с подписью",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.36632327209098864,
+          "y": 1.1111100174978128,
+          "w": 4.8524300087489065,
+          "h": 1.3270089676290464,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "object",
+          "name": "Объект 2",
+          "x": 5.668409886264217,
+          "y": 1.1111100174978128,
+          "w": 7.298607830271216,
+          "h": 5.522223315835521,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Текст 3",
+          "x": 0.36632327209098864,
+          "y": 2.6555544619422573,
+          "w": 4.8524300087489065,
+          "h": 3.977778871391076,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.36632327209098864,
+        "y": 1.1111100174978128,
+        "w": 4.8524300087489065,
+        "h": 1.3270089676290464,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.668409886264217,
+        "y": 1.1111100174978128,
+        "w": 7.298607830271216,
+        "h": 5.522223315835521
+      },
+      "columns": [
+        {
+          "x": 5.668409886264217,
+          "y": 1.1111100174978128,
+          "w": 7.298607830271216,
+          "h": 5.522223315835521
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L9",
+      "master_id": "M0",
+      "name": "Рисунок с подписью",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 10,
+          "type": "object",
+          "name": "Дата 4",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "header",
+          "name": "Нижний колонтитул 5",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "center_title",
+          "name": "Заголовок 1",
+          "x": 0.8777777777777778,
+          "y": 4.2897298775153105,
+          "w": 5.78888779527559,
+          "h": 1.8094291338582678,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "center_title",
+        "name": "Заголовок 1",
+        "x": 0.8777777777777778,
+        "y": 4.2897298775153105,
+        "w": 5.78888779527559,
+        "h": 1.8094291338582678,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.3350721784776903,
+        "y": 6.951402012248469,
+        "w": 1.145738188976378,
+        "h": 0.3993055555555556
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L10",
+      "master_id": "M0",
+      "name": "Содержание_1",
+      "role": "agenda",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 37,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 2.0489293525809273,
+          "y": 1.3371751968503938,
+          "w": 4.2288451443569555,
+          "h": 0.46328521434820646,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 38,
+          "type": "body",
+          "name": "Текст 9",
+          "x": 2.048932633420822,
+          "y": 1.9579221347331583,
+          "w": 4.2288451443569555,
+          "h": 0.7349901574803149,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 39,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 2.027761373578303,
+          "y": 3.0913134295713034,
+          "w": 4.2288451443569555,
+          "h": 0.44155293088363956,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 40,
+          "type": "body",
+          "name": "Текст 9",
+          "x": 2.027761373578303,
+          "y": 3.690328083989501,
+          "w": 4.2288451443569555,
+          "h": 0.7349901574803149,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 41,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 2.027761373578303,
+          "y": 4.823719378827646,
+          "w": 4.2288451443569555,
+          "h": 0.44172462817147856,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 42,
+          "type": "body",
+          "name": "Текст 9",
+          "x": 2.027761373578303,
+          "y": 5.4227340332458445,
+          "w": 4.2288451443569555,
+          "h": 0.7349901574803149,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 43,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 8.253114610673666,
+          "y": 1.3371751968503938,
+          "w": 4.2288451443569555,
+          "h": 0.46328521434820646,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 44,
+          "type": "body",
+          "name": "Текст 9",
+          "x": 8.253117891513561,
+          "y": 1.9579221347331583,
+          "w": 4.2288451443569555,
+          "h": 0.7349901574803149,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 45,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 8.231946631671041,
+          "y": 3.0913134295713034,
+          "w": 4.2288451443569555,
+          "h": 0.44155293088363956,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 46,
+          "type": "body",
+          "name": "Текст 9",
+          "x": 8.231946631671041,
+          "y": 3.690328083989501,
+          "w": 4.2288451443569555,
+          "h": 0.7349901574803149,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 47,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 8.231946631671041,
+          "y": 4.823719378827646,
+          "w": 4.2288451443569555,
+          "h": 0.44172462817147856,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 48,
+          "type": "body",
+          "name": "Текст 9",
+          "x": 8.231946631671041,
+          "y": 5.4227340332458445,
+          "w": 4.2288451443569555,
+          "h": 0.7349901574803149,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.3784722222222222,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 49,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 0.8513702974628171,
+          "y": 1.2991994750656168,
+          "w": 0.8431791338582677,
+          "h": 0.46328521434820646,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 50,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 0.8302023184601924,
+          "y": 3.0533377077865267,
+          "w": 0.8431791338582677,
+          "h": 0.44155293088363956,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 51,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 0.8302023184601924,
+          "y": 4.78574365704287,
+          "w": 0.8431791338582677,
+          "h": 0.44172462817147856,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 52,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 7.055555555555555,
+          "y": 1.2991994750656168,
+          "w": 0.8431791338582677,
+          "h": 0.46328521434820646,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 53,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 7.0343875765529305,
+          "y": 3.0533377077865267,
+          "w": 0.8431791338582677,
+          "h": 0.44155293088363956,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 54,
+          "type": "body",
+          "name": "Текст 6",
+          "x": 7.0343875765529305,
+          "y": 4.78574365704287,
+          "w": 0.8431791338582677,
+          "h": 0.44172462817147856,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.3784722222222222,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 2.048932633420822,
+        "y": 1.9579221347331583,
+        "w": 4.2288451443569555,
+        "h": 0.7349901574803149
+      },
+      "columns": [
+        {
+          "x": 0.8302023184601924,
+          "y": 3.0533377077865267,
+          "w": 0.8431791338582677,
+          "h": 0.44155293088363956
+        },
+        {
+          "x": 2.027761373578303,
+          "y": 3.0913134295713034,
+          "w": 4.2288451443569555,
+          "h": 0.44155293088363956
+        },
+        {
+          "x": 7.0343875765529305,
+          "y": 3.0533377077865267,
+          "w": 0.8431791338582677,
+          "h": 0.44155293088363956
+        },
+        {
+          "x": 8.231946631671041,
+          "y": 3.0913134295713034,
+          "w": 4.2288451443569555,
+          "h": 0.44155293088363956
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [
+          14.0,
+          20.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L11",
+      "master_id": "M0",
+      "name": "Фотографии",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.4075699912510936,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 10,
+          "type": "picture",
+          "name": "Рисунок 7",
+          "x": 8.1366437007874,
+          "y": 1.1111122047244095,
+          "w": 4.818216316710411,
+          "h": 3.366665573053368,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "picture",
+          "name": "Рисунок 9",
+          "x": 8.136645888013998,
+          "y": 4.79998687664042,
+          "w": 4.818214129483814,
+          "h": 1.9812642169728785,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "picture",
+          "name": "Рисунок 11",
+          "x": 0.3784722222222222,
+          "y": 3.525752405949256,
+          "w": 7.443287401574803,
+          "h": 3.255497594050744,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 14,
+          "type": "body",
+          "name": "Текст 15",
+          "x": 0.3784722222222222,
+          "y": 1.1111122047244095,
+          "w": 7.443287401574803,
+          "h": 2.219905949256343,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.4075699912510936,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.3784722222222222,
+        "y": 1.1111122047244095,
+        "w": 7.443287401574803,
+        "h": 2.219905949256343
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L12",
+      "master_id": "M0",
+      "name": "Пункты",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.39491141732283463,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 14,
+          "type": "body",
+          "name": "Текст 101",
+          "x": 2.1809962817147857,
+          "y": 3.252123797025372,
+          "w": 2.3958989501312336,
+          "h": 0.9957524059492563,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 15,
+          "type": "body",
+          "name": "Текст 74",
+          "x": 7.286662292213474,
+          "y": 1.7367979002624672,
+          "w": 5.361111111111111,
+          "h": 0.7792946194225722,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 16,
+          "type": "body",
+          "name": "Текст 74",
+          "x": 7.286662292213474,
+          "y": 2.674035433070866,
+          "w": 5.361111111111111,
+          "h": 0.7792946194225722,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 17,
+          "type": "body",
+          "name": "Текст 74",
+          "x": 7.286662292213474,
+          "y": 3.611271872265967,
+          "w": 5.361111111111111,
+          "h": 0.7792946194225722,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 18,
+          "type": "body",
+          "name": "Текст 74",
+          "x": 7.286662292213474,
+          "y": 4.548508311461068,
+          "w": 5.361111111111111,
+          "h": 0.7792946194225722,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 19,
+          "type": "body",
+          "name": "Текст 74",
+          "x": 7.286662292213474,
+          "y": 5.485745844269466,
+          "w": 5.361111111111111,
+          "h": 0.7792946194225722,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.39491141732283463,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 7.286662292213474,
+        "y": 1.7367979002624672,
+        "w": 5.361111111111111,
+        "h": 0.7792946194225722
+      },
+      "columns": [
+        {
+          "x": 2.1809962817147857,
+          "y": 3.252123797025372,
+          "w": 2.3958989501312336,
+          "h": 0.9957524059492563
+        },
+        {
+          "x": 7.286662292213474,
+          "y": 1.7367979002624672,
+          "w": 5.361111111111111,
+          "h": 0.7792946194225722
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L13",
+      "master_id": "M0",
+      "name": "Статистика",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.39491141732283463,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 21,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 1.122995406824147,
+          "w": 5.238751093613298,
+          "h": 1.7665748031496062,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 18,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 1.7792344706911636,
+          "w": 5.238751093613298,
+          "h": 1.1103357392825897,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 22,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 3.0704090113735782,
+          "w": 5.238751093613298,
+          "h": 1.7665748031496062,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 23,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 3.726648075240595,
+          "w": 5.238751093613298,
+          "h": 1.1103357392825897,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 24,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 5.013155074365704,
+          "w": 5.238751093613298,
+          "h": 1.7665748031496062,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 25,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 5.669394138232721,
+          "w": 5.238751093613298,
+          "h": 1.1103357392825897,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.39491141732283463,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 7.308701881014873,
+        "y": 1.122995406824147,
+        "w": 5.238751093613298,
+        "h": 1.7665748031496062
+      },
+      "columns": [
+        {
+          "x": 7.308701881014873,
+          "y": 1.122995406824147,
+          "w": 5.238751093613298,
+          "h": 1.7665748031496062
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L14",
+      "master_id": "M0",
+      "name": "1_Статистика",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.38225284339457566,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 21,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 1.1111111111111112,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 18,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 1.5261778215223096,
+          "w": 5.238751093613298,
+          "h": 0.7022790901137358,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 22,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 2.498426290463692,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 23,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 2.9134930008748907,
+          "w": 5.238751093613298,
+          "h": 0.7022790901137358,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 24,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 3.885741469816273,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 25,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 4.300808180227471,
+          "w": 5.238751093613298,
+          "h": 0.7022790901137358,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 26,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 5.273057742782152,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 27,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 5.688124453193351,
+          "w": 5.238751093613298,
+          "h": 0.7022790901137358,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.38225284339457566,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 7.308701881014873,
+        "y": 1.1111111111111112,
+        "w": 5.238751093613298,
+        "h": 1.1173458005249344
+      },
+      "columns": [
+        {
+          "x": 7.308701881014873,
+          "y": 1.1111111111111112,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L15",
+      "master_id": "M0",
+      "name": "2_Статистика",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.40214457567804024,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 21,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 1.1111111111111112,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 18,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 1.5261778215223096,
+          "w": 5.238751093613298,
+          "h": 0.7022790901137358,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 22,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 2.498426290463692,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 23,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 2.9134930008748907,
+          "w": 5.238751093613298,
+          "h": 0.7022790901137358,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 24,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 3.885741469816273,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 25,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 4.300808180227471,
+          "w": 5.238751093613298,
+          "h": 0.7022790901137358,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 26,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 5.273057742782152,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 27,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.308701881014873,
+          "y": 5.688124453193351,
+          "w": 5.238751093613298,
+          "h": 0.7022790901137358,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.40214457567804024,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 7.308701881014873,
+        "y": 1.1111111111111112,
+        "w": 5.238751093613298,
+        "h": 1.1173458005249344
+      },
+      "columns": [
+        {
+          "x": 7.308701881014873,
+          "y": 1.1111111111111112,
+          "w": 5.238751093613298,
+          "h": 1.1173458005249344
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L16",
+      "master_id": "M0",
+      "name": "Стадии",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 26,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 0.3784722222222222,
+          "y": 1.1208847331583551,
+          "w": 2.7625535870516185,
+          "h": 1.6149245406824146,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 27,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 0.3784722222222222,
+          "y": 1.510213254593176,
+          "w": 2.7625535870516185,
+          "h": 1.225596019247594,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 28,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 5.285389326334208,
+          "y": 1.1208847331583551,
+          "w": 2.7625535870516185,
+          "h": 1.6149245406824146,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 29,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 5.285389326334208,
+          "y": 1.510213254593176,
+          "w": 2.7625535870516185,
+          "h": 1.225596019247594,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 30,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 10.20435476815398,
+          "y": 1.1208847331583551,
+          "w": 2.7625535870516185,
+          "h": 1.6149245406824146,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 31,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 10.20435476815398,
+          "y": 1.510213254593176,
+          "w": 2.7625535870516185,
+          "h": 1.225596019247594,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 32,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 2.836304680664917,
+          "y": 4.766132983377078,
+          "w": 2.7625535870516185,
+          "h": 1.6149245406824146,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 33,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 2.836304680664917,
+          "y": 5.155461504811899,
+          "w": 2.7625535870516185,
+          "h": 1.225596019247594,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 34,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.743221784776903,
+          "y": 4.766132983377078,
+          "w": 2.7625535870516185,
+          "h": 1.6149245406824146,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 35,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 7.743221784776903,
+          "y": 5.155461504811899,
+          "w": 2.7625535870516185,
+          "h": 1.225596019247594,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.4202274715660542,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.4202274715660542,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.3784722222222222,
+        "y": 1.1208847331583551,
+        "w": 2.7625535870516185,
+        "h": 1.6149245406824146
+      },
+      "columns": [
+        {
+          "x": 2.836304680664917,
+          "y": 4.766132983377078,
+          "w": 2.7625535870516185,
+          "h": 1.6149245406824146
+        },
+        {
+          "x": 5.285389326334208,
+          "y": 1.1208847331583551,
+          "w": 2.7625535870516185,
+          "h": 1.6149245406824146
+        },
+        {
+          "x": 7.743221784776903,
+          "y": 4.766132983377078,
+          "w": 2.7625535870516185,
+          "h": 1.6149245406824146
+        },
+        {
+          "x": 10.20435476815398,
+          "y": 1.1208847331583551,
+          "w": 2.7625535870516185,
+          "h": 1.6149245406824146
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [
+          24.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L17",
+      "master_id": "M0",
+      "name": "Проблема и решение",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.3911307961504812,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 26,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 0.5654276027996501,
+          "y": 4.166858048993876,
+          "w": 3.56967738407699,
+          "h": 2.5974573490813646,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 31,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 4.8824825021872265,
+          "y": 4.166858048993876,
+          "w": 3.56967738407699,
+          "h": 2.5974573490813646,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 32,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 9.17047353455818,
+          "y": 4.166858048993876,
+          "w": 3.56967738407699,
+          "h": 2.5974573490813646,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 33,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 0.5654276027996501,
+          "y": 3.5567979002624672,
+          "w": 3.56967738407699,
+          "h": 0.42845909886264216,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 34,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 4.8824825021872265,
+          "y": 3.5567979002624672,
+          "w": 3.56967738407699,
+          "h": 0.42845909886264216,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 35,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 9.17047353455818,
+          "y": 3.5567979002624672,
+          "w": 3.56967738407699,
+          "h": 0.42845909886264216,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.3911307961504812,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.5654276027996501,
+        "y": 4.166858048993876,
+        "w": 3.56967738407699,
+        "h": 2.5974573490813646
+      },
+      "columns": [
+        {
+          "x": 0.5654276027996501,
+          "y": 4.166858048993876,
+          "w": 3.56967738407699,
+          "h": 2.5974573490813646
+        },
+        {
+          "x": 4.8824825021872265,
+          "y": 4.166858048993876,
+          "w": 3.56967738407699,
+          "h": 2.5974573490813646
+        },
+        {
+          "x": 9.17047353455818,
+          "y": 4.166858048993876,
+          "w": 3.56967738407699,
+          "h": 2.5974573490813646
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L18",
+      "master_id": "M0",
+      "name": "Демо_1",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 14,
+          "type": "picture",
+          "name": "Picture Placeholder 1",
+          "x": 4.552646544181977,
+          "y": 1.3828499562554681,
+          "w": 4.228041338582677,
+          "h": 2.6644542869641294,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.3784722222222222,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 15,
+          "type": "body",
+          "name": "Текст 7",
+          "x": 0.3784722222222222,
+          "y": 5.091954286964129,
+          "w": 3.9663549868766403,
+          "h": 1.6892957130358706,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 16,
+          "type": "body",
+          "name": "Текст 7",
+          "x": 4.637469378827647,
+          "y": 5.091954286964129,
+          "w": 3.9663549868766403,
+          "h": 1.6892957130358706,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 17,
+          "type": "body",
+          "name": "Текст 7",
+          "x": 9.000659448818897,
+          "y": 5.091954286964129,
+          "w": 3.9663549868766403,
+          "h": 1.6892957130358706,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.3784722222222222,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.3784722222222222,
+        "y": 5.091954286964129,
+        "w": 3.9663549868766403,
+        "h": 1.6892957130358706
+      },
+      "columns": [
+        {
+          "x": 4.637469378827647,
+          "y": 5.091954286964129,
+          "w": 3.9663549868766403,
+          "h": 1.6892957130358706
+        },
+        {
+          "x": 9.000659448818897,
+          "y": 5.091954286964129,
+          "w": 3.9663549868766403,
+          "h": 1.6892957130358706
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L19",
+      "master_id": "M0",
+      "name": "1_Демо_1",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.38636154855643046,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 15,
+          "type": "body",
+          "name": "Текст 7",
+          "x": 1.3239752843394577,
+          "y": 4.729277121609798,
+          "w": 4.507531714785652,
+          "h": 1.7631911636045494,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 16,
+          "type": "body",
+          "name": "Текст 7",
+          "x": 7.499945319335083,
+          "y": 4.729277121609798,
+          "w": 4.507531714785652,
+          "h": 1.7631911636045494,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 14,
+          "type": "picture",
+          "name": "Picture Placeholder 1",
+          "x": 1.3239741907261593,
+          "y": 1.7257195975503061,
+          "w": 4.50753280839895,
+          "h": 2.497785433070866,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 18,
+          "type": "picture",
+          "name": "Picture Placeholder 1",
+          "x": 7.497309711286089,
+          "y": 1.7257195975503061,
+          "w": 4.50753280839895,
+          "h": 2.497785433070866,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.38636154855643046,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 1.3239752843394577,
+        "y": 4.729277121609798,
+        "w": 4.507531714785652,
+        "h": 1.7631911636045494
+      },
+      "columns": [
+        {
+          "x": 1.3239752843394577,
+          "y": 4.729277121609798,
+          "w": 4.507531714785652,
+          "h": 1.7631911636045494
+        },
+        {
+          "x": 7.499945319335083,
+          "y": 4.729277121609798,
+          "w": 4.507531714785652,
+          "h": 1.7631911636045494
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L20",
+      "master_id": "M0",
+      "name": "2_Демо_1",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 14,
+          "type": "picture",
+          "name": "Picture Placeholder 1",
+          "x": 5.478862642169728,
+          "y": 1.351613079615048,
+          "w": 2.3756069553805776,
+          "h": 5.033570647419072,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 21,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 0.38970800524934385,
+          "y": 1.794928915135608,
+          "w": 4.169872047244095,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 18,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 0.38970800524934385,
+          "y": 2.2099956255468065,
+          "w": 4.169872047244095,
+          "h": 1.4114129483814524,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 22,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 8.792673884514436,
+          "y": 1.794928915135608,
+          "w": 4.169872047244095,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 23,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 8.792673884514436,
+          "y": 2.2099956255468065,
+          "w": 4.169872047244095,
+          "h": 1.4114129483814524,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 24,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 0.38970800524934385,
+          "y": 4.226375765529309,
+          "w": 4.169872047244095,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 25,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 0.38970800524934385,
+          "y": 4.641442475940507,
+          "w": 4.169872047244095,
+          "h": 1.4114129483814524,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 26,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 8.792673884514436,
+          "y": 4.226375765529309,
+          "w": 4.169872047244095,
+          "h": 1.1173458005249344,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 27,
+          "type": "body",
+          "name": "Текст 35",
+          "x": 8.792673884514436,
+          "y": 4.641442475940507,
+          "w": 4.169872047244095,
+          "h": 1.4114129483814524,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 3",
+          "x": 0.3784722222222222,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 28,
+          "type": "object",
+          "name": "Дата 8",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 29,
+          "type": "header",
+          "name": "Нижний колонтитул 9",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 30,
+          "type": "slide_number",
+          "name": "Номер слайда 10",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 3",
+        "x": 0.3784722222222222,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.38970800524934385,
+        "y": 2.2099956255468065,
+        "w": 4.169872047244095,
+        "h": 1.4114129483814524
+      },
+      "columns": [
+        {
+          "x": 0.38970800524934385,
+          "y": 1.794928915135608,
+          "w": 4.169872047244095,
+          "h": 1.1173458005249344
+        },
+        {
+          "x": 8.792673884514436,
+          "y": 1.794928915135608,
+          "w": 4.169872047244095,
+          "h": 1.1173458005249344
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L21",
+      "master_id": "M0",
+      "name": "3_Демо_1",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 14,
+          "type": "picture",
+          "name": "Picture Placeholder 1",
+          "x": 1.0952099737532808,
+          "y": 1.1354155730533684,
+          "w": 1.8878105861767278,
+          "h": 4.0,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 15,
+          "type": "picture",
+          "name": "Picture Placeholder 1",
+          "x": 4.189738626421697,
+          "y": 1.1354155730533684,
+          "w": 1.8878105861767278,
+          "h": 4.0,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 16,
+          "type": "picture",
+          "name": "Picture Placeholder 1",
+          "x": 7.2842672790901135,
+          "y": 1.1354155730533684,
+          "w": 1.8878105861767278,
+          "h": 4.0,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 17,
+          "type": "picture",
+          "name": "Picture Placeholder 1",
+          "x": 10.378792650918635,
+          "y": 1.1354155730533684,
+          "w": 1.8878105861767278,
+          "h": 4.0,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Дата 3",
+          "x": 0.3350721784776903,
+          "y": 6.951402012248469,
+          "w": 1.145738188976378,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "header",
+          "name": "Нижний колонтитул 4",
+          "x": 1.5962062554680665,
+          "y": 6.951402012248469,
+          "w": 10.471108923884515,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "slide_number",
+          "name": "Номер слайда 5",
+          "x": 12.481963035870516,
+          "y": 6.951397637795275,
+          "w": 0.6114599737532809,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 18,
+          "type": "body",
+          "name": "Текст 7",
+          "x": 0.3784733158355206,
+          "y": 5.390895669291338,
+          "w": 2.9956780402449694,
+          "h": 1.3903543307086614,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 19,
+          "type": "body",
+          "name": "Текст 7",
+          "x": 3.5756364829396325,
+          "y": 5.390895669291338,
+          "w": 2.9956780402449694,
+          "h": 1.3903543307086614,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 20,
+          "type": "body",
+          "name": "Текст 7",
+          "x": 6.772799650043744,
+          "y": 5.390895669291338,
+          "w": 2.9956780402449694,
+          "h": 1.3903543307086614,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 21,
+          "type": "body",
+          "name": "Текст 7",
+          "x": 9.969963910761155,
+          "y": 5.390895669291338,
+          "w": 2.9956780402449694,
+          "h": 1.3903543307086614,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Заголовок 1",
+          "x": 0.3784722222222222,
+          "y": 0.4606583552055993,
+          "w": 10.786017060367454,
+          "h": 0.41134951881014875,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Заголовок 1",
+        "x": 0.3784722222222222,
+        "y": 0.4606583552055993,
+        "w": 10.786017060367454,
+        "h": 0.41134951881014875,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.3784733158355206,
+        "y": 5.390895669291338,
+        "w": 2.9956780402449694,
+        "h": 1.3903543307086614
+      },
+      "columns": [
+        {
+          "x": 3.5756364829396325,
+          "y": 5.390895669291338,
+          "w": 2.9956780402449694,
+          "h": 1.3903543307086614
+        },
+        {
+          "x": 6.772799650043744,
+          "y": 5.390895669291338,
+          "w": 2.9956780402449694,
+          "h": 1.3903543307086614
+        },
+        {
+          "x": 9.969963910761155,
+          "y": 5.390895669291338,
+          "w": 2.9956780402449694,
+          "h": 1.3903543307086614
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L22",
+      "master_id": "M0",
+      "name": "Пустой",
+      "role": "content",
+      "score": 0.5,
+      "placeholders": [],
+      "title_ph": null,
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    }
+  ],
+  "layout_groups": {
+    "title": [
+      "L0"
+    ],
+    "content": [
+      "L1",
+      "L2",
+      "L3",
+      "L4",
+      "L5",
+      "L6",
+      "L7",
+      "L8",
+      "L9",
+      "L11",
+      "L12",
+      "L13",
+      "L14",
+      "L15",
+      "L16",
+      "L17",
+      "L18",
+      "L19",
+      "L20",
+      "L21",
+      "L22"
+    ],
+    "agenda": [
+      "L10"
+    ]
+  },
+  "example_patterns": [
+    {
+      "kind": "card_grid",
+      "cells": 3,
+      "cell_w": 1.879,
+      "cell_h": 0.701,
+      "step": 2.83
+    },
+    {
+      "kind": "card_grid",
+      "cells": 5,
+      "cell_w": 2.398,
+      "cell_h": 5.287,
+      "step": 2.521
+    },
+    {
+      "kind": "card_grid",
+      "cells": 4,
+      "cell_w": 2.923,
+      "cell_h": 5.117,
+      "step": 3.218
+    },
+    {
+      "kind": "card_grid",
+      "cells": 3,
+      "cell_w": 4.077,
+      "cell_h": 3.999,
+      "step": 4.263
+    },
+    {
+      "kind": "card_grid",
+      "cells": 3,
+      "cell_w": 2.763,
+      "cell_h": 1.615,
+      "step": 4.913
+    },
+    {
+      "kind": "card_grid",
+      "cells": 3,
+      "cell_w": 3.966,
+      "cell_h": 1.689,
+      "step": 4.311
+    },
+    {
+      "kind": "card_grid",
+      "cells": 3,
+      "cell_w": 1.888,
+      "cell_h": 4.0,
+      "step": 3.121
+    }
+  ],
+  "slide_count": 37,
+  "layout_count": 23,
+  "notes": ""
+}

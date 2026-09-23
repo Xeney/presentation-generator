@@ -1,0 +1,55 @@
+# ------------------------------------------------------------------ секреты
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ------------------------------------------------------------------ python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# ------------------------------------------------------------------ node / next
+node_modules/
+.next/
+out/
+build/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ------------------------------------------- данные, кэш и артефакты генерации
+data/*
+!data/.gitkeep
+!data/templates/
+data/templates/*
+!data/templates/.gitkeep
+exports/
+*.export.html
+*.export.pdf
+
+# -------------------- шаблоны и контент-пакеты: скачиваются отдельно (docs/README.md)
+*.pptx
+*.pptm
+*.potx
+*.docx
+*.pdf
+# исключения: маленькие фикстуры для тестов и документация
+!tests/fixtures/**/*.pptx
+!docs/assets/*.pdf
+
+# ------------------------------------------------------------------ прочее
+*.log
+*.tmp
+*.bak
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/

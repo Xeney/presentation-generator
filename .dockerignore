@@ -1,0 +1,11 @@
+.git
+.gitignore
+data
+docs
+tools
+**/__pycache__
+**/*.pyc
+**/.next
+**/node_modules
+*.pptx
+*.tmp

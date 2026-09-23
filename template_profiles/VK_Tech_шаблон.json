@@ -1,0 +1,2962 @@
+{
+  "template_id": "VK_Tech_шаблон.pptx",
+  "source_file": "VK Tech шаблон.pptx",
+  "slide_size": {
+    "w_in": 10.0,
+    "h_in": 5.625,
+    "w_emus": 9144000,
+    "h_emus": 5143500
+  },
+  "theme_fonts": {
+    "major": {
+      "latin": "Arial",
+      "ea": ""
+    },
+    "minor": {
+      "latin": "Arial",
+      "ea": ""
+    }
+  },
+  "theme_colors": {
+    "dk1": "#000000",
+    "lt1": "#FFFFFF",
+    "dk2": "#44546A",
+    "lt2": "#E7E6E6",
+    "accent1": "#4472C4",
+    "accent2": "#ED7D31",
+    "accent3": "#A5A5A5",
+    "accent4": "#FFC000",
+    "accent5": "#5B9BD5",
+    "accent6": "#70AD47",
+    "hlink": "#0563C1",
+    "folHlink": "#954F72"
+  },
+  "palette": [
+    {
+      "hex": "#000000",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#FFFFFF",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#44546A",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#E7E6E6",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#4472C4",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#ED7D31",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#A5A5A5",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#FFC000",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#5B9BD5",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#70AD47",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#0563C1",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#954F72",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#0077FF",
+      "count": 96,
+      "source": "shape"
+    },
+    {
+      "hex": "#8F8F8F",
+      "count": 28,
+      "source": "text"
+    },
+    {
+      "hex": "#C4C4C4",
+      "count": 10,
+      "source": "shape"
+    },
+    {
+      "hex": "#005EFF",
+      "count": 9,
+      "source": "shape"
+    },
+    {
+      "hex": "#798492",
+      "count": 5,
+      "source": "text"
+    },
+    {
+      "hex": "#151515",
+      "count": 2,
+      "source": "text"
+    },
+    {
+      "hex": "#FAFBFD",
+      "count": 1,
+      "source": "shape"
+    },
+    {
+      "hex": "#65CCFF",
+      "count": 1,
+      "source": "shape"
+    },
+    {
+      "hex": "#D9D9D9",
+      "count": 1,
+      "source": "shape"
+    },
+    {
+      "hex": "#0187F6",
+      "count": 1,
+      "source": "shape"
+    },
+    {
+      "hex": "#19191A",
+      "count": 1,
+      "source": "text"
+    }
+  ],
+  "text_colors": [
+    "#8F8F8F",
+    "#FFFFFF",
+    "#798492",
+    "#000000",
+    "#0077FF",
+    "#151515",
+    "#19191A",
+    "#0187F6"
+  ],
+  "fonts": [
+    {
+      "name": "Play",
+      "bold": false,
+      "count": 609
+    },
+    {
+      "name": "Play",
+      "bold": true,
+      "count": 4
+    },
+    {
+      "name": "Consolas",
+      "bold": false,
+      "count": 2
+    },
+    {
+      "name": "Arial",
+      "bold": false,
+      "count": 1
+    }
+  ],
+  "headline_font": "Play",
+  "body_font": "Arial",
+  "type_scale": {
+    "title": [
+      48.0,
+      32.0,
+      27.05,
+      24.38,
+      24.0,
+      18.0,
+      16.88,
+      16.0
+    ],
+    "body": [
+      32.0,
+      24.0,
+      18.03,
+      18.0,
+      16.88,
+      16.0,
+      14.06,
+      14.0
+    ],
+    "min_body": 14.0,
+    "max_title": 48.0
+  },
+  "grid": {
+    "margin_left": 1.2,
+    "margin_top": 1.6,
+    "margin_right": 1.2,
+    "margin_bottom": 1.4,
+    "body_x": 1.2,
+    "body_y": 1.6,
+    "body_w": 7.6,
+    "body_h": 2.625
+  },
+  "layouts": [
+    {
+      "id": "L0",
+      "master_id": "M0",
+      "name": "1_Титульный слайд",
+      "role": "title",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;16;p2",
+          "x": 2.7053488626421696,
+          "y": 1.49877624671916,
+          "w": 4.689718941382327,
+          "h": 0.8749409448818898,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;17;p2",
+          "x": 2.7053477690288714,
+          "y": 2.4056430446194224,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;16;p2",
+        "x": 2.7053488626421696,
+        "y": 1.49877624671916,
+        "w": 4.689718941382327,
+        "h": 0.8749409448818898,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 2.7053477690288714,
+        "y": 2.4056430446194224,
+        "w": 4.689718941382327,
+        "h": 0.3125
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L1",
+      "master_id": "M0",
+      "name": "2_Титульный слайд",
+      "role": "title",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;29;p3",
+          "x": 0.6356867891513561,
+          "y": 1.6747758092738407,
+          "w": 4.689718941382327,
+          "h": 0.8749409448818898,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;30;p3",
+          "x": 0.6356867891513561,
+          "y": 2.583425196850394,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;31;p3",
+          "x": 1.5644520997375329,
+          "y": 4.202515310586176,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Google Shape;32;p3",
+          "x": 1.5644510061242345,
+          "y": 4.601257655293089,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;29;p3",
+        "x": 0.6356867891513561,
+        "y": 1.6747758092738407,
+        "w": 4.689718941382327,
+        "h": 0.8749409448818898,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.6356867891513561,
+        "y": 2.583425196850394,
+        "w": 4.689718941382327,
+        "h": 0.3125
+      },
+      "columns": [
+        {
+          "x": 1.5644510061242345,
+          "y": 4.601257655293089,
+          "w": 4.689718941382327,
+          "h": 0.3125
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          10.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L2",
+      "master_id": "M0",
+      "name": "1_Слайд \"Спасибо!\"",
+      "role": "final",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;47;p4",
+          "x": 0.6265966754155731,
+          "y": 1.8184405074365704,
+          "w": 6.300675853018372,
+          "h": 1.522428915135608,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;48;p4",
+          "x": 1.5644520997375329,
+          "y": 4.202515310586176,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;49;p4",
+          "x": 1.5644510061242345,
+          "y": 4.601257655293089,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;47;p4",
+        "x": 0.6265966754155731,
+        "y": 1.8184405074365704,
+        "w": 6.300675853018372,
+        "h": 1.522428915135608,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 1.5644520997375329,
+        "y": 4.202515310586176,
+        "w": 4.689718941382327,
+        "h": 0.3125
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          10.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L3",
+      "master_id": "M1",
+      "name": "1_Разделитель",
+      "role": "section",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;60;p6",
+          "x": 0.2299245406824147,
+          "y": 0.9607261592300962,
+          "w": 4.689718941382327,
+          "h": 1.6368088363954505,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;61;p6",
+          "x": 0.23040791776027997,
+          "y": 3.216111111111111,
+          "w": 4.689235564304462,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;60;p6",
+        "x": 0.2299245406824147,
+        "y": 0.9607261592300962,
+        "w": 4.689718941382327,
+        "h": 1.6368088363954505,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.23040791776027997,
+        "y": 3.216111111111111,
+        "w": 4.689235564304462,
+        "h": 0.3125
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L4",
+      "master_id": "M1",
+      "name": "4_Слайд \"Спасибо!\"",
+      "role": "final",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;71;p7",
+          "x": 0.6265966754155731,
+          "y": 1.840417760279965,
+          "w": 4.782494531933509,
+          "h": 1.1871686351706037,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;72;p7",
+          "x": 0.6265966754155731,
+          "y": 3.193099300087489,
+          "w": 4.491584645669291,
+          "h": 0.55001968503937,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;71;p7",
+        "x": 0.6265966754155731,
+        "y": 1.840417760279965,
+        "w": 4.782494531933509,
+        "h": 1.1871686351706037,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.6265966754155731,
+        "y": 3.193099300087489,
+        "w": 4.491584645669291,
+        "h": 0.55001968503937
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L5",
+      "master_id": "M1",
+      "name": "1_Содержание",
+      "role": "agenda",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;77;p8",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;82;p8",
+          "x": 5.754491469816273,
+          "y": 0.7898567366579178,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;83;p8",
+          "x": 5.754492563429571,
+          "y": 1.5102471566054243,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Google Shape;84;p8",
+          "x": 5.754492563429571,
+          "y": 2.2278324584426947,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "body",
+          "name": "Google Shape;85;p8",
+          "x": 5.75449365704287,
+          "y": 2.9482228783902014,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 5,
+          "type": "body",
+          "name": "Google Shape;86;p8",
+          "x": 5.75449365704287,
+          "y": 3.704701443569554,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 6,
+          "type": "body",
+          "name": "Google Shape;87;p8",
+          "x": 5.75449365704287,
+          "y": 4.461180008748906,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;77;p8",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.754491469816273,
+        "y": 0.7898567366579178,
+        "w": 3.838542213473316,
+        "h": 0.4114588801399825
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L6",
+      "master_id": "M1",
+      "name": "2_Содержание",
+      "role": "agenda",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;89;p9",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;94;p9",
+          "x": 5.754490376202974,
+          "y": 0.7332086614173229,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;95;p9",
+          "x": 5.754491469816273,
+          "y": 1.6662281277340332,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Google Shape;96;p9",
+          "x": 5.754491469816273,
+          "y": 2.5958617672790902,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "body",
+          "name": "Google Shape;97;p9",
+          "x": 5.754491469816273,
+          "y": 3.521981627296588,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 5,
+          "type": "body",
+          "name": "Google Shape;98;p9",
+          "x": 5.754491469816273,
+          "y": 4.448101487314085,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;89;p9",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.754490376202974,
+        "y": 0.7332086614173229,
+        "w": 3.838542213473316,
+        "h": 0.4114588801399825
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L7",
+      "master_id": "M1",
+      "name": "3_Содержание",
+      "role": "agenda",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;101;p10",
+          "x": 0.4706474190726159,
+          "y": 0.3705479002624672,
+          "w": 4.315066710411198,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;107;p10",
+          "x": 5.071181102362205,
+          "y": 0.3697933070866142,
+          "w": 4.223957786526684,
+          "h": 0.26909667541557303,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;108;p10",
+          "x": 5.071181102362205,
+          "y": 0.7395866141732284,
+          "w": 4.223957786526684,
+          "h": 4.086944444444445,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;101;p10",
+        "x": 0.4706474190726159,
+        "y": 0.3705479002624672,
+        "w": 4.315066710411198,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.071181102362205,
+        "y": 0.7395866141732284,
+        "w": 4.223957786526684,
+        "h": 4.086944444444445
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          10.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L8",
+      "master_id": "M1",
+      "name": "1_Визитка",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;116;p11",
+          "x": 5.316079396325459,
+          "y": 1.975074365704287,
+          "w": 4.223957786526684,
+          "h": 1.6748501749781277,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;117;p11",
+          "x": 0.31027996500437444,
+          "y": 3.7980971128608925,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Google Shape;118;p11",
+          "x": 0.31027996500437444,
+          "y": 4.274305555555555,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;119;p11",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;119;p11",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.316079396325459,
+        "y": 1.975074365704287,
+        "w": 4.223957786526684,
+        "h": 1.6748501749781277
+      },
+      "columns": [
+        {
+          "x": 5.316079396325459,
+          "y": 1.975074365704287,
+          "w": 4.223957786526684,
+          "h": 1.6748501749781277
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          10.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L9",
+      "master_id": "M1",
+      "name": "4_Визитка",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;127;p12",
+          "x": 0.19463145231846019,
+          "y": 2.0565387139107614,
+          "w": 4.223957786526684,
+          "h": 1.6748501749781277,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;128;p12",
+          "x": 0.19463145231846019,
+          "y": 0.8398884514435696,
+          "w": 4.4387018810148735,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;129;p12",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.5098632983377078,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;129;p12",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.5098632983377078,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.19463145231846019,
+        "y": 2.0565387139107614,
+        "w": 4.223957786526684,
+        "h": 1.6748501749781277
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          10.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L10",
+      "master_id": "M1",
+      "name": "1_Свободный дизайн",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;136;p13",
+          "x": 0.19463035870516185,
+          "y": 0.3094367891513561,
+          "w": 7.428898731408574,
+          "h": 0.791998031496063,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;136;p13",
+        "x": 0.19463035870516185,
+        "y": 0.3094367891513561,
+        "w": 7.428898731408574,
+        "h": 0.791998031496063,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          8.12,
+          12.0,
+          6.75,
+          16.0
+        ],
+        "colors": [
+          "#8F8F8F",
+          "#FFFFFF",
+          "#000000",
+          "#798492"
+        ]
+      }
+    },
+    {
+      "id": "L11",
+      "master_id": "M1",
+      "name": "1_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;144;p14",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;144;p14",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          12.0,
+          9.0
+        ],
+        "colors": [
+          "#8F8F8F"
+        ]
+      }
+    },
+    {
+      "id": "L12",
+      "master_id": "M1",
+      "name": "3_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;151;p15",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;151;p15",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L13",
+      "master_id": "M1",
+      "name": "5_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;158;p16",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;158;p16",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          13.22
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L14",
+      "master_id": "M1",
+      "name": "7_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;165;p17",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;165;p17",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          11.0,
+          9.0
+        ],
+        "colors": [
+          "#8F8F8F"
+        ]
+      }
+    },
+    {
+      "id": "L15",
+      "master_id": "M1",
+      "name": "8_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;172;p18",
+          "x": 0.4706474190726159,
+          "y": 0.4435826771653543,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;172;p18",
+        "x": 0.4706474190726159,
+        "y": 0.4435826771653543,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          6.38,
+          10.13
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L16",
+      "master_id": "M1",
+      "name": "13_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;183;p19",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 6.495844269466317,
+          "h": 0.5358016185476815,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;183;p19",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 6.495844269466317,
+        "h": 0.5358016185476815,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          18.0,
+          12.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L17",
+      "master_id": "M1",
+      "name": "DEFAULT",
+      "role": "content",
+      "score": 0.5,
+      "placeholders": [],
+      "title_ph": null,
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": "Play",
+        "sizes": [
+          7.0,
+          12.0,
+          9.09,
+          9.0
+        ],
+        "colors": [
+          "#151515",
+          "#798492",
+          "#19191A",
+          "#000000"
+        ]
+      }
+    },
+    {
+      "id": "L18",
+      "master_id": "M1",
+      "name": "2_Свободный дизайн",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;195;p21",
+          "x": 0.19463035870516185,
+          "y": 0.1917891513560805,
+          "w": 7.428898731408574,
+          "h": 0.9922145669291339,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;195;p21",
+        "x": 0.19463035870516185,
+        "y": 0.1917891513560805,
+        "w": 7.428898731408574,
+        "h": 0.9922145669291339,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L19",
+      "master_id": "M1",
+      "name": "2_Разделитель",
+      "role": "section",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;206;p22",
+          "x": 0.2299245406824147,
+          "y": 0.9607261592300962,
+          "w": 4.689718941382327,
+          "h": 1.6368088363954505,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;207;p22",
+          "x": 0.23040791776027997,
+          "y": 3.216111111111111,
+          "w": 4.689235564304462,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;206;p22",
+        "x": 0.2299245406824147,
+        "y": 0.9607261592300962,
+        "w": 4.689718941382327,
+        "h": 1.6368088363954505,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.23040791776027997,
+        "y": 3.216111111111111,
+        "w": 4.689235564304462,
+        "h": 0.3125
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L20",
+      "master_id": "M1",
+      "name": "1_Титульный слайд",
+      "role": "title",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;218;p23",
+          "x": 2.7053488626421696,
+          "y": 1.49877624671916,
+          "w": 4.689718941382327,
+          "h": 0.8749409448818898,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;219;p23",
+          "x": 2.7053477690288714,
+          "y": 2.4056430446194224,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;218;p23",
+        "x": 2.7053488626421696,
+        "y": 1.49877624671916,
+        "w": 4.689718941382327,
+        "h": 0.8749409448818898,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 2.7053477690288714,
+        "y": 2.4056430446194224,
+        "w": 4.689718941382327,
+        "h": 0.3125
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L21",
+      "master_id": "M1",
+      "name": "2_Титульный слайд",
+      "role": "title",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;231;p24",
+          "x": 0.6356867891513561,
+          "y": 1.6747758092738407,
+          "w": 4.689718941382327,
+          "h": 0.8749409448818898,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;232;p24",
+          "x": 0.6356867891513561,
+          "y": 2.583425196850394,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;233;p24",
+          "x": 1.5644520997375329,
+          "y": 4.202515310586176,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Google Shape;234;p24",
+          "x": 1.5644510061242345,
+          "y": 4.601257655293089,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;231;p24",
+        "x": 0.6356867891513561,
+        "y": 1.6747758092738407,
+        "w": 4.689718941382327,
+        "h": 0.8749409448818898,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.6356867891513561,
+        "y": 2.583425196850394,
+        "w": 4.689718941382327,
+        "h": 0.3125
+      },
+      "columns": [
+        {
+          "x": 1.5644510061242345,
+          "y": 4.601257655293089,
+          "w": 4.689718941382327,
+          "h": 0.3125
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L22",
+      "master_id": "M1",
+      "name": "1_Слайд \"Спасибо!\"",
+      "role": "final",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;249;p25",
+          "x": 0.6265966754155731,
+          "y": 1.8184405074365704,
+          "w": 6.300675853018372,
+          "h": 1.522428915135608,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;250;p25",
+          "x": 1.5644520997375329,
+          "y": 4.202515310586176,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;251;p25",
+          "x": 1.5644510061242345,
+          "y": 4.601257655293089,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;249;p25",
+        "x": 0.6265966754155731,
+        "y": 1.8184405074365704,
+        "w": 6.300675853018372,
+        "h": 1.522428915135608,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 1.5644520997375329,
+        "y": 4.202515310586176,
+        "w": 4.689718941382327,
+        "h": 0.3125
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L23",
+      "master_id": "M1",
+      "name": "2_Слайд \"Спасибо!\"",
+      "role": "final",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;265;p26",
+          "x": 0.6265966754155731,
+          "y": 1.8184405074365704,
+          "w": 6.300675853018372,
+          "h": 1.522428915135608,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;266;p26",
+          "x": 1.5644520997375329,
+          "y": 4.202515310586176,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;267;p26",
+          "x": 1.5644510061242345,
+          "y": 4.601257655293089,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;265;p26",
+        "x": 0.6265966754155731,
+        "y": 1.8184405074365704,
+        "w": 6.300675853018372,
+        "h": 1.522428915135608,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 1.5644520997375329,
+        "y": 4.202515310586176,
+        "w": 4.689718941382327,
+        "h": 0.3125
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L24",
+      "master_id": "M1",
+      "name": "3_Слайд \"Спасибо!\"",
+      "role": "final",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;277;p27",
+          "x": 0.6265966754155731,
+          "y": 1.840417760279965,
+          "w": 4.782494531933509,
+          "h": 1.1871686351706037,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;278;p27",
+          "x": 0.6265966754155731,
+          "y": 3.193099300087489,
+          "w": 4.491584645669291,
+          "h": 0.55001968503937,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;277;p27",
+        "x": 0.6265966754155731,
+        "y": 1.840417760279965,
+        "w": 4.782494531933509,
+        "h": 1.1871686351706037,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.6265966754155731,
+        "y": 3.193099300087489,
+        "w": 4.491584645669291,
+        "h": 0.55001968503937
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L25",
+      "master_id": "M1",
+      "name": "5_Содержание",
+      "role": "agenda",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;283;p28",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;288;p28",
+          "x": 5.754491469816273,
+          "y": 0.7898567366579178,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;289;p28",
+          "x": 5.754492563429571,
+          "y": 1.5102471566054243,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Google Shape;290;p28",
+          "x": 5.754492563429571,
+          "y": 2.2278324584426947,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "body",
+          "name": "Google Shape;291;p28",
+          "x": 5.75449365704287,
+          "y": 2.9482228783902014,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 5,
+          "type": "body",
+          "name": "Google Shape;292;p28",
+          "x": 5.75449365704287,
+          "y": 3.704701443569554,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 6,
+          "type": "body",
+          "name": "Google Shape;293;p28",
+          "x": 5.75449365704287,
+          "y": 4.461180008748906,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;283;p28",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.754491469816273,
+        "y": 0.7898567366579178,
+        "w": 3.838542213473316,
+        "h": 0.4114588801399825
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L26",
+      "master_id": "M1",
+      "name": "6_Содержание",
+      "role": "agenda",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;295;p29",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;300;p29",
+          "x": 5.754490376202974,
+          "y": 0.7332086614173229,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;301;p29",
+          "x": 5.754491469816273,
+          "y": 1.6662281277340332,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Google Shape;302;p29",
+          "x": 5.754491469816273,
+          "y": 2.5958617672790902,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "body",
+          "name": "Google Shape;303;p29",
+          "x": 5.754491469816273,
+          "y": 3.521981627296588,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 5,
+          "type": "body",
+          "name": "Google Shape;304;p29",
+          "x": 5.754491469816273,
+          "y": 4.448101487314085,
+          "w": 3.838542213473316,
+          "h": 0.4114588801399825,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;295;p29",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.754490376202974,
+        "y": 0.7332086614173229,
+        "w": 3.838542213473316,
+        "h": 0.4114588801399825
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L27",
+      "master_id": "M1",
+      "name": "4_Содержание",
+      "role": "agenda",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;307;p30",
+          "x": 0.4706474190726159,
+          "y": 0.3705479002624672,
+          "w": 4.315066710411198,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;313;p30",
+          "x": 5.071181102362205,
+          "y": 0.3697933070866142,
+          "w": 4.223957786526684,
+          "h": 0.26909667541557303,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;314;p30",
+          "x": 5.071181102362205,
+          "y": 0.7395866141732284,
+          "w": 4.223957786526684,
+          "h": 4.086944444444445,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;307;p30",
+        "x": 0.4706474190726159,
+        "y": 0.3705479002624672,
+        "w": 4.315066710411198,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.071181102362205,
+        "y": 0.7395866141732284,
+        "w": 4.223957786526684,
+        "h": 4.086944444444445
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L28",
+      "master_id": "M1",
+      "name": "3_Визитка",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;322;p31",
+          "x": 5.316079396325459,
+          "y": 1.975074365704287,
+          "w": 4.223957786526684,
+          "h": 1.6748501749781277,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;323;p31",
+          "x": 0.31027996500437444,
+          "y": 3.7980971128608925,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Google Shape;324;p31",
+          "x": 0.31027996500437444,
+          "y": 4.274305555555555,
+          "w": 4.689718941382327,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;325;p31",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;325;p31",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.316079396325459,
+        "y": 1.975074365704287,
+        "w": 4.223957786526684,
+        "h": 1.6748501749781277
+      },
+      "columns": [
+        {
+          "x": 5.316079396325459,
+          "y": 1.975074365704287,
+          "w": 4.223957786526684,
+          "h": 1.6748501749781277
+        }
+      ],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L29",
+      "master_id": "M1",
+      "name": "2_Визитка",
+      "role": "content",
+      "score": 0.9500000000000001,
+      "placeholders": [
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Google Shape;333;p32",
+          "x": 0.19463145231846019,
+          "y": 2.0565387139107614,
+          "w": 4.223957786526684,
+          "h": 1.6748501749781277,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Google Shape;334;p32",
+          "x": 0.19463145231846019,
+          "y": 0.8398884514435696,
+          "w": 4.4387018810148735,
+          "h": 0.3125,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;335;p32",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.5098632983377078,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;335;p32",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.5098632983377078,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.19463145231846019,
+        "y": 2.0565387139107614,
+        "w": 4.223957786526684,
+        "h": 1.6748501749781277
+      },
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L30",
+      "master_id": "M1",
+      "name": "2_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;338;p33",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;338;p33",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L31",
+      "master_id": "M1",
+      "name": "4_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;345;p34",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;345;p34",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L32",
+      "master_id": "M1",
+      "name": "6_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;352;p35",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;352;p35",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L33",
+      "master_id": "M1",
+      "name": "12_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;359;p36",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;359;p36",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L34",
+      "master_id": "M1",
+      "name": "9_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;366;p37",
+          "x": 0.4706474190726159,
+          "y": 0.4435826771653543,
+          "w": 4.4387018810148735,
+          "h": 0.8238965441819772,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;366;p37",
+        "x": 0.4706474190726159,
+        "y": 0.4435826771653543,
+        "w": 4.4387018810148735,
+        "h": 0.8238965441819772,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L35",
+      "master_id": "M1",
+      "name": "10_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;377;p38",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 6.495844269466317,
+          "h": 0.5358016185476815,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;377;p38",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 6.495844269466317,
+        "h": 0.5358016185476815,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L36",
+      "master_id": "M1",
+      "name": "11_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;384;p39",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 6.495844269466317,
+          "h": 0.5358016185476815,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;384;p39",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 6.495844269466317,
+        "h": 0.5358016185476815,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L37",
+      "master_id": "M1",
+      "name": "14_Контент",
+      "role": "content",
+      "score": 0.65,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Google Shape;391;p40",
+          "x": 0.19463145231846019,
+          "y": 0.3094367891513561,
+          "w": 6.495844269466317,
+          "h": 0.5358016185476815,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Google Shape;391;p40",
+        "x": 0.19463145231846019,
+        "y": 0.3094367891513561,
+        "w": 6.495844269466317,
+        "h": 0.5358016185476815,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L38",
+      "master_id": "M1",
+      "name": "1_DEFAULT",
+      "role": "content",
+      "score": 0.5,
+      "placeholders": [],
+      "title_ph": null,
+      "body": null,
+      "columns": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    }
+  ],
+  "layout_groups": {
+    "title": [
+      "L0",
+      "L1",
+      "L20",
+      "L21"
+    ],
+    "final": [
+      "L2",
+      "L4",
+      "L22",
+      "L23",
+      "L24"
+    ],
+    "section": [
+      "L3",
+      "L19"
+    ],
+    "agenda": [
+      "L5",
+      "L6",
+      "L7",
+      "L25",
+      "L26",
+      "L27"
+    ],
+    "content": [
+      "L8",
+      "L9",
+      "L10",
+      "L11",
+      "L12",
+      "L13",
+      "L14",
+      "L15",
+      "L16",
+      "L17",
+      "L18",
+      "L28",
+      "L29",
+      "L30",
+      "L31",
+      "L32",
+      "L33",
+      "L34",
+      "L35",
+      "L36",
+      "L37",
+      "L38"
+    ]
+  },
+  "example_patterns": [
+    {
+      "kind": "card_grid",
+      "cells": 4,
+      "cell_w": 1.988,
+      "cell_h": 0.181,
+      "step": 2.37
+    },
+    {
+      "kind": "card_grid",
+      "cells": 4,
+      "cell_w": 1.988,
+      "cell_h": 0.181,
+      "step": 2.37
+    },
+    {
+      "kind": "card_grid",
+      "cells": 4,
+      "cell_w": 1.988,
+      "cell_h": 0.181,
+      "step": 2.37
+    },
+    {
+      "kind": "card_grid",
+      "cells": 3,
+      "cell_w": 2.778,
+      "cell_h": 0.181,
+      "step": 3.16
+    },
+    {
+      "kind": "card_grid",
+      "cells": 3,
+      "cell_w": 2.778,
+      "cell_h": 0.181,
+      "step": 3.16
+    },
+    {
+      "kind": "card_grid",
+      "cells": 3,
+      "cell_w": 2.694,
+      "cell_h": 0.91,
+      "step": 3.16
+    },
+    {
+      "kind": "card_grid",
+      "cells": 4,
+      "cell_w": 1.766,
+      "cell_h": 0.221,
+      "step": 2.384
+    }
+  ],
+  "slide_count": 54,
+  "layout_count": 39,
+  "notes": ""
+}

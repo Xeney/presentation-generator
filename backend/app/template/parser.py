@@ -1,0 +1,665 @@
+"""Парсинг PPTX-шаблона в TemplateProfile.
+
+Данные извлекаются исключительно из файла: тема (цвета/шрифты), мастера,
+макеты и плейсхолдеры с геометрией, реальные слайды (палитра, типографика,
+паттерны). Никаких знаний о конкретных шаблонах VK в коде нет.
+"""
+from __future__ import annotations
+
+import io
+import posixpath
+import re
+from collections import Counter, defaultdict
+from dataclasses import dataclass
+from statistics import median
+from typing import Optional
+from zipfile import ZipFile
+
+from pptx import Presentation
+from pptx.util import Emu
+
+from .profile import (
+    ColorToken,
+    FontToken,
+    LayoutProfile,
+    PlaceholderInfo,
+    TemplateProfile,
+)
+
+A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
+R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+
+PLACEHOLDER_TYPES = {
+    1: "title",
+    2: "body",
+    3: "center_title",
+    4: "subtitle",
+    5: "vertical_text",
+    6: "title",
+    7: "object",
+    11: "caption",
+    12: "slide_image",
+    13: "slide_number",
+    14: "footer",
+    15: "header",
+    16: "object",
+    17: "table",
+    18: "picture",
+}
+
+ROLE_KEYWORDS_RU = {
+    "title": ["титул", "обложк", "первый слайд", "first", "cover", "заставк"],
+    "section": ["раздел", "переход", "section", "разделитель", "divider"],
+    "agenda": ["содержани", "оглавлени", "agenda", "план", "навигаци", "contents"],
+    "final": ["спасибо", "финальн", "заключительн", "контакты", "thanks", "final", "qr"],
+    "content": ["содерж", "заголовок", "текст", "объект", "пункт", "цитат", "мокап",
+                 "скриншот", "фото", "команд", "статистик", "стадии", "проблем", "решение",
+                 "демо", "спикер", "заг", "content", "title", "photo", "quote"],
+}
+
+ROLE_KEYWORDS_EN = {
+    "title": ["title", "cover", "intro"],
+    "section": ["section", "divider", "transition"],
+    "agenda": ["agenda", "table of content", "toc", "plan", "outline"],
+    "final": ["thanks", "thank", "final", "closing", "contacts", "qr"],
+    "content": ["content", "text", "object", "photo", "quote", "mockup", "screenshot",
+                 "bullet", "statistic", "team", "problem", "solution", "demo", "speaker"],
+}
+
+
+@dataclass
+class _RawSlide:
+    layout: object
+    text_stats: list[dict]          # per text shape
+    shapes_geo: list[tuple]         # (x,y,w,h,kind,fill)
+    fills: list[str]
+    texts: list[dict]
+
+
+def _attr(el, tag, attr):
+    node = el.find(f"{{{A_NS}}}{tag}")
+    return node.get(attr) if node is not None else None
+
+
+def _fmt_hex(srgb: str) -> str:
+    return "#" + srgb.upper() if srgb else ""
+
+
+class PptxParseError(Exception):
+    pass
+
+
+class TemplateParser:
+    """Извлекает дизайн-систему из произвольного PPTX."""
+
+    def __init__(self, path_or_bytes):
+        self._data = path_or_bytes
+        self._name = getattr(path_or_bytes, "name", "template.pptx")
+        self.counters = Counter()
+        self.slide_count = 0
+        self.layout_count = 0
+
+    # ------------------------------------------------------------------ helpers
+    def _load(self):
+        if isinstance(self._data, (bytes, bytearray)):
+            self._zip = ZipFile(io.BytesIO(self._data))
+            self._prs = Presentation(io.BytesIO(bytes(self._data)))
+        else:
+            self._zip = ZipFile(self._data)
+            self._prs = Presentation(self._data)
+        self.layout_count = sum(len(m.slide_layouts) for m in self._prs.slide_masters)
+        self.slide_count = len(self._prs.slides)
+
+    def _all_layouts(self):
+        for master in self._prs.slide_masters:
+            for layout in master.slide_layouts:
+                yield layout
+
+    def _theme_xmls(self) -> list[tuple[str, str]]:
+        out = []
+        for name in self._zip.namelist():
+            if re.match(r"ppt/theme/theme\d+\.xml$", name):
+                out.append((name, self._zip.read(name).decode("utf-8")))
+        return out
+
+    def _parse_theme(self, xml: str) -> dict:
+        """Извлекает цветовую схему и шрифты темы."""
+        import lxml.etree as ET
+        root = ET.fromstring(xml.encode("utf-8"))
+        clr = {}
+        for el in root.iter(f"{{{A_NS}}}clrScheme"):
+            for child in el:
+                tag = child.tag.rsplit("}", 1)[-1]
+                srgb = child.find(f"{{{A_NS}}}srgbClr")
+                if srgb is not None:
+                    clr[tag] = _fmt_hex(srgb.get("val"))
+                    continue
+                sysc = child.find(f"{{{A_NS}}}sysClr")
+                if sysc is not None and sysc.get("lastClr"):
+                    clr[tag] = _fmt_hex(sysc.get("lastClr"))
+        fonts = {}
+        for el in root.iter(f"{{{A_NS}}}fontScheme"):
+            major, minor = {}, {}
+            for m in el:
+                tag = m.tag.rsplit("}", 1)[-1]
+                if tag not in ("majorFont", "minorFont"):
+                    continue
+                latin = m.find(f"{{{A_NS}}}latin")
+                ea = m.find(f"{{{A_NS}}}ea")
+                target = major if tag == "majorFont" else minor
+                if latin is not None:
+                    target["latin"] = latin.get("typeface")
+                if ea is not None:
+                    target["ea"] = ea.get("typeface")
+            fonts = {"major": major, "minor": minor}
+        return {"colors": clr, "fonts": fonts}
+
+    def _shape_geo(self, sh) -> Optional[tuple]:
+        if sh.left is None or sh.top is None or sh.width is None or sh.height is None:
+            return None
+        return (Emu(sh.left).inches, Emu(sh.top).inches,
+                Emu(sh.width).inches, Emu(sh.height).inches)
+
+    def _shape_fill_hex(self, sh) -> Optional[str]:
+        """Цвет заливки фигуры из raw XML (solidFill srgbClr/schemeClr)."""
+        el = getattr(sh, "_element", None)
+        if el is None:
+            return None
+        spPr = el.find(f"{{{P_NS}}}spPr")
+        if spPr is None:
+            spPr = el.find(f"{{{A_NS}}}spPr")
+        if spPr is None:
+            return None
+        solid = spPr.find(f"{{{A_NS}}}solidFill")
+        if solid is None:
+            return None
+        srgb = solid.find(f"{{{A_NS}}}srgbClr")
+        if srgb is not None:
+            return _fmt_hex(srgb.get("val"))
+        scheme = solid.find(f"{{{A_NS}}}schemeClr")
+        if scheme is not None:
+            return f"scheme:{scheme.get('val')}"
+        return None
+
+    def _run_style(self, r) -> dict:
+        """Стиль одного run: шрифт, кегль, жирность, цвет."""
+        name = None
+        try:
+            name = r.font.name
+        except Exception:
+            pass
+        if not name:
+            # типографика из ea/latin может быть задана в forEach attribute at rPr level
+            rPr = r._r.rPr
+            if rPr is not None:
+                ea = rPr.find(f"{{{A_NS}}}ea")
+                latin = rPr.find(f"{{{A_NS}}}latin")
+                name = (ea.get("typeface") if ea is not None else None) or (
+                    latin.get("typeface") if latin is not None else None
+                )
+        size = r.font.size.pt if r.font.size else None
+        bold = bool(r.font.bold) if r.font.bold is not None else None
+        color = None
+        try:
+            if r.font.color and r.font.color.type is not None:
+                tc = r.font.color.theme_color
+                rgb = r.font.color.rgb
+                if rgb is not None:
+                    color = _fmt_hex(str(rgb))
+                elif tc is not None:
+                    color = f"scheme:{tc}"
+        except Exception:
+            pass
+        return {"font": name, "size": size, "bold": bold, "color": color}
+
+    def _text_style_stats(self, shape) -> dict:
+        """Сводная статистика по тексту фигуры (наиболее частый стиль + полный текст)."""
+        if not shape.has_text_frame:
+            return {}
+        tf = shape.text_frame
+        fonts = Counter()
+        sizes = Counter()
+        colors = Counter()
+        bolds = Counter()
+        total_chars = 0
+        for p in tf.paragraphs:
+            for r in p.runs:
+                st = self._run_style(r)
+                if st.get("font"):
+                    fonts[st["font"]] += 1
+                if st.get("size"):
+                    sizes[st["size"]] += 1
+                if st.get("color"):
+                    colors[st["color"]] += 1
+                if st.get("bold") is not None:
+                    bolds[st["bold"]] += 1
+                total_chars += len(r.text)
+        align = None
+        try:
+            for p in tf.paragraphs:
+                if p.alignment is not None:
+                    align = str(p.alignment).split(".")[-1].lower()
+                    break
+        except Exception:
+            pass
+        return {
+            "chars": total_chars,
+            "font": fonts.most_common(1)[0][0] if fonts else None,
+            "size": sizes.most_common(1)[0][0] if sizes else None,
+            "color": colors.most_common(1)[0][0] if colors else None,
+            "bold": bolds.most_common(1)[0][0] if bolds else None,
+            "align": align,
+            "text": tf.text[:200],
+        }
+
+    def _placeholder_info(self, sh) -> Optional[PlaceholderInfo]:
+        if not sh.is_placeholder:
+            return None
+        geo = self._shape_geo(sh)
+        if geo is None:
+            return None
+        try:
+            ph = sh.placeholder_format
+            ptype = PLACEHOLDER_TYPES.get(int(ph.type), "body")
+            idx = int(ph.idx)
+        except Exception:
+            ptype, idx = "body", -1
+        if idx > 500:
+            idx = -1
+        st = self._text_style_stats(sh)
+        is_title = ptype in ("title", "center_title")
+        return PlaceholderInfo(
+            idx=idx, type=ptype, name=sh.name,
+            x=geo[0], y=geo[1], w=geo[2], h=geo[3],
+            font=st.get("font"), size=st.get("size"),
+            color=st.get("color"), align=st.get("align") or "left",
+            is_title=is_title,
+        )
+
+    # ------------------------------------------------------------- role guessing
+    @staticmethod
+    def _guess_role(name: str, ph_types: list[str]) -> str:
+        n = (name or "").lower()
+        if "мастер" in n:
+            return "content"
+        for role in ("title", "section", "agenda", "final", "content"):
+            for kw in ROLE_KEYWORDS_RU.get(role, []):
+                if kw in n:
+                    return role
+        for role in ("title", "section", "agenda", "final", "content"):
+            for kw in ROLE_KEYWORDS_EN.get(role, []):
+                if kw in n:
+                    return role
+        # отсутствие заголовка-плейсхолдера => скорее фоновый (не content)
+        if "title" not in ph_types and "body" not in ph_types:
+            return "content"
+        return "content"
+
+    # ---------------------------------------------------------------- main flow
+    def parse(self) -> TemplateProfile:
+        self._load()
+        prof = TemplateProfile(
+            template_id=self._slug(),
+            source_file=posixpath.basename(self._name),
+            slide_size={
+                "w_in": Emu(self._prs.slide_width).inches,
+                "h_in": Emu(self._prs.slide_height).inches,
+                "w_emus": int(self._prs.slide_width),
+                "h_emus": int(self._prs.slide_height),
+            },
+            slide_count=self.slide_count,
+            layout_count=self.layout_count,
+        )
+        # 1. тема
+        theme = {}
+        for _, xml in self._theme_xmls():
+            t = self._parse_theme(xml)
+            if t["colors"] and not theme:
+                theme = t
+            elif t["colors"]:
+                theme["colors"].update(t["colors"])
+                if not theme.get("fonts"):
+                    theme["fonts"] = t["fonts"]
+        prof.theme_fonts, prof.theme_colors = theme.get("fonts", {}), theme.get("colors", {})
+
+        # 2. соберём слайды один раз
+        raw_slides = self._collect_slides()
+
+        # 3. макеты с геометрией и ролью
+        layouts = self._parse_layouts(raw_slides)
+        prof.layouts = layouts
+
+        # 4. токены дизайна из слайдов + макетов
+        self._extract_tokens(prof, raw_slides, layouts)
+
+        # 5. типографическая шкала
+        prof.type_scale = self._type_scale(layouts, raw_slides)
+
+        # 6. сетка
+        prof.grid = self._grid(prof, layouts, raw_slides)
+
+        # 7. группы макетов по ролям
+        groups = defaultdict(list)
+        for i, lp in enumerate(layouts):
+            groups[lp.role].append(f"L{i}")
+        prof.layout_groups = dict(groups)
+
+        # 8. примеры паттернов
+        prof.example_patterns = self._patterns(raw_slides)
+        return prof
+
+    def _slug(self) -> str:
+        base = posixpath.basename(self._name)
+        return re.sub(r"[^\w\-_.]+", "_", base)[:60]
+
+    def _collect_slides(self) -> list[_RawSlide]:
+        out = []
+        for slide in self._prs.slides:
+            try:
+                out.append(self._raw_slide(slide))
+            except Exception:
+                continue
+        return out
+
+    def _raw_slide(self, slide) -> _RawSlide:
+        stats, geos, fills, texts = [], [], [], []
+        for sh in slide.shapes:
+            geo = self._shape_geo(sh)
+            kind = sh.shape_type
+            fill = self._shape_fill_hex(sh)
+            if fill:
+                fills.append(fill)
+            if sh.has_text_frame:
+                st = self._text_style_stats(sh)
+                if st:
+                    stats.append(st)
+                    texts.append({
+                        "x": geo[0] if geo else None, "y": geo[1] if geo else None,
+                        "w": geo[2] if geo else None, "h": geo[3] if geo else None,
+                        "chars": st.get("chars", 0), "kind": str(kind),
+                    })
+            if geo:
+                geos.append((geo[0], geo[1], geo[2], geo[3], str(kind), fill))
+        return _RawSlide(layout=slide.slide_layout, text_stats=stats, shapes_geo=geos,
+                         fills=fills, texts=texts)
+
+    def _layout_ph_roles(self, layout) -> list[str]:
+        roles = []
+        for sh in layout.shapes:
+            pi = self._placeholder_info(sh)
+            if pi:
+                roles.append(pi.type)
+        return roles
+
+    def _parse_layouts(self, raw_slides) -> list[LayoutProfile]:
+        profs = []
+        by_layout = defaultdict(list)
+        for rs in raw_slides:
+            by_layout[id(rs.layout)].append(rs)
+
+        for idx, layout in enumerate(self._all_layouts()):
+            try:
+                phs = [self._placeholder_info(sh) for sh in layout.shapes]
+                phs = [p for p in phs if p]
+                title_ph = next((p.to_dict() for p in phs if p.is_title), None)
+                body = None
+                columns = []
+                body_candidates = [p for p in phs if p.type in ("body", "object")]
+                if body_candidates:
+                    largest = max(body_candidates, key=lambda p: p.w * p.h)
+                    body = {"x": largest.x, "y": largest.y, "w": largest.w, "h": largest.h}
+                    # при 2+ равношироких body-плейсхолдерах рядом — колонки
+                    sorted_bodies = sorted(body_candidates, key=lambda p: p.x)
+                    if len(sorted_bodies) >= 2:
+                        col_boxes = []
+                        prev = None
+                        for p in sorted_bodies:
+                            if prev is not None and abs(p.x - prev.x) > 0.05:
+                                col_boxes.append({"x": p.x, "y": p.y, "w": p.w, "h": p.h})
+                            prev = p
+                        columns = sorted(col_boxes, key=lambda c: c["x"])
+                role = self._guess_role(layout.name + " " + layout.slide_master.name,
+                                        [p.type for p in phs])
+                # оценка пригодности макета под контент
+                score = 0.5
+                if body:
+                    score += 0.3
+                if title_ph:
+                    score += 0.15
+                profs.append(LayoutProfile(
+                    id=f"L{idx}",
+                    master_id=f"M{self._master_index(layout.slide_master)}",
+                    name=layout.name,
+                    role=role,
+                    score=score,
+                    placeholders=[p.to_dict() for p in phs],
+                    title_ph=title_ph,
+                    body=body,
+                    columns=columns,
+                    style_sample=self._layout_style_sample(layout, by_layout.get(id(layout), [])),
+                ))
+            except Exception:
+                continue
+        return profs
+
+    def _master_index(self, master) -> int:
+        try:
+            return list(self._prs.slide_masters).index(master)
+        except Exception:
+            return 0
+
+    def _layout_style_sample(self, layout, examples: list[_RawSlide]) -> dict:
+        """Усреднённые стили текста на реальных слайдах этого макета."""
+        fonts, sizes, colors = Counter(), Counter(), Counter()
+        for rs in examples:
+            for st in rs.text_stats:
+                if st.get("font"):
+                    fonts[st["font"]] += 1
+                if st.get("size"):
+                    sizes[st["size"]] += 1
+                if st.get("color"):
+                    colors[st["color"]] += 1
+        return {
+            "font": fonts.most_common(1)[0][0] if fonts else None,
+            "sizes": [s for s, _ in sizes.most_common(4)] if sizes else [],
+            "colors": [c for c, _ in colors.most_common(4)] if colors else [],
+        }
+
+    def _resolve_scheme(self, prof: TemplateProfile, h: str) -> Optional[str]:
+        if h and h.startswith("scheme:"):
+            name = h.split(":", 1)[1]
+            return prof.theme_colors.get(name)
+        if h and h.startswith("#"):
+            return h
+        return None
+
+    def _extract_tokens(self, prof: TemplateProfile, raw_slides, layouts=None) -> None:
+        fills = Counter()
+        for rs in raw_slides:
+            for f in rs.fills:
+                fills[f] += 1
+        # заливки макетов тоже
+        for layout in prof.layouts:
+            pass  # заливки макетов уже включены в слайды
+        # текстовые цвета из статистики
+        text_colors_c = Counter()
+        for rs in raw_slides:
+            for st in rs.text_stats:
+                if st.get("color"):
+                    text_colors_c[st["color"]] += 1
+        # собираем палитру (сначала из темы)
+        tokens: list[ColorToken] = []
+        seen = set()
+        for name, hexv in prof.theme_colors.items():
+            if hexv and hexv not in seen:
+                seen.add(hexv)
+                tokens.append(ColorToken(hex=hexv, count=50 + len(("".join(prof.theme_colors))),
+                                         source="theme"))
+        for h, n in fills.most_common(30):
+            hexv = self._resolve_scheme(prof, h)
+            if hexv and hexv not in seen:
+                seen.add(hexv)
+                tokens.append(ColorToken(hex=hexv, count=n, source="shape"))
+        for h, n in text_colors_c.most_common(15):
+            hexv = self._resolve_scheme(prof, h)
+            if hexv and hexv not in seen:
+                seen.add(hexv)
+                tokens.append(ColorToken(hex=hexv, count=max(1, n // 3), source="text"))
+        tokens.sort(key=lambda t: t.count, reverse=True)
+        prof.palette = tokens[:24]
+        prof.text_colors = list(dict.fromkeys(
+            self._resolve_scheme(prof, h) for h, _ in text_colors_c.most_common(12)
+            if self._resolve_scheme(prof, h)
+        ))
+
+        # шрифты
+        major_latin = prof.theme_fonts.get("major", {}).get("latin")
+        minor_latin = prof.theme_fonts.get("minor", {}).get("latin")
+
+        def _resolve_font(fname: Optional[str], bold: bool) -> Optional[str]:
+            """Плейсхолдерные имена темы заменяем на реальные гарнитуры."""
+            if not fname:
+                return None
+            if fname.startswith("+mj"):
+                return major_latin
+            if fname.startswith("+mn"):
+                # заголовки наследуют major, но в обычных рантаймах +mn-lt = minor
+                return minor_latin
+            return fname
+
+        font_tokens: dict[tuple, int] = defaultdict(int)
+        for rs in raw_slides:
+            for st in rs.text_stats:
+                fname, bold = st.get("font"), st.get("bold")
+                real = _resolve_font(fname, bool(bold))
+                if real:
+                    font_tokens[(real, bool(bold))] += 1
+        for layout in layouts:
+            sample_font = layout.style_sample.get("font")
+            real = _resolve_font(sample_font, False)
+            if real:
+                font_tokens[(real, False)] += 1
+        prof.fonts = [FontToken(name=n, bold=b, count=c)
+                      for (n, b), c in sorted(font_tokens.items(), key=lambda kv: -kv[1])[:12]]
+        # заголовочный и текстовый шрифт
+        theme_fonts = prof.theme_fonts
+        prof.headline_font = self._pick_font(prof.fonts, bold=True, theme_major=True, theme_fonts=theme_fonts)
+        prof.body_font = self._pick_font(prof.fonts, bold=False, theme_major=False, theme_fonts=theme_fonts)
+        if prof.headline_font is None and prof.fonts:
+            prof.headline_font = prof.fonts[0].name
+        if prof.body_font is None and prof.fonts:
+            prof.body_font = prof.fonts[0].name
+
+    def _pick_font(self, fonts, bold, theme_major, theme_fonts) -> Optional[str]:
+        target = theme_fonts.get("major" if theme_major else "minor", {}).get("latin")
+        cands = [f for f in fonts if f.bold == bold]
+        for f in cands:
+            if target and f.name.find(target.split()[0]) >= 0 and len(target) > 1:
+                return f.name
+        if cands:
+            return max(cands, key=lambda f: f.count).name
+        return (target if target else None) or (cands[0].name if cands else None)
+
+    def _type_scale(self, layouts, raw_slides) -> dict:
+        title_sizes, body_sizes = Counter(), Counter()
+        for layout in layouts:
+            if layout.title_ph and layout.title_ph.get("size"):
+                title_sizes[float(layout.title_ph["size"])] += 3
+            for ph in layout.placeholders:
+                if ph.get("is_title") and ph.get("size"):
+                    title_sizes[float(ph["size"])] += 3
+                elif ph.get("size"):
+                    if float(ph["size"]) <= 60:
+                        body_sizes[float(ph["size"])] += 1
+        for rs in raw_slides:
+            texts = sorted(rs.text_stats, key=lambda st: st.get("size") or 0, reverse=True)
+            if texts and texts[0].get("size"):
+                title_sizes[float(texts[0]["size"])] += 2
+            for st in rs.text_stats:
+                if st.get("size"):
+                    sz = float(st["size"])
+                    if st.get("chars", 0) > 6 and sz > 20:
+                        title_sizes[sz] += 1
+                    elif sz <= 60:
+                        body_sizes[sz] += 1
+        def _clean(counter: Counter, lo: float, hi: float) -> list[float]:
+            cand = [sz for sz, _ in counter.most_common(30) if lo <= sz <= hi]
+            if not cand:
+                cand = [sz for sz, _ in counter.most_common(30)]
+            med = median([sz for sz, c in counter.items() for _ in range(min(c, 5))]) if counter else hi
+            cand = [sz for sz in cand if abs(sz - med) <= max(med * 2.2, 40)]
+            return sorted(set(cand), reverse=True)[:8]
+        order_t = _clean(title_sizes, 14, 80)
+        order_b = _clean(body_sizes, 8, 44)
+        return {"title": order_t,
+                "body": order_b,
+                "min_body": order_b[-1] if order_b else 12,
+                "max_title": order_t[0] if order_t else 40}
+
+    def _grid(self, prof, layouts, raw_slides=None) -> dict:
+        w, h = prof.slide_size["w_in"], prof.slide_size["h_in"]
+        # 1) если есть полноширинный body-плейсхолдер — используем его как канву
+        big = [l.body for l in layouts
+               if l.role == "content" and l.body
+               and l.body.get("w", 0) >= 0.45 * w and l.body.get("h", 0) >= 0.3 * h]
+        if big:
+            b = max(big, key=lambda b: b["w"] * b["h"])
+            return {"margin_left": round(b["x"], 3), "margin_top": round(b["y"], 3),
+                    "margin_right": round(w - (b["x"] + b["w"]), 3),
+                    "margin_bottom": round(h - (b["y"] + b["h"]), 3),
+                    "body_x": round(b["x"], 3), "body_y": round(b["y"], 3),
+                    "body_w": round(b["w"], 3), "body_h": round(b["h"], 3)}
+        # 2) иначе типовые поля по границам контента реальных слайдов
+        lefts, tops, rights, bottoms = [], [], [], []
+        for rs in (raw_slides or []):
+            for (x, y, bw, bh, kind, fill) in rs.shapes_geo:
+                if kind and kind in ("13", "18"):  # picture/placeholder — может быть фон
+                    if bh >= 0.8 * h and bw >= 0.8 * w:
+                        continue
+                if 0 <= x < w and 0 <= y < h and bw > 0.05 and bh > 0.03:
+                    lefts.append(x); tops.append(y)
+                    rights.append(x + bw); bottoms.append(y + bh)
+        if not rights:
+            return {"margin_left": 0.5, "margin_top": 1.0,
+                    "margin_right": 0.5, "margin_bottom": 0.5,
+                    "body_x": 0.5, "body_y": 1.0, "body_w": round(w - 1, 3), "body_h": round(h - 1.5, 3)}
+        ml = round(min(1.2, max(0.2, median(lefts))), 3)
+        mt = round(min(1.6, max(0.5, median([t for t in tops if t <= 0.75 * h]) if tops else 0.6)), 3)
+        mr = round(min(1.2, max(0.2, w - median(rights))), 3)
+        mb = round(min(1.4, max(0.3, h - median(bottoms))), 3)
+        return {"margin_left": ml, "margin_top": mt,
+                "margin_right": mr, "margin_bottom": mb,
+                "body_x": ml, "body_y": mt,
+                "body_w": round(w - ml - mr, 3), "body_h": round(h - mt - mb, 3)}
+
+    def _patterns(self, raw_slides) -> list[dict]:
+        """Детект карточных/колоночных паттернов по текстовым боксам на слайдах."""
+        patterns = []
+        for rs in raw_slides[:60]:
+            boxes = rs.texts
+            rows = defaultdict(list)
+            for b in boxes:
+                if b.get("y") is None or b.get("h") is None or b.get("w") is None:
+                    continue
+                key = round(b["y"] / 0.35)
+                rows[key].append(b)
+            for key, grp in rows.items():
+                if len(grp) >= 3:
+                    same_h = len({round(b["h"], 2) for b in grp}) == 1
+                    same_w = len({round(b["w"], 2) for b in grp}) == 1
+                    xs = sorted(b["x"] for b in grp)
+                    if same_h and same_w and len(xs) >= 3:
+                        step = (xs[-1] - xs[0]) / (len(xs) - 1)
+                        if abs(step) > 0.2 and len({round(b["chars"] / 30) for b in grp if b["chars"]}) <= 3:
+                            patterns.append({
+                                "kind": "card_grid",
+                                "cells": len(grp),
+                                "cell_w": round(grp[0]["w"], 3),
+                                "cell_h": round(grp[0]["h"], 3),
+                                "step": round(step, 3),
+                            })
+                            break
+            if len(patterns) > 8:
+                break
+        return patterns[1:8]

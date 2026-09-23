@@ -1,0 +1,48 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: dp-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:11434"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    # держим нужные модели запущенными (первый запуск скачает их)
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "ollama serve & sleep 5 && (ollama pull qwen2.5:7b-instruct || true) && (ollama pull qwen2.5-vl:7b-instruct || true) && wait"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: dp-backend
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      DISABLE_LLM: "false"
+      CORS_ORIGINS: "http://localhost:3000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/backend/data
+
+  frontend:
+    build: ./frontend
+    container_name: dp-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  ollama_data:

@@ -1,0 +1,14 @@
+{
+  "purposes": {
+    "feature": "новый продукт/фича компании",
+    "product": "продукт и его рынок",
+    "project": "проект: цели, объём, команда, сроки, результат",
+    "initiative": "инициатива: цели, аудитория, этапы, эффект"
+  },
+  "default_purpose": "project",
+  "default_language": "ru",
+  "default_deck_size": 12,
+  "slide_size_min": 4,
+  "slide_size_max": 15,
+  "language_hint": "весь контент — на языке брифа"
+}
