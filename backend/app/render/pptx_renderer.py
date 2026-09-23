@@ -23,6 +23,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
+from ..layout.engine import DesignContext, LayoutEngine
 from ..layout.geometry import Rect
 from ..models.deck import Block, Chart, ChartType, Slide, SlideType
 from .images import hex_to_rgb
@@ -106,8 +107,34 @@ class Renderer:
         self.images = images or {}
 
     # ------------------------------------------------------------- layout choice
-    def _pick_layout(self, stype: SlideType) -> dict:
+    @staticmethod
+    def _slide_kind(slide: Optional[Slide]) -> Optional[str]:
+        """Какой композиционный тип макета нужен этому слайду."""
+        if slide is None:
+            return None
+        kinds = [b.kind for b in slide.blocks]
+        if not kinds:
+            return None
+        if "table" in kinds:
+            return "table"
+        if "chart" in kinds:
+            return "chart"
+        if "image" in kinds:
+            return "image_text"
+        if sum(1 for k in kinds if k != "image") >= 3:
+            return "multi_column"
+        return "bullets"
+
+    def _pick_layout(self, stype: SlideType, slide: Optional[Slide] = None) -> dict:
+        """Выбирает макет шаблона под тип слайда и его содержимое.
+
+        Роль макета пришла из структурной классификации профиля; композиционный
+        тип (`kind`) даёт бонус, если совпадает с содержимым слайда. Если макетов
+        нужной роли в шаблоне нет, используется контентный — деградация без ошибок.
+        """
         layouts = self.profile.get("layouts", [])
+        if not layouts:
+            raise RenderError("в профиле шаблона нет макетов — нечего использовать")
         target = "title" if stype == SlideType.TITLE else \
             "section" if stype == SlideType.SECTION else \
             "final" if stype in (SlideType.FINAL,) else \
@@ -117,11 +144,14 @@ class Renderer:
             cands = [l for l in layouts if l.get("role") == "content"]
         if not cands:
             cands = layouts
-        # приоритет: с title-плейсхолдером и большим body
-        def key(l):
-            return (1.0 if l.get("title_ph") else 0.2) + \
-                   (0.5 if (l.get("body") or {}).get("w", 0) else 0.0) + \
-                   l.get("score", 0)
+        want_kind = self._slide_kind(slide)
+
+        def key(l: dict) -> float:
+            score = float(l.get("score", 0.0))
+            if want_kind and l.get("kind") == want_kind:
+                score += 0.3
+            return score
+
         return max(cands, key=key)
 
     def _canvas(self, layout: dict) -> Rect:
@@ -163,6 +193,23 @@ class Renderer:
         return rect
 
     # -------------------------------------------------------------------- render
+    def build_plan(self, deck: Deck, dc: DesignContext) -> dict[int, list[dict]]:
+        """План вёрстки для всей колоды: макет + композиция блоков на слайд.
+
+        Единая точка входа для API, тестов и инструментов — раньше каждый
+        вызывающий собирал план сам и повторял выбор макета.
+        """
+        plan: dict[int, list[dict]] = {}
+        for i, slide in enumerate(deck.slides):
+            layout = self._pick_layout(slide.slide_type, slide)
+            engine = LayoutEngine(dc, variant=self.variant)
+            plan[i] = engine.compose(slide, self._canvas(layout))
+        return plan
+
+    def render_deck(self, deck: Deck, dc: DesignContext) -> bytes:
+        """План + рендер одной операцией (основной путь использования)."""
+        return self.render(deck, self.build_plan(deck, dc))
+
     def render(self, deck: Deck, plan_map: dict[int, list[dict]]) -> bytes:
         src = self.template_bytes
         if not src:
@@ -178,7 +225,7 @@ class Renderer:
         self._drop_original_slides(prs)
 
         for i, sl in enumerate(deck.slides):
-            layout = self._pick_layout(sl.slide_type)
+            layout = self._pick_layout(sl.slide_type, sl)
             new = prs.slides.add_slide(self._layout_object(prs, layout))
             # add_slide уже переносит плейсхолдеры макета: заголовок остаётся,
             # неиспользуемые пустые рамки убираем, чтобы не мусорить в файле

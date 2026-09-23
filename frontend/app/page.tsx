@@ -8,9 +8,23 @@ const VARIANTS = ["compact", "cards", "split"] as const;
 type Issue = { code: string; severity: string; slide: number; message: string; bbox: number[] };
 type Audit = { passed: boolean; errors: number; warnings: number; issues: Issue[] };
 type Variant = { name: string; passed: boolean; errors: number; warnings: number };
-type JobSummary = { slides: number; used_llm: boolean; elapsed_s: number; variants: Variant[] };
+type JobSummary = {
+  slides: number; used_llm: boolean; elapsed_s: number; variants: Variant[];
+  stages?: Record<string, number>; vlm_available?: boolean; corpus_id?: string | null;
+};
 
 type JobResp = { status: string; summary?: JobSummary; error?: string };
+
+type CorpusSlide = {
+  index: number; heading: string; layout: string; bullets: string[];
+  paragraphs: string[]; numbers: string[]; images: string[]; tables: number; charts: number;
+};
+type Corpus = {
+  id: string; source_file: string; kind: string;
+  stats: { slides: number; non_empty: number; images: number; numbers: number };
+  preview?: CorpusSlide[];
+  image_keys?: string[];
+};
 
 export default function Page() {
   const [templateName, setTemplateName] = useState("");
@@ -32,7 +46,11 @@ export default function Page() {
   const [deckTitle, setDeckTitle] = useState("");
   const [slidesCount, setSlidesCount] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [corpus, setCorpus] = useState<Corpus | null>(null);
+  const [corpusError, setCorpusError] = useState("");
+  const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const corpusRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status !== "running" || !jobId) return;
@@ -76,6 +94,32 @@ export default function Page() {
     }).catch(() => {});
   }, [status, jobId]);
 
+  const importCorpus = async () => {
+    const file = corpusRef.current?.files?.[0];
+    if (!file) {
+      setCorpusError("Выбери файл контент-пакета (PPTX, DOCX, TXT или MD)");
+      return;
+    }
+    setImporting(true);
+    setCorpusError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await fetch(`${API}/api/content/import`, { method: "POST", body: fd });
+      const j = await r.json();
+      if (!r.ok) {
+        setCorpusError(j.detail || "Не удалось разобрать контент-пакет");
+        setCorpus(null);
+      } else {
+        setCorpus(j);
+      }
+    } catch (e) {
+      setCorpusError(String(e));
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const generate = async (extraNotes = "") => {
     if (!fileRef.current?.files?.[0]) {
       setError("Загрузи шаблон PPTX");
@@ -87,6 +131,7 @@ export default function Page() {
     fd.append("brief", brief);
     fd.append("source", (source || "" ) + (extraNotes ? "\n\nИсправления от аудита:\n" + extraNotes : ""));
     fd.append("purpose", purpose);
+    if (corpus) fd.append("corpus_id", corpus.id);
     const r = await fetch(`${API}/api/generate`, { method: "POST", body: fd });
     const j = await r.json();
     if (!r.ok) {
@@ -156,6 +201,35 @@ export default function Page() {
         />
         <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 12 }}>{templateName || "ни один файл не выбран"}</div>
 
+        <label style={lab}>Контент-пакет (необязательно)</label>
+        <input ref={corpusRef} type="file" accept=".pptx,.docx,.txt,.md" style={input} />
+        <button
+          onClick={importCorpus}
+          disabled={importing}
+          style={{ ...btn, background: "#2b3240", marginTop: 8, opacity: importing ? 0.6 : 1 }}
+        >
+          {importing ? "Разбираю…" : "Импортировать контент-пакет"}
+        </button>
+        {corpusError && <div style={{ color: "#ff6b6b", fontSize: 12, marginTop: 6 }}>{corpusError}</div>}
+        {corpus && (
+          <div style={{ marginTop: 8, fontSize: 12, background: "#0e1014", border: "1px solid #23262e", borderRadius: 8, padding: 10 }}>
+            <div style={{ opacity: 0.9 }}>{corpus.source_file} · {corpus.kind.toUpperCase()}</div>
+            <div style={{ opacity: 0.65 }}>
+              слайдов {corpus.stats.non_empty} · картинок {corpus.stats.images} · цифр {corpus.stats.numbers}
+            </div>
+            <div style={{ maxHeight: 140, overflowY: "auto", marginTop: 6 }}>
+              {(corpus.preview || []).slice(0, 6).map((s) => (
+                <div key={s.index} style={{ opacity: 0.8, marginBottom: 4 }}>
+                  <b>{s.index + 1}.</b> {s.heading}
+                  {s.bullets.length > 0 && <span style={{ opacity: 0.6 }}> · тезисов {s.bullets.length}</span>}
+                  {s.images.length > 0 && <span style={{ opacity: 0.6 }}> · фото {s.images.length}</span>}
+                  {s.tables > 0 && <span style={{ opacity: 0.6 }}> · таблиц {s.tables}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <label style={lab}>Бриф</label>
         <textarea value={brief} onChange={(e) => setBrief(e.target.value)} rows={6} style={{ ...input, fontFamily: "inherit" }} />
 
@@ -185,6 +259,15 @@ export default function Page() {
           <div style={{ marginTop: 18, fontSize: 13, lineHeight: 1.7 }}>
             <div style={{ fontWeight: 600 }}>Отчёт</div>
             <div>Слайдов: {summary.slides} · время {summary.elapsed_s} c · LLM: {summary.used_llm ? "да" : "offline-fallback"}</div>
+            {summary.stages && (
+              <div style={{ opacity: 0.6, fontSize: 12 }}>
+                {Object.entries(summary.stages).map(([k, v]) => `${k.replace("_s", "")} ${v}c`).join(" · ")}
+              </div>
+            )}
+            <div style={{ opacity: 0.6, fontSize: 12 }}>
+              VLM-аудит: {summary.vlm_available ? "выполнен" : "недоступен (нет Ollama/VLM)"}
+              {summary.corpus_id ? ` · контент-пакет ${summary.corpus_id}` : ""}
+            </div>
             {summary.variants.map((v) => (
               <div key={v.name} style={{ opacity: 0.85 }}>
                 {v.name}: {v.errors === 0 && v.warnings === 0 ? "✓ чисто" : `ошибок ${v.errors}, предупреждений ${v.warnings}`}

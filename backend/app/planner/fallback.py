@@ -81,6 +81,19 @@ def _bullet_items(brief: str, source: str, n: int = 5) -> list[str]:
     return sents[:max(1, min(n, 6))]
 
 
+def _corpus_items(corpus, n: int = 5, used: list[str] | None = None) -> list[str]:
+    """Тезисы из контент-пакета без служебной «рыбы» и без повторов."""
+    used = used or []
+    out: list[str] = []
+    for line in corpus.meaningful_lines():
+        if line in used or line in out:
+            continue
+        out.append(line)
+        if len(out) >= n:
+            break
+    return out
+
+
 class FallbackPlanner:
     """Собирает валидную колоду без модели."""
 
@@ -88,7 +101,13 @@ class FallbackPlanner:
         self.purposes = json.loads(PURPOSE_PATH.read_text(encoding="utf-8"))
         self._seq = SEQUENCES
 
-    def plan(self, brief: str, source: str = "", purpose: str = "project") -> Deck:
+    def plan(self, brief: str, source: str = "", purpose: str = "project",
+             corpus=None) -> Deck:
+        """Собирает валидную колоду без модели.
+
+        Если передан контент-пакет, его изображения добавляются на слайд-иллюстрацию,
+        чтобы встраивание картинок работало и в офлайн-режиме.
+        """
         brief = (brief or "").strip()
         source = (source or "").strip()
         lang = "ru"
@@ -115,11 +134,21 @@ class FallbackPlanner:
             blocks=[Block(kind="bullets", items=sections[:6])],
         ))
 
+        used_items: list[str] = []
+        corpus_headings = corpus.headings() if corpus is not None else []
         for idx, (stype_name, h) in enumerate(seq):
             stype = SlideType(stype_name)
             blocks: list[Block] = []
             if stype == SlideType.CONTENT:
-                items = _bullet_items(brief, source, n=max(2, min(5, len(_sentences(brief + '\n' + source)) // 2)))
+                if corpus is not None:
+                    items = _corpus_items(corpus, 5, used_items)
+                    used_items.extend(items)
+                else:
+                    items = _bullet_items(
+                        brief, source,
+                        n=max(2, min(5, len(_sentences(brief + '\n' + source)) // 2)))
+                if not items:
+                    items = _bullet_items(brief, source, n=3)
                 blocks.append(Block(kind="bullets", title="Ключевые тезисы", items=items))
                 if has_metrics and "метрик" in h.lower() or (idx == 2 and has_metrics):
                     if metrics:
@@ -149,16 +178,38 @@ class FallbackPlanner:
                 blocks=[b for b in blocks if b_kind(b) != "empty"],
             ))
 
-        # гарантируем 10-15 слайдов: добавим детали из источника
-        while len(slides) < 10 and source:
-            items = _bullet_items(source, "", 5)
+        # иллюстрация из контент-пакета: встраивание картинок работает и без LLM
+        if corpus is not None and corpus.images:
+            content_slides = [s for s in slides if s.slide_type == SlideType.CONTENT]
+            if content_slides:
+                key = next(iter(corpus.images))
+                content_slides[0].blocks.append(Block(
+                    kind="image", image_ref=key, title="Иллюстрация"))
+
+        # гарантируем 10-15 слайдов: добираем содержанием из источника/корпуса
+        used_headings = {s.heading for s in slides}
+        while len(slides) < 10:
+            if corpus is not None:
+                items = _corpus_items(corpus, 5, used_items)
+                heading = corpus_headings.pop(0) if corpus_headings else ""
+            else:
+                items = _bullet_items(source, "", 5)
+                heading = ""
+            if not items:
+                break
+            used_items.extend(items)
+            if not heading:
+                heading = f"Детали: {digest[:60]}" if digest else "Дополнительные детали"
+            while heading in used_headings:
+                heading = f"{heading[:110]} (продолжение)"
+            used_headings.add(heading)
             slides.append(Slide(
                 slide_type=SlideType.CONTENT,
-                heading=f"Детали: {digest[:60]}",
+                heading=heading[:118],
                 blocks=[Block(kind="bullets", items=items)],
             ))
             digest = digest[60:]
-            if len(digest) < 20:
+            if corpus is None and len(digest) < 20:
                 break
         while len(slides) > 15:
             slides = slides[:1] + slides[1:14] + slides[-1:]

@@ -63,18 +63,36 @@ def _patch_theme_xml(xml: bytes, accent: str, secondary: str,
     return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
 
 
-def _patch_theme(data: bytes, accent: str, secondary: str,
-                 major: str, minor: str) -> bytes:
-    """Правит тему во всех theme*.xml внутри PPTX."""
+# фиксированная дата в zip: фикстуры должны быть побайтово воспроизводимы,
+# иначе каждый перезапуск генератора даёт «изменённые» файлы в git
+FIXED_ZIP_DATE = (2026, 1, 1, 0, 0, 0)
+
+
+def _copy_zip(data: bytes, transform=None) -> bytes:
+    """Пересобирает PPTX-архив, применяя transform(имя, байты) к каждой части."""
     src = ZipFile(io.BytesIO(data))
     out = io.BytesIO()
     with ZipFile(out, "w", ZIP_DEFLATED) as dst:
         for item in src.infolist():
             payload = src.read(item.filename)
-            if item.filename.startswith("ppt/theme/") and item.filename.endswith(".xml"):
-                payload = _patch_theme_xml(payload, accent, secondary, major, minor)
-            dst.writestr(item, payload)
+            if transform is not None:
+                payload = transform(item.filename, payload)
+            info = ZipInfo(item.filename, date_time=FIXED_ZIP_DATE)
+            info.compress_type = item.compress_type
+            info.external_attr = item.external_attr
+            dst.writestr(info, payload)
     return out.getvalue()
+
+
+def _patch_theme(data: bytes, accent: str, secondary: str,
+                 major: str, minor: str) -> bytes:
+    """Правит тему во всех theme*.xml внутри PPTX."""
+    def transform(name: str, payload: bytes) -> bytes:
+        if name.startswith("ppt/theme/") and name.endswith(".xml"):
+            return _patch_theme_xml(payload, accent, secondary, major, minor)
+        return payload
+
+    return _copy_zip(data, transform)
 
 
 def build_template(accent: str = "#1F7A5C", secondary: str = "#C2410C",
@@ -152,20 +170,18 @@ def _rename_layouts(data: bytes, names: list[str]) -> bytes:
     layout_files = sorted(n for n in src.namelist()
                           if n.startswith("ppt/slideLayouts/slideLayout") and n.endswith(".xml"))
     mapping = {name: names[i % len(names)] for i, name in enumerate(layout_files)}
-    out = io.BytesIO()
-    with ZipFile(out, "w", ZIP_DEFLATED) as dst:
-        for item in src.infolist():
-            payload = src.read(item.filename)
-            if item.filename in mapping:
-                root = etree.fromstring(payload)
-                for cSld in root.iter():
-                    if etree.QName(cSld).localname == "cSld":
-                        cSld.set("name", mapping[item.filename])
-                        break
-                payload = etree.tostring(root, xml_declaration=True,
-                                         encoding="UTF-8", standalone=True)
-            dst.writestr(item, payload)
-    return out.getvalue()
+
+    def transform(name: str, payload: bytes) -> bytes:
+        if name not in mapping:
+            return payload
+        root = etree.fromstring(payload)
+        for node in root.iter():
+            if etree.QName(node).localname == "cSld":
+                node.set("name", mapping[name])
+                break
+        return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+
+    return _copy_zip(data, transform)
 
 
 def mutate_template(data: bytes, *, prefix: str = "Slide",
@@ -187,24 +203,26 @@ def mutate_template(data: bytes, *, prefix: str = "Slide",
                           if n.startswith("ppt/slideLayouts/slideLayout") and n.endswith(".xml"))
     mapping = {name: f"{prefix} {i + 1}" for i, name in enumerate(layout_files)}
 
-    def patch_layout(xml: bytes, new_name: str) -> bytes:
-        root = etree.fromstring(xml)
-        for node in root.iter():
-            if etree.QName(node).localname == "cSld":
-                node.set("name", new_name)
-                break
-        return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+    def transform(name: str, payload: bytes) -> bytes:
+        if name in mapping:
+            root = etree.fromstring(payload)
+            for node in root.iter():
+                if etree.QName(node).localname == "cSld":
+                    node.set("name", mapping[name])
+                    break
+            return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+        if name.startswith("ppt/theme/") and name.endswith(".xml"):
+            return _patch_theme_xml(payload, accent, accent, major, minor)
+        return payload
 
-    out = io.BytesIO()
-    with ZipFile(out, "w", ZIP_DEFLATED) as dst:
-        for item in src.infolist():
-            payload = src.read(item.filename)
-            if item.filename in mapping:
-                payload = patch_layout(payload, mapping[item.filename])
-            elif item.filename.startswith("ppt/theme/") and item.filename.endswith(".xml"):
-                payload = _patch_theme_xml(payload, accent, accent, major, minor)
-            dst.writestr(item, payload)
-    return out.getvalue()
+    return _copy_zip(buf.getvalue(), transform)
+
+
+def _rel(path: Path) -> str:
+    try:
+        return str(Path(path).resolve().relative_to(ROOT))
+    except Exception:  # noqa: BLE001
+        return str(path)
 
 
 def main(argv: list[str]) -> int:
@@ -224,13 +242,13 @@ def main(argv: list[str]) -> int:
         data = build_template(**params)
         target = args.out / f"{name}.pptx"
         target.write_bytes(data)
-        print(f"записано: {target.relative_to(ROOT)} ({len(data) // 1024} КБ)")
+        print(f"записано: {_rel(target)} ({len(data) // 1024} КБ)")
 
     # незнакомый шаблон: мутация 16:9-фикстуры
     mutated = mutate_template(build_template(**FIXTURES["synthetic_16x9"]))
     target = args.out / "unfamiliar_mutated.pptx"
     target.write_bytes(mutated)
-    print(f"записано: {target.relative_to(ROOT)} ({len(mutated) // 1024} КБ)")
+    print(f"записано: {_rel(target)} ({len(mutated) // 1024} КБ)")
     return 0
 
 

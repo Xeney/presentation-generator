@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     max_slides: int = 15
     min_slides: int = 4
     target_duration_min: int = 5
+    vlm_audit_enabled: bool = True
+    vlm_audit_all_variants: bool = False
 
     # --- Хранилище ---
     data_dir: str = "./data"

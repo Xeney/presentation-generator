@@ -54,18 +54,21 @@ def collect_templates(extra: list[str]) -> list[tuple[str, bytes]]:
     return items
 
 
+def _count_kinds(profile: dict) -> dict[str, int]:
+    kinds: dict[str, int] = {}
+    for layout in profile.get("layouts", []):
+        key = layout.get("kind", "?")
+        kinds[key] = kinds.get(key, 0) + 1
+    return kinds
+
+
 def run_one(name: str, template_bytes: bytes, deck) -> dict:
     profile = TemplateParser(template_bytes).parse().to_dict()
-    dc = DesignContext(
-        fonts={"headline": profile.get("headline_font"), "body": profile.get("body_font")},
-        palette=profile.get("palette", []),
-        type_scale=profile.get("type_scale", {}),
-        slide_w=profile["slide_size"]["w_in"],
-        slide_h=profile["slide_size"]["h_in"],
-    )
+    dc = DesignContext.from_profile(profile)
     result: dict = {
         "layouts": len(profile["layouts"]),
         "roles": {role: len(ids) for role, ids in profile["layout_groups"].items()},
+        "kinds": _count_kinds(profile),
         "headline_font": profile.get("headline_font"),
         "body_font": profile.get("body_font"),
         "palette": len(profile.get("palette", [])),
@@ -73,12 +76,7 @@ def run_one(name: str, template_bytes: bytes, deck) -> dict:
     }
     for variant in ("compact", "cards", "split"):
         renderer = Renderer(profile, variant=variant, template_bytes=template_bytes)
-        plan_map = {}
-        for i, slide in enumerate(deck.slides):
-            layout = renderer._pick_layout(slide.slide_type)
-            plan_map[i] = LayoutEngine(dc, variant=variant).compose(
-                slide, renderer._canvas(layout))
-        audit = Audit(profile).audit(deck, renderer.render(deck, plan_map))
+        audit = Audit(profile).audit(deck, renderer.render_deck(deck, dc))
         codes: dict[str, int] = {}
         for issue in audit["issues"]:
             codes[issue["code"]] = codes.get(issue["code"], 0) + 1
@@ -92,7 +90,42 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Матрица аудита по шаблонам и вариантам")
     parser.add_argument("templates", nargs="*", help="дополнительные PPTX")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--layouts", action="store_true",
+                        help="показать классификацию макетов (имя → роль/тип/причина)")
+    parser.add_argument("--picks", action="store_true",
+                        help="показать, какой макет выбран для каждого слайда колоды")
     args = parser.parse_args()
+
+    if args.picks:
+        for name, template_bytes in collect_templates(args.templates):
+            try:
+                profile = TemplateParser(template_bytes).parse().to_dict()
+                renderer = Renderer(profile, variant="compact", template_bytes=template_bytes)
+                deck = FallbackPlanner().plan(BRIEF, "", "project")
+            except Exception as exc:  # noqa: BLE001
+                print(f"\n{name}: ОШИБКА {exc}")
+                continue
+            print(f"\n{name}")
+            for i, slide in enumerate(deck.slides):
+                layout = renderer._pick_layout(slide.slide_type, slide)
+                print(f"  {i:2d} {slide.slide_type.value:8s} → {layout['id']:>4} "
+                      f"{layout['role']:8s} {layout['kind']:12s} "
+                      f"{layout['name'][:26]:26s} | {slide.heading[:44]}")
+        return 0
+
+    if args.layouts:
+        for name, template_bytes in collect_templates(args.templates):
+            try:
+                profile = TemplateParser(template_bytes).parse().to_dict()
+            except Exception as exc:  # noqa: BLE001
+                print(f"\n{name}: ОШИБКА {exc}")
+                continue
+            print(f"\n{name} — макетов {len(profile['layouts'])}")
+            for layout in profile["layouts"]:
+                print(f"  {layout['id']:>4}  {layout['name'][:38]:<38} "
+                      f"{layout['role']:<8} {layout['kind']:<13} "
+                      f"score={layout['score']:.2f}  {layout['role_reason']}")
+        return 0
 
     deck = FallbackPlanner().plan(BRIEF, "", "project")
     report = {}
@@ -111,6 +144,7 @@ def main() -> int:
             print(f"\n{name}: ОШИБКА {data['error']}")
             continue
         print(f"\n{name}: макетов {data['layouts']} {data['roles']}")
+        print(f"  типы: {data.get('kinds')}")
         print(f"  шрифты: {data['headline_font']} / {data['body_font']}, "
               f"палитра {data['palette']}")
         for variant, info in data["variants"].items():

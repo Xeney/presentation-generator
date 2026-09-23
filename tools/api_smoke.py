@@ -3,9 +3,10 @@
 Запуск:
     python tools/api_smoke.py                       # первый PPTX из data/templates/
     python tools/api_smoke.py path/to/template.pptx
+    python tools/api_smoke.py --corpus pack.pptx    # с импортом контент-пакета
 
-Проверяет полный цикл: generate → poll → pptx (3 варианта) → html → audit → info.
-LLM можно выключить переменной окружения DISABLE_LLM=true.
+Проверяет полный цикл: (импорт корпуса) → generate → poll → pptx (3 варианта) →
+html → audit → info. LLM можно выключить переменной окружения DISABLE_LLM=true.
 """
 from __future__ import annotations
 
@@ -37,6 +38,15 @@ def find_template(argv: list[str]) -> Path | None:
 
 
 def main(argv: list[str]) -> int:
+    corpus_path: Path | None = None
+    if "--corpus" in argv:
+        index = argv.index("--corpus")
+        if index + 1 >= len(argv):
+            print("после --corpus нужен путь к файлу контент-пакета")
+            return 1
+        corpus_path = Path(argv[index + 1])
+        argv = argv[:index] + argv[index + 2:]
+
     tpl_path = find_template(argv)
     if tpl_path is None:
         print("PPTX-шаблон не найден: положите файл в data/templates/ или передайте путь аргументом.")
@@ -45,10 +55,31 @@ def main(argv: list[str]) -> int:
     print(f"шаблон: {tpl_path.name}")
     client = TestClient(app)
     with client:
+        corpus_id = ""
+        if corpus_path is not None:
+            if not corpus_path.exists():
+                print(f"нет файла контент-пакета: {corpus_path}")
+                return 1
+            imp = client.post("/api/content/import", files={
+                "file": (corpus_path.name, corpus_path.read_bytes(), "application/octet-stream")})
+            if imp.status_code != 200:
+                print("content/import:", imp.status_code, imp.text[:300])
+                return 1
+            payload = imp.json()
+            corpus_id = payload["id"]
+            stats = payload["stats"]
+            print(f"корпус {corpus_id}: слайдов {stats['non_empty']}, "
+                  f"картинок {stats['images']}, цифр {stats['numbers']}")
+            listed = client.get("/api/content").json()["corpora"]
+            assert any(item["id"] == corpus_id for item in listed), "корпус не сохранился"
+            if payload.get("preview"):
+                print("  превью:", payload["preview"][0]["heading"][:60])
+
         resp = client.post(
             "/api/generate",
             files={"template": (tpl_path.name, tpl_path.read_bytes(), "application/octet-stream")},
-            data={"brief": BRIEF, "source": "", "purpose": "project"})
+            data={"brief": BRIEF, "source": "", "purpose": "project",
+                  "corpus_id": corpus_id})
         print("generate:", resp.status_code, resp.json())
         if resp.status_code != 200:
             return 1
@@ -84,6 +115,9 @@ def main(argv: list[str]) -> int:
         print("info: слайдов", len(info["deck"]["slides"]),
               "| LLM:", info["planner"]["used_llm"],
               "| VLM доступен:", info["vlm"].get("available"))
+        print("стадии:", info.get("stages"))
+        if info.get("corpus"):
+            print("корпус в задании:", info["corpus"]["stats"])
     print("OK")
     return 0
 

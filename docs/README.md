@@ -58,8 +58,22 @@ docker compose exec ollama ollama list
 Проверка, что шаблон разобран:
 
 ```bash
-curl -F "template=@data/templates/my.pptx" http://localhost:8000/api/profile
+python tools/audit_matrix.py --layouts data/templates/my.pptx   # профиль и роли макетов
 ```
+
+### Контент-пакет
+
+Пакет можно не только вставить текстом, но и загрузить файлом — сервис разберёт
+его на слайды/разделы (заголовки, тезисы, таблицы, диаграммы, цифры, картинки):
+
+```bash
+python tools/import_corpus.py data/templates/content_pack.pptx --text
+```
+
+Поддерживаются PPTX, DOCX, TXT и MD. Изображения из пакета встраиваются в слайды
+нативными объектами (`Block.kind = "image"`), а текст уходит планировщику как
+единственный источник фактов. Строки-заглушки («Заголовок», «Текст описания»)
+отфильтровываются и не попадают в колоду.
 
 ## 4. Переменные окружения
 
@@ -98,7 +112,10 @@ curl -F "template=@data/templates/my.pptx" http://localhost:8000/api/profile
 | `GET` | `/api/jobs/{id}/html` | HTML-версия колоды |
 | `GET` | `/api/jobs/{id}/thumb?variant=…&s=…` | PNG-миниатюра слайда (`&boxes=1` — красные рамки проблем) |
 | `POST` | `/api/jobs/{id}/fix` | детерминированные авто-фиксы выбранных проблем |
-| `POST` | `/api/content/import` | импорт контент-пакета (PPTX/DOCX/TXT) → корпус |
+| `POST` | `/api/content/import` | импорт контент-пакета (PPTX/DOCX/TXT/MD) → корпус |
+| `GET` | `/api/content` | список импортированных корпусов |
+| `GET` | `/api/content/{id}` | структура корпуса (слайды, цифры, изображения) |
+| `GET` | `/api/content/{id}/image/{key}` | изображение из контент-пакета |
 | `GET` | `/api/health` | состояние сервиса и доступность Ollama |
 
 ## 6. Запуск без Docker (для отладки)

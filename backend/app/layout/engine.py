@@ -76,6 +76,19 @@ class DesignContext:
     slide_w: float = 13.33
     slide_h: float = 7.5
 
+    @classmethod
+    def from_profile(cls, profile: dict) -> "DesignContext":
+        """Собирает контекст дизайна из JSON-профиля шаблона."""
+        size = profile.get("slide_size") or {}
+        return cls(
+            fonts={"headline": profile.get("headline_font"),
+                   "body": profile.get("body_font")},
+            palette=profile.get("palette", []),
+            type_scale=profile.get("type_scale", {}),
+            slide_w=float(size.get("w_in", 13.333)),
+            slide_h=float(size.get("h_in", 7.5)),
+        )
+
     def __post_init__(self):
         pal = [p.get("hex") for p in self.palette if p.get("hex")]
         self._pal = pal

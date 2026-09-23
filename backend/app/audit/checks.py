@@ -15,15 +15,13 @@ from pptx import Presentation
 from pptx.enum.dml import MSO_FILL_TYPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
+from ..content.corpus import looks_like_placeholder
 from ..models.deck import Deck
 from ..render.images import hex_to_rgb
 from ..render.pptx_renderer import IMAGE_SLOT_NAME
 
 A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
-
-PLACEHOLDER_MARKERS = ("Заголовок", "Дважды щёлкните", "Дважды щелкните", "Текст",
-                       "Lorem", "Слайд", "Введите", "здесь текст", "подзаголовок")
 
 
 @dataclass
@@ -448,12 +446,19 @@ class Audit:
                                    "слайд не содержит ни текста, ни объектов"))
 
     def _check_placeholders(self, slide, si, issues, geo):
-        full = " ".join(it["ptext"] for it in self._scan_runs(slide))
-        for marker in PLACEHOLDER_MARKERS:
-            if re.search(rf"(?i){re.escape(marker)}", full):
-                issues.append(Issue.at("placeholder_text", "warning", si,
-                                       f"найден текст-заглушка «{marker}»"))
-                break
+        """Ищет служебную «рыбу» построчно, а не по всему тексту слайда.
+
+        Построчная проверка не даёт ложных срабатываний на осмысленном тексте,
+        где просто встретилось слово «заголовок».
+        """
+        for it in self._scan_runs(slide):
+            text = (it["ptext"] or "").strip()
+            if text and looks_like_placeholder(text):
+                issues.append(Issue.at(
+                    "placeholder_text", "warning", si,
+                    f"текст-заглушка: «{text[:60]}»",
+                    self._shape_bbox(it["shape"], slide)))
+                return
 
     def _check_raster_slide(self, slide, si, issues, geo):
         W, H = self.W, self.H

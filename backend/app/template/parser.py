@@ -279,22 +279,169 @@ class TemplateParser:
 
     # ------------------------------------------------------------- role guessing
     @staticmethod
-    def _guess_role(name: str, ph_types: list[str]) -> str:
-        n = (name or "").lower()
-        if "мастер" in n:
-            return "content"
-        for role in ("title", "section", "agenda", "final", "content"):
-            for kw in ROLE_KEYWORDS_RU.get(role, []):
-                if kw in n:
-                    return role
-        for role in ("title", "section", "agenda", "final", "content"):
-            for kw in ROLE_KEYWORDS_EN.get(role, []):
-                if kw in n:
-                    return role
-        # отсутствие заголовка-плейсхолдера => скорее фоновый (не content)
-        if "title" not in ph_types and "body" not in ph_types:
-            return "content"
-        return "content"
+    def _name_has(name: str, master_name: str, role: str) -> bool:
+        """Tie-breaker: ключевое слово роли в имени макета или мастера."""
+        haystack = f"{name or ''} {master_name or ''}".lower()
+        keywords = ROLE_KEYWORDS_RU.get(role, []) + ROLE_KEYWORDS_EN.get(role, [])
+        return any(kw in haystack for kw in keywords)
+
+    @staticmethod
+    def _layout_shape_kinds(layout, slide_w: float, slide_h: float) -> dict:
+        """Что реально лежит на макете: таблицы, диаграммы, картинки, текстовые блоки.
+
+        `texts` — содержательные свободные текстовые фигуры (не плейсхолдеры):
+        многие шаблоны держат контентную область именно так, и без их подсчёта
+        макет выглядит как «только заголовок».
+        """
+        kinds = {"tables": 0, "charts": 0, "pictures": 0, "texts": 0, "shapes": 0}
+        slide_area = max(1e-6, slide_w * slide_h)
+        try:
+            shapes = list(layout.shapes)
+        except Exception:  # noqa: BLE001
+            return kinds
+        for shape in shapes:
+            try:
+                if getattr(shape, "has_table", False):
+                    kinds["tables"] += 1
+                    continue
+                if getattr(shape, "has_chart", False):
+                    kinds["charts"] += 1
+                    continue
+                shape_type = getattr(shape, "shape_type", None)
+                if shape_type is not None and str(shape_type).endswith("PICTURE"):
+                    kinds["pictures"] += 1
+                    continue
+                if getattr(shape, "has_text_frame", False) and not shape.is_placeholder:
+                    text = shape.text_frame.text.strip()
+                    area = (shape.width or 0) * (shape.height or 0)
+                    area_in = area / (914400 ** 2) if area else 0.0
+                    if len(text) >= 12 and area_in >= 0.02 * slide_area:
+                        kinds["texts"] += 1
+                        continue
+                kinds["shapes"] += 1
+            except Exception:  # noqa: BLE001
+                continue
+        return kinds
+
+    def _named_role(self, name: str, master_name: str) -> Optional[str]:
+        """Семантическая роль по имени макета — tie-breaker для структуры.
+
+        Учитываются только однозначные слова («титул», «оглавление», «спасибо»),
+        а не общие («title», «content»), иначе «Title and Content» превратился бы
+        в титульный макет. Слова вроде «содержание» проверяются раньше «раздела».
+        """
+        haystack = f"{name or ''} {master_name or ''}".lower()
+        groups = (
+            ("final", ("спасибо", "thanks", "thank", "финальн", "заключительн",
+                       "контакты", "closing", "qr")),
+            ("agenda", ("оглавлени", "содержани", "agenda", "table of content",
+                        "toc", "outline", "навигаци")),
+            ("section", ("раздел", "разделитель", "section", "divider",
+                         "переход", "transition")),
+            # «title slide»/«title only» — обложка; просто «title» намеренно не
+            # берём, иначе «Title and Content» стал бы титульным макетом
+            ("title", ("титул", "обложк", "заставк", "cover", "intro",
+                       "первый слайд", "title slide", "title only", "заглавный")),
+            ("content", ("контент", "content", "заголовок", "текст", "пункт",
+                         "bullet", "слайд с")),
+        )
+        for role, keywords in groups:
+            if any(keyword in haystack for keyword in keywords):
+                return role
+        return None
+
+    def _classify_layout(self, name: str, master_name: str, phs: list,
+                         shapes: dict, slide_w: float, slide_h: float) -> tuple[str, str, str]:
+        """Роль и композиционный тип макета по его СТРУКТУРЕ, имя — tie-breaker.
+
+        Порядок принятия решения:
+          1) явные объекты данных (таблица/диаграмма) — они однозначны;
+          2) семантическая роль из имени, но только по однозначным словам;
+          3) структура: сколько контентных рамок, картинок, свободных текстов.
+
+        Возвращает (role, kind, reason); reason сохраняется в профиле, чтобы
+        решение можно было объяснить на защите.
+        """
+        def count(*types: str) -> int:
+            return sum(1 for p in phs if p.type in types)
+
+        titles = count("title", "center_title")
+        bodies = count("body", "object")
+        subs = count("subtitle")
+        pics = count("picture", "slide_image") + shapes.get("pictures", 0)
+        tables = count("table") + shapes.get("tables", 0)
+        charts = shapes.get("charts", 0)
+        texts = shapes.get("texts", 0)
+        content_boxes = bodies + texts
+
+        # 1. данные на макете однозначны
+        if tables:
+            return "content", "table", f"на макете таблица (объектов: {tables})"
+        if charts:
+            return "content", "chart", f"на макете диаграмма ({charts})"
+
+        # 2. семантическая роль из имени
+        named = self._named_role(name, master_name)
+
+        # 3. структура
+        if not titles and content_boxes == 0 and pics == 0:
+            return "content", "blank", "пустой/декоративный макет без контентных рамок"
+        if not titles:
+            if content_boxes >= 3:
+                return "content", "multi_column", f"нет заголовка, блоков {content_boxes}"
+            return ("content", "image" if pics else "bullets",
+                    f"нет заголовка, блоков {content_boxes}, картинок {pics}")
+
+        if named == "final":
+            return "final", "blank" if content_boxes == 0 else "bullets", "имя: финальный слайд"
+        if named == "agenda":
+            kind = "multi_column" if content_boxes >= 3 else "bullets"
+            return "agenda", kind, f"имя: оглавление, блоков {content_boxes}"
+        if named == "section":
+            return "section", "blank" if content_boxes == 0 else "bullets", "имя: раздел"
+        if named == "title":
+            if content_boxes == 0 and pics == 0:
+                return "title", "blank", "имя: титульный слайд, контента нет"
+            if pics and content_boxes:
+                return "title", "image_text", "имя: титульный слайд с картинкой и текстом"
+            return "title", "bullets", f"имя: титульный слайд, блоков {content_boxes}"
+        if named == "content":
+            # макет назван контентным, но контентных рамок нет: вёрстка положит
+            # блоки в область сетки профиля, поэтому тип — обычные буллеты
+            if content_boxes == 0 and pics == 0:
+                return "content", "bullets", "имя: контентный слайд, рамок нет (сетка профиля)"
+            if pics and content_boxes == 0:
+                return "content", "image", "имя: контентный слайд с картинкой"
+            if pics:
+                return "content", "image_text", "имя: контентный слайд с картинкой и текстом"
+            if content_boxes >= 4:
+                return "content", "multi_column", f"имя: контентный, блоков {content_boxes}"
+            return "content", "bullets", f"имя: контентный слайд, блоков {content_boxes}"
+
+        if subs >= 1 and texts == 0 and bodies <= 1:
+            # подзаголовок — конвенция обложек: он есть у титульного макета и
+            # почти никогда у контентного (там сразу тело с тезисами)
+            return ("title", "bullets" if bodies else "blank",
+                    "подзаголовок на макете: титульный макет")
+        if content_boxes == 0 and pics == 0:
+            title_ph = next((p for p in phs if p.is_title), None)
+            big = bool(title_ph and title_ph.h >= 0.10 * slide_h
+                       and title_ph.w >= 0.35 * slide_w)
+            if subs >= 1:
+                # подзаголовок встречается только на обложках — структурный признак
+                return "title", "blank", "заголовок + подзаголовок: титульный макет"
+            if big:
+                return "title", "blank", f"крупный заголовок ({title_ph.h:.2f}″) без контента"
+            return "section", "blank", "заголовок без контента, имя неинформативно"
+        if pics and content_boxes == 0:
+            return "content", "image", "заголовок + картинка без текста"
+        if pics and content_boxes:
+            return "content", "image_text", f"заголовок + картинка + {content_boxes} блок(ов)"
+        if content_boxes >= 4:
+            return "content", "multi_column", f"{content_boxes} блоков на макете"
+        if subs and bodies:
+            return "content", "bullets", "заголовок + подзаголовок + текст"
+        return "content", "bullets", f"заголовок + {content_boxes} текстовый блок(ов)"
 
     # ---------------------------------------------------------------- main flow
     def parse(self) -> TemplateProfile:
@@ -419,20 +566,19 @@ class TemplateParser:
                                 col_boxes.append({"x": p.x, "y": p.y, "w": p.w, "h": p.h})
                             prev = p
                         columns = sorted(col_boxes, key=lambda c: c["x"])
-                role = self._guess_role(layout.name + " " + layout.slide_master.name,
-                                        [p.type for p in phs])
-                # оценка пригодности макета под контент
-                score = 0.5
-                if body:
-                    score += 0.3
-                if title_ph:
-                    score += 0.15
+                slide_w = Emu(self._prs.slide_width).inches
+                slide_h = Emu(self._prs.slide_height).inches
+                shapes = self._layout_shape_kinds(layout, slide_w, slide_h)
+                role, kind, reason = self._classify_layout(
+                    layout.name, layout.slide_master.name, phs, shapes, slide_w, slide_h)
                 profs.append(LayoutProfile(
                     id=f"L{idx}",
                     master_id=f"M{self._master_index(layout.slide_master)}",
                     name=layout.name,
                     role=role,
-                    score=score,
+                    kind=kind,
+                    role_reason=reason,
+                    score=self._layout_score(role, kind, title_ph, body, columns),
                     placeholders=[p.to_dict() for p in phs],
                     title_ph=title_ph,
                     body=body,
@@ -442,6 +588,24 @@ class TemplateParser:
             except Exception:
                 continue
         return profs
+
+    @staticmethod
+    def _layout_score(role: str, kind: str, title_ph, body, columns) -> float:
+        """Пригодность макета под автоматическую вёрстку (0..1)."""
+        score = 0.35
+        if title_ph:
+            score += 0.2
+        if body:
+            score += 0.25
+        if columns:
+            score += 0.05
+        if role == "content":
+            score += 0.1
+        if kind in ("bullets", "multi_column"):
+            score += 0.05
+        if kind == "blank":
+            score -= 0.2
+        return round(max(0.0, min(1.0, score)), 3)
 
     def _master_index(self, master) -> int:
         try:

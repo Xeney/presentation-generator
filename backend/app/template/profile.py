@@ -54,6 +54,8 @@ class LayoutProfile:
     master_id: str = ""
     name: str = ""
     role: str = "content"   # title | section | agenda | content | final
+    kind: str = "bullets"   # bullets | multi_column | image | image_text | table | chart | blank
+    role_reason: str = ""   # почему макет получил такую роль (структурный признак)
     score: float = 0.0
     placeholders: list[PlaceholderInfo] = field(default_factory=list)
     title_ph: Optional[dict] = None

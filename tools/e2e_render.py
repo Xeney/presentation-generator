@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.audit.checks import Audit  # noqa: E402
-from app.layout.engine import DesignContext, LayoutEngine  # noqa: E402
+from app.layout.engine import DesignContext  # noqa: E402
 from app.models.deck import Block, Chart, ChartType, Deck, Slide, SlideType, Table  # noqa: E402
 from app.planner.fallback import FallbackPlanner  # noqa: E402
 from app.render.pptx_renderer import Renderer  # noqa: E402
@@ -75,13 +75,7 @@ def render_all(template: Path, out_dir: Path, deck: Deck) -> dict:
     profile = TemplateParser(template).parse().to_dict()
     t_profile = time.perf_counter() - t0
 
-    dc = DesignContext(
-        fonts={"headline": profile.get("headline_font"), "body": profile.get("body_font")},
-        palette=profile.get("palette", []),
-        type_scale=profile.get("type_scale", {}),
-        slide_w=profile["slide_size"]["w_in"],
-        slide_h=profile["slide_size"]["h_in"],
-    )
+    dc = DesignContext.from_profile(profile)
     template_bytes = template.read_bytes()
     audit = Audit(profile)
     summary: dict = {"profile_s": round(t_profile, 2), "variants": {}}
@@ -89,12 +83,7 @@ def render_all(template: Path, out_dir: Path, deck: Deck) -> dict:
     for variant in VARIANTS:
         t0 = time.perf_counter()
         renderer = Renderer(profile, variant=variant, template_bytes=template_bytes)
-        plan_map = {}
-        for i, slide in enumerate(deck.slides):
-            layout = renderer._pick_layout(slide.slide_type)
-            engine = LayoutEngine(dc, variant=variant)
-            plan_map[i] = engine.compose(slide, renderer._canvas(layout))
-        pptx = renderer.render(deck, plan_map)
+        pptx = renderer.render_deck(deck, dc)
         t_render = time.perf_counter() - t0
 
         t0 = time.perf_counter()

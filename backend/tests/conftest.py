@@ -116,29 +116,17 @@ def render_variants():
     """(profile, deck, template_bytes) → {вариант: bytes PPTX} для трёх вариантов."""
     import io
 
-    from app.layout.engine import DesignContext, LayoutEngine
+    from app.layout.engine import DesignContext
     from app.render.pptx_renderer import Renderer
 
     def run(profile: dict, deck, template_bytes: bytes,
             images: dict[str, bytes] | None = None) -> dict[str, bytes]:
-        dc = DesignContext(
-            fonts={"headline": profile.get("headline_font"),
-                   "body": profile.get("body_font")},
-            palette=profile.get("palette", []),
-            type_scale=profile.get("type_scale", {}),
-            slide_w=profile["slide_size"]["w_in"],
-            slide_h=profile["slide_size"]["h_in"],
-        )
+        dc = DesignContext.from_profile(profile)
         out: dict[str, bytes] = {}
         for variant in ("compact", "cards", "split"):
             renderer = Renderer(profile, variant=variant, template_bytes=template_bytes,
                                 images=images)
-            plan_map = {}
-            for i, slide in enumerate(deck.slides):
-                layout = renderer._pick_layout(slide.slide_type)
-                plan_map[i] = LayoutEngine(dc, variant=variant).compose(
-                    slide, renderer._canvas(layout))
-            out[variant] = renderer.render(deck, plan_map)
+            out[variant] = renderer.render_deck(deck, dc)
         return out
 
     return run

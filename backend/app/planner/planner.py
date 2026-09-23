@@ -57,22 +57,26 @@ class Planner:
     def _schema(self) -> str:
         return json.dumps(Deck.model_json_schema(), ensure_ascii=False)
 
-    def _render_user(self, brief: str, source: str, purpose: str, profile: dict) -> str:
+    def _render_user(self, brief: str, source: str, purpose: str, profile: dict,
+                     corpus=None) -> str:
         return self._load_prompt("user.md").format(
             brief=brief, source=source or "—", purpose=purpose,
             profile=_profile_summary(profile), schema=self._schema(),
             deck_size=self.settings.max_slides,
+            corpus_images=(corpus.image_prompt_block() if corpus is not None
+                           else "изображений нет"),
         )
 
     def plan(self, brief: str, source: str = "", purpose: str = "project",
-             profile: dict | None = None) -> PlanningResult:
+             profile: dict | None = None, corpus=None) -> PlanningResult:
         profile = profile or {}
         brief = (brief or "").strip()
         if self.settings.disable_llm or not self.llm.health():
             log.info("Ollama недоступна/выключена — офлайн-планировщик")
-            return PlanningResult(self.fallback.plan(brief, source, purpose), used_llm=False, attempts=0)
+            return PlanningResult(self.fallback.plan(brief, source, purpose, corpus=corpus),
+                                  used_llm=False, attempts=0)
 
-        user = self._render_user(brief, source, purpose, profile)
+        user = self._render_user(brief, source, purpose, profile, corpus)
         system = self._load_prompt("system.md")
         model = self.settings.llm_model
         for attempt in range(1, self.settings.planner_llm_max_retries + 1):
@@ -93,5 +97,6 @@ class Planner:
                     + "\nВерни исправленный JSON строго по схеме."
                 )
         log.info("LLM-планировщик исчерпал попытки — офлайн-fallback")
-        return PlanningResult(self.fallback.plan(brief, source, purpose), used_llm=False,
+        return PlanningResult(self.fallback.plan(brief, source, purpose, corpus=corpus),
+                              used_llm=False,
                               attempts=self.settings.planner_llm_max_retries)

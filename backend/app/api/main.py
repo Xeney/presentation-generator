@@ -20,6 +20,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from ..config import get_settings
+from ..content.corpus import ContentCorpus, list_corpora
+from ..content.importer import ContentImportError, import_content_pack
 from ..pipeline import VARIANTS, full_generate
 from ..render.images import draw_issue_boxes
 from ..render.pdf import pdf_bytes_for, pptx_to_pngs
@@ -36,11 +38,15 @@ MAX_TEMPLATE = settings.max_upload_mb * 1024 * 1024
 
 
 def _job_worker(job_id: str, brief: str, source: str, purpose: str,
-                tpl: bytes, tpl_name: str):
+                tpl: bytes, tpl_name: str, corpus_id: str = ""):
     job = JOBS[job_id]
     try:
         started = time.time()
-        result = full_generate(brief, source, purpose, tpl, tpl_name)
+        corpus = ContentCorpus.load(corpus_id, settings.data_path) if corpus_id else None
+        if corpus_id and corpus is None:
+            raise ValueError(f"контент-пакет {corpus_id} не найден")
+        result = full_generate(brief, source, purpose, tpl, tpl_name, corpus=corpus,
+                               vlm=settings.vlm_audit_enabled)
         job.update({"status": "done", "result": result,
                     "elapsed_s": round(time.time() - started, 1)})
     except Exception as exc:
@@ -59,14 +65,37 @@ def _get_job(job_id: str) -> dict:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "variants": VARIANTS}
+    """Состояние сервиса: доступность Ollama, модели, включён ли VLM-аудит."""
+    from ..planner.llm import OllamaClient
+
+    client = OllamaClient()
+    available = False if settings.disable_llm else client.health()
+    models: list[str] = []
+    if available:
+        try:
+            models = client.list_models()
+        except Exception:  # noqa: BLE001 — health не должен падать
+            models = []
+    return {
+        "status": "ok",
+        "variants": VARIANTS,
+        "llm": {
+            "available": available,
+            "disabled": settings.disable_llm,
+            "model": settings.llm_model,
+            "models": models,
+        },
+        "vlm": {"enabled": settings.vlm_audit_enabled, "model": settings.vlm_model},
+        "content_formats": ["pptx", "docx", "txt", "md"],
+    }
 
 
 @app.post("/api/generate")
 async def generate(template: UploadFile = File(...),
                    brief: str = Form(...),
                    source: str = Form(""),
-                   purpose: str = Form("project")):
+                   purpose: str = Form("project"),
+                   corpus_id: str = Form("")):
     data = await template.read()
     if len(data) > MAX_TEMPLATE:
         raise HTTPException(413, f"шаблон больше {settings.max_upload_mb} МБ")
@@ -74,13 +103,69 @@ async def generate(template: UploadFile = File(...),
         raise HTTPException(415, "файл не похож на PPTX")
     if len(brief.strip()) < 20:
         raise HTTPException(422, "бриф слишком короткий (минимум 20 символов)")
+    if corpus_id and ContentCorpus.load(corpus_id, settings.data_path) is None:
+        raise HTTPException(404, f"контент-пакет {corpus_id} не найден")
     job_id = uuid.uuid4().hex[:12]
-    JOBS[job_id] = {"id": job_id, "status": "pending", "created": time.time()}
-    t = threading.Thread(target=_job_worker, args=(job_id, brief, source, purpose,
-                                                   data, template.filename or "template.pptx"),
+    JOBS[job_id] = {"id": job_id, "status": "pending", "created": time.time(),
+                    "corpus_id": corpus_id or None}
+    t = threading.Thread(target=_job_worker,
+                         args=(job_id, brief, source, purpose, data,
+                               template.filename or "template.pptx", corpus_id),
                          daemon=True)
     t.start()
     return {"job_id": job_id, "status": "pending"}
+
+
+# ----------------------------------------------------------- контент-пакеты
+@app.post("/api/content/import")
+async def content_import(file: UploadFile = File(...)):
+    """Импорт контент-пакета: PPTX/DOCX/TXT → структурированный корпус."""
+    data = await file.read()
+    if not data:
+        raise HTTPException(422, "пустой файл")
+    if len(data) > MAX_TEMPLATE:
+        raise HTTPException(413, f"файл больше {settings.max_upload_mb} МБ")
+    try:
+        corpus = import_content_pack(data, file.filename or "content")
+    except ContentImportError as exc:
+        raise HTTPException(415, str(exc)) from exc
+    corpus.save(settings.data_path)
+    payload = corpus.to_dict()
+    payload["preview"] = [
+        {"index": s.index, "heading": s.heading or "(без заголовка)",
+         "layout": s.layout, "bullets": s.bullets[:4],
+         "paragraphs": s.paragraphs[:2], "numbers": s.numbers[:4],
+         "images": s.images, "tables": len(s.tables), "charts": len(s.charts)}
+        for s in corpus.non_empty_slides()[:12]
+    ]
+    return payload
+
+
+@app.get("/api/content")
+def content_list():
+    return {"corpora": list_corpora(settings.data_path)}
+
+
+@app.get("/api/content/{corpus_id}")
+def content_get(corpus_id: str):
+    corpus = ContentCorpus.load(corpus_id, settings.data_path)
+    if corpus is None:
+        raise HTTPException(404, "контент-пакет не найден")
+    return corpus.to_dict()
+
+
+@app.get("/api/content/{corpus_id}/image/{key}")
+def content_image(corpus_id: str, key: str):
+    corpus = ContentCorpus.load(corpus_id, settings.data_path)
+    if corpus is None:
+        raise HTTPException(404, "контент-пакет не найден")
+    blob = corpus.images.get(key)
+    if blob is None:
+        raise HTTPException(404, "изображение не найдено")
+    media = "image/jpeg" if key.lower().endswith((".jpg", ".jpeg")) else "image/png"
+    res = Response(content=blob, media_type=media)
+    res.headers["Cache-Control"] = "public, max-age=3600"
+    return res
 
 
 @app.get("/api/jobs/{job_id}")
@@ -93,6 +178,9 @@ def job_status(job_id: str):
             "slides": len(r["deck"]["slides"]),
             "used_llm": r["planner"]["used_llm"],
             "elapsed_s": job.get("elapsed_s"),
+            "stages": r.get("stages", {}),
+            "corpus_id": job.get("corpus_id"),
+            "vlm_available": r.get("vlm", {}).get("available", False),
             "variants": [{"name": v["name"], "passed": v["audit"]["passed"],
                           "errors": v["audit"]["errors"],
                           "warnings": v["audit"]["warnings"]} for v in r["variants"]],
@@ -174,7 +262,9 @@ def job_info(job_id: str):
         "profile": r["profile"],
         "deck": r["deck"],
         "planner": r["planner"],
+        "corpus": r.get("corpus"),
         "vlm": r["vlm"],
+        "stages": r.get("stages", {}),
         "variants": [{"name": v["name"], "audit_summary": {
             "passed": v["audit"]["passed"], "errors": v["audit"]["errors"],
             "warnings": v["audit"]["warnings"]}} for v in r["variants"]],
