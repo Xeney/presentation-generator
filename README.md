@@ -11,6 +11,17 @@ VLM и сверкой с источником) и отдаёт `.pptx`, `.pdf` �
 ## Быстрый старт
 
 ```bash
+./start.sh                    # поднимает всё через docker compose (рекомендуется)
+```
+
+Скрипт создаёт `.env` из примера, готовит каталоги `data/`, собирает образы,
+поднимает сервисы и ждёт готовности: `--no-build` (без пересборки),
+`--local` (без Docker: uvicorn + next dev), `--with-assets DIR` (скопировать
+шаблоны из папки), `--logs`, `-h`.
+
+Вручную то же самое:
+
+```bash
 cp .env.example .env          # Windows: Copy-Item .env.example .env
 docker compose up --build
 ```

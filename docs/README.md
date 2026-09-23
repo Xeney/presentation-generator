@@ -19,9 +19,20 @@
 ## 2. Запуск
 
 ```bash
+./start.sh                    # то же, что docker compose up --build + ожидание готовности
+```
+
+Вручную:
+
+```bash
 cp .env.example .env          # Windows PowerShell: Copy-Item .env.example .env
 docker compose up --build
 ```
+
+Режимы `start.sh`: `--no-build` (поднять собранные образы), `--local` (без
+Docker: uvicorn + next dev, требуются Python 3.11 и Node 20), `--with-assets DIR`
+(скопировать шаблоны и контент-пакет из папки и пересобрать профили), `--logs`,
+`-h`. Скрипт идемпотентен и печатает адреса сервисов по готовности.
 
 Сервисы:
 
