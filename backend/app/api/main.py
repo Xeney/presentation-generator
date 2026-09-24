@@ -90,27 +90,37 @@ def _housekeeping() -> None:
 
 @app.get("/api/health")
 def health():
-    """Состояние сервиса: доступность Ollama, модели, включён ли VLM-аудит."""
-    from ..planner.llm import OllamaClient
+    """Состояние сервиса: активный провайдер LLM/VLM, модели, флаги аудита."""
+    from ..planner.llm import get_llm_client, get_vlm_client
 
-    client = OllamaClient()
+    client = get_llm_client()
     available = False if settings.disable_llm else client.health()
     models: list[str] = []
-    if available:
+    if available and hasattr(client, "list_models"):
         try:
             models = client.list_models()
         except Exception:  # noqa: BLE001 — health не должен падать
             models = []
+    vlm_client = get_vlm_client()
+    vlm_available = bool(vlm_client) and not settings.disable_llm and vlm_client.health()
     return {
         "status": "ok",
         "variants": VARIANTS,
         "llm": {
             "available": available,
             "disabled": settings.disable_llm,
-            "model": settings.llm_model,
+            "provider": settings.active_llm_provider,
+            "model": settings.active_llm_model,
+            "label": settings.planner_label,
             "models": models,
         },
-        "vlm": {"enabled": settings.vlm_audit_enabled, "model": settings.vlm_model},
+        "vlm": {
+            "enabled": settings.vlm_audit_enabled,
+            "provider": settings.active_vlm_provider,
+            "model": settings.active_vlm_model,
+            "available": vlm_available,
+            "label": settings.vlm_label,
+        },
         "content_formats": ["pptx", "docx", "txt", "md"],
     }
 
