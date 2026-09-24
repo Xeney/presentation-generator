@@ -46,6 +46,12 @@ def numbers_in(text: str) -> set[str]:
     return {normalize_number(match.group(0)) for match in NUMBER_RE.finditer(text or "")}
 
 
+def _sentences(text: str, limit: int = 30, min_chars: int = 20) -> list[str]:
+    """Предложения брифа как строки-источники для смысловой сверки."""
+    parts = [re.sub(r"\s+", " ", part).strip(" .") for part in re.split(r"(?<=[.!?])\s+|\n", text or "")]
+    return [part for part in parts if len(part) >= min_chars][:limit]
+
+
 def slide_text(slide) -> str:
     """Весь текстовый контент слайда одной строкой."""
     parts = [slide.heading, slide.subheading or ""]
@@ -96,12 +102,13 @@ class GroundingChecker:
                  max_corpus_lines: int = 120):
         self.corpus = corpus
         self.llm = llm
-        # бриф — тоже исходный материал: цифры из него не считаются выдуманными
+        # бриф — тоже исходный материал: цифры из него не считаются выдуманными,
+        # и смысловая близость считается к брифу вместе с контент-пакетом
         self.brief = brief or ""
         self.off_source_threshold = off_source_threshold
         self.duplicate_threshold = duplicate_threshold
-        self.corpus_lines = (corpus.meaningful_lines()
-                             if corpus is not None else [])[:max_corpus_lines]
+        corpus_lines = (corpus.meaningful_lines() if corpus is not None else [])
+        self.corpus_lines = (corpus_lines + _sentences(self.brief))[:max_corpus_lines]
 
     # ------------------------------------------------------------------ api
     def check(self, deck: Deck) -> GroundingResult:
