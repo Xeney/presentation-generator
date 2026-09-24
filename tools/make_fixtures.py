@@ -162,6 +162,65 @@ def build_template(accent: str = "#1F7A5C", secondary: str = "#C2410C",
     return data
 
 
+def build_unfamiliar(data: bytes | None = None) -> bytes:
+    """«Совсем незнакомый» шаблон: 16:10, чужие токены, имена макетов Layout N.
+
+    Дополнительно добавляет примеры слайдов с таблицей, диаграммой и картинкой —
+    чтобы парсер извлёк из файла реальную типографику и палитру, а не догадывался.
+    Используется для проверки, что решение не заточено под известные шаблоны.
+    """
+    from pptx import Presentation
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE
+    from pptx.util import Inches, Pt
+
+    base = data or build_template(accent="#14532D", secondary="#B45309",
+                                  major="Georgia", minor="Courier New",
+                                  slide_size=(12.8, 8.0))
+    prs = Presentation(io.BytesIO(base))
+    layouts = list(prs.slide_masters[0].slide_layouts)
+    by_name = {layout.name: layout for layout in layouts}
+
+    # пример со таблицей: даёт парсеру табличную типографику
+    table_layout = by_name.get("Title and Content") or layouts[1]
+    slide = prs.slides.add_slide(table_layout)
+    if slide.shapes.title is not None:
+        slide.shapes.title.text_frame.text = "Таблица показателей"
+        slide.shapes.title.text_frame.paragraphs[0].runs[0].font.size = Pt(28)
+    table = slide.shapes.add_table(4, 3, Inches(1), Inches(2), Inches(8), Inches(2)).table
+    for row in range(4):
+        for column in range(3):
+            table.cell(row, column).text = f"Значение {row}-{column}"
+
+    # пример с диаграммой
+    chart_slide = prs.slides.add_slide(table_layout)
+    if chart_slide.shapes.title is not None:
+        chart_slide.shapes.title.text_frame.text = "Динамика"
+        chart_slide.shapes.title.text_frame.paragraphs[0].runs[0].font.size = Pt(28)
+    data_chart = CategoryChartData()
+    data_chart.categories = ["Q1", "Q2", "Q3"]
+    data_chart.add_series("Показатель", (10.0, 20.0, 30.0))
+    chart_slide.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(1), Inches(2),
+                                 Inches(8), Inches(4), data_chart)
+
+    # пример с картинкой
+    picture_slide = prs.slides.add_slide(table_layout)
+    if picture_slide.shapes.title is not None:
+        picture_slide.shapes.title.text_frame.text = "Иллюстрация"
+        picture_slide.shapes.title.text_frame.paragraphs[0].runs[0].font.size = Pt(28)
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (240, 120), (20, 83, 45)).save(buffer, format="PNG")
+    picture_slide.shapes.add_picture(io.BytesIO(buffer.getvalue()), Inches(1), Inches(2),
+                                     width=Inches(4), height=Inches(2))
+
+    buf = io.BytesIO()
+    prs.save(buf)
+    # имена макетов полностью обезличены: роль обязана выводиться из структуры
+    return _rename_layouts(buf.getvalue(), [f"Layout {i + 1}" for i in range(len(layouts))])
+
+
 def _rename_layouts(data: bytes, names: list[str]) -> bytes:
     """Переименовывает макеты (имитация шаблона без говорящих имён)."""
     from lxml import etree

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from pathlib import Path
 
 from ..config import get_settings
@@ -71,8 +72,18 @@ class Planner:
     def _load_prompt(name: str) -> str:
         return (PLANNER_DIR / name).read_text(encoding="utf-8")
 
+    def _schema_dict(self) -> dict:
+        return Deck.model_json_schema()
+
     def _schema(self) -> str:
-        return json.dumps(Deck.model_json_schema(), ensure_ascii=False)
+        return json.dumps(self._schema_dict(), ensure_ascii=False)
+
+    @staticmethod
+    def _looks_like_schema(data: dict) -> bool:
+        """Отличить «эхо схемы» от данных: слабая модель иногда возвращает саму схему."""
+        if not isinstance(data, dict):
+            return False
+        return "$defs" in data or ("properties" in data and "slides" not in data)
 
     def _render_user(self, brief: str, source: str, purpose: str, profile: dict,
                      corpus=None) -> str:
@@ -105,17 +116,27 @@ class Planner:
         model = self.settings.active_llm_model
         for attempt in range(1, self.settings.planner_llm_max_retries + 1):
             try:
-                raw = self.llm.generate_text(user, system, model=model, temperature=0.3)
+                raw = self.llm.generate_text(user, system, model=model, temperature=0.3,
+                                             format_schema=self._schema_dict())
             except LlmError as exc:
-                # провайдер отказал (нет баланса, нет модели, сеть): не роняем
-                # задание, а честно уходим в офлайн-планировщик
+                # провайдер отказал: постоянные ошибки (ключ, баланс, доступ к
+                # модели) и таймауты не повторяем — бюджет 5 минут важнее
                 last_error = str(exc)
                 log.warning("LLM недоступна (попытка %s): %s", attempt, exc)
+                if not exc.retryable:
+                    break
+                if attempt < self.settings.planner_llm_max_retries:
+                    time.sleep(2.0)
+                    continue
                 break
             data = self.llm._parse_json(raw)
-            if data is None:
-                log.warning("LLM ответ не JSON (попытка %s)", attempt)
-                last_error = "ответ модели не является JSON"
+            if data is None or self._looks_like_schema(data):
+                log.warning("LLM вернула не данные, а %s (попытка %s)",
+                            "схему" if data else "не JSON", attempt)
+                last_error = "ответ модели не является колодой"
+                user += ("\n\nНе возвращай JSON-схему и пояснения. Верни ДАННЫЕ: "
+                         "объект с полями title, language, slides — как в примере "
+                         "реальной колоды.")
                 continue
             try:
                 deck = Deck.model_validate(data)

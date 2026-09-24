@@ -315,19 +315,26 @@ def test_aitunnel_does_not_retry_client_error(aitunnel):
 
 
 def test_aitunnel_disables_thinking_by_default(aitunnel):
-    """Qwen3.5 «размышляет» по умолчанию: для JSON-ответов thinking выключаем."""
+    """Qwen3.5 «размышляет» по умолчанию: для JSON-ответов thinking выключаем.
+
+    Проверено на реальном AITUNNEL: chat_template_kwargs и /no_think шлюз
+    игнорирует, а reasoning_effort="none" работает (39 c и пустой ответ против
+    0.9 c с корректным JSON).
+    """
     from app.planner.llm import aitunnel_client
 
     _, calls = aitunnel
     client = aitunnel_client()
     client.generate_text("привет")
     payload = calls[-1]["payload"]
-    assert payload["chat_template_kwargs"] == {"enable_thinking": False}
+    assert payload["reasoning_effort"] == "none"
+    assert payload["max_tokens"] == 4096
     assert payload["response_format"] == {"type": "json_object"}
 
 
 def test_thinking_flag_can_be_disabled(monkeypatch):
     monkeypatch.setenv("AITUNNEL_DISABLE_THINKING", "false")
+    monkeypatch.setenv("AITUNNEL_MAX_TOKENS", "0")
     monkeypatch.setenv("AITUNNEL_API_KEY", AITUNNEL_KEY)
     get_settings.cache_clear()
     try:
@@ -339,21 +346,56 @@ def test_thinking_flag_can_be_disabled(monkeypatch):
 
 
 def test_unsupported_extra_fields_are_dropped_on_retry(aitunnel):
-    """Если шлюз не знает chat_template_kwargs — повторяем без него."""
+    """Если шлюз не знает reasoning_effort — повторяем без лишних полей."""
     from app.planner.llm import aitunnel_client
 
     state, calls = aitunnel
     client = aitunnel_client()
     client.retry_backoff_s = 0.0
     state["status"] = 400
-    state["body"] = '{"error":"unknown field chat_template_kwargs"}'
+    state["body"] = '{"error":"unknown field reasoning_effort"}'
 
     with pytest.raises(LlmError):
         client.generate_text("привет")
 
     assert len(calls) >= 2, "после 400 должен быть повтор без лишних полей"
-    assert "chat_template_kwargs" not in calls[-1]["payload"]
+    assert "reasoning_effort" not in calls[-1]["payload"]
+    assert "max_tokens" not in calls[-1]["payload"]
     assert "response_format" not in calls[-1]["payload"]
+
+
+def test_json_schema_is_used_when_available(aitunnel):
+    """Структурированный вывод надёжнее: модель не может вернуть схему вместо данных."""
+    from app.planner.llm import aitunnel_client
+
+    _, calls = aitunnel
+    aitunnel_client().generate_text("привет", format_schema={"type": "object"})
+    assert calls[-1]["payload"]["response_format"]["type"] == "json_schema"
+
+
+def test_timeout_is_not_retried(monkeypatch):
+    """Повтор таймаута стоит ещё одного ожидания — бюджет важнее."""
+    monkeypatch.setenv("AITUNNEL_API_KEY", AITUNNEL_KEY)
+    monkeypatch.setenv("AITUNNEL_MAX_RETRIES", "1")
+    get_settings.cache_clear()
+    try:
+        import httpx
+
+        from app.planner.llm import aitunnel_client
+
+        calls = {"n": 0}
+
+        def timeout_post(*args, **kwargs):
+            calls["n"] += 1
+            raise httpx.ReadTimeout("timed out")
+
+        monkeypatch.setattr("app.planner.llm.httpx.post", timeout_post)
+        with pytest.raises(LlmError) as error:
+            aitunnel_client().generate_text("привет")
+        assert error.value.retryable is False
+        assert calls["n"] == 1, "таймаут не должен повторяться"
+    finally:
+        get_settings.cache_clear()
 
 
 def test_aitunnel_key_is_masked_in_logs(aitunnel, caplog):

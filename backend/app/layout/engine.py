@@ -230,23 +230,39 @@ class LayoutEngine:
 
     @staticmethod
     def _empty(b: Block) -> bool:
-        if b.kind == "bullets":
-            return not b.items
-        if b.kind == "text":
-            return not b.text
-        if b.kind == "factoids":
-            return not b.factoids
-        if b.kind == "chart":
-            return b.chart is None or not b.chart.series
-        if b.kind == "table":
-            return b.table is None or not b.table.rows
-        if b.kind == "quote":
-            return not b.quote_text
-        if b.kind == "steps":
-            return not b.items
-        if b.kind == "image":
-            return not (b.image_ref or b.image_prompt)
-        return False
+        """Пустой блок — тот, у которого нет вообще никаких данных.
+
+        Раньше проверялось только поле, соответствующее `kind`: блок с
+        `kind="factoids"` и данными в `items` считался пустым и исчезал вместе
+        с содержимым слайда. Теперь достаточно любого непустого поля.
+        """
+        return not any((
+            b.items, b.text, b.factoids, b.table, b.chart,
+            b.quote_text, b.image_ref, b.image_prompt,
+        ))
+
+    @staticmethod
+    def widget_for(b: Block) -> str:
+        """Виджет по ФАКТИЧЕСКОМУ содержимому блока: `kind` — только подсказка.
+
+        Если модель ошиблась с типом (например, положила список в `items`, а
+        назвала блок фактоидами), слайд всё равно получит содержимое.
+        """
+        if b.factoids:
+            return "factoids"
+        if b.table is not None:
+            return "table"
+        if b.chart is not None and b.chart.series:
+            return "chart"
+        if b.items:
+            return "steps" if b.kind == "steps" else "bullets"
+        if b.quote_text:
+            return "quote"
+        if b.text:
+            return "text"
+        if b.image_ref or b.image_prompt:
+            return "image"
+        return b.kind
 
     # ------------------------------------------------------ фоновые/витринные
     def _compose_featured(self, slide: Slide, canvas: Rect, blocks: list[Block]) -> list[dict]:
@@ -279,7 +295,7 @@ class LayoutEngine:
             "block_title_size": self.dc.block_title_size(),
             "body": self.dc.font(headline=False),
         }
-        return {"widget": b.kind, "rect": rect, "block": b, "style": style}
+        return {"widget": self.widget_for(b), "rect": rect, "block": b, "style": style}
 
     def _item(self, widget: str, rect: dict, data: dict, *, slide_type: str = "content",
               style: dict | None = None) -> dict:

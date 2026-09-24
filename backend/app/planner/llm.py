@@ -23,7 +23,18 @@ log = logging.getLogger("llm")
 
 
 class LlmError(RuntimeError):
-    """Ошибка обращения к модели (локальной или внешней)."""
+    """Ошибка обращения к модели (локальной или внешней).
+
+    `retryable` отделяет временные сбои (сеть мигнула, 5xx, 429) от постоянных
+    (нет ключа, нет баланса, модель закрыта) и от таймаутов: повтор таймаута
+    стоит ещё одного полного ожидания, а бюджет генерации — 5 минут.
+    """
+
+    def __init__(self, message: str, *, status: Optional[int] = None,
+                 retryable: bool = False):
+        super().__init__(message)
+        self.status = status
+        self.retryable = retryable
 
 
 class OllamaError(LlmError):
@@ -188,6 +199,13 @@ class OpenAICompatClient:
                 else:
                     response = httpx.post(url, json=payload, headers=self._headers(),
                                           timeout=timeout or self.timeout)
+            except httpx.TimeoutException as exc:
+                # таймаут не повторяем: ещё одно ожидание не влезает в бюджет
+                log.warning("%s: таймаут запроса (%s c) — повтор не делаем",
+                            self.provider_name, self.timeout.read)
+                raise LlmError(
+                    f"{self.provider_name}: модель не ответила за "
+                    f"{self.timeout.read:g} c", retryable=False) from exc
             except Exception as exc:  # noqa: BLE001 — сеть может моргнуть
                 last_error = str(exc)
                 log.warning("%s: сетевой сбой (попытка %s/%s): %s",
@@ -195,7 +213,8 @@ class OpenAICompatClient:
                 if attempt < attempts:
                     time.sleep(self.retry_backoff_s * attempt)
                     continue
-                raise LlmError(f"{self.provider_name}: сеть недоступна ({exc})") from exc
+                raise LlmError(f"{self.provider_name}: сеть недоступна ({exc})",
+                               retryable=True) from exc
 
             if response.status_code in self.RETRY_STATUSES and attempt < attempts:
                 log.warning("%s: ответ %s, повтор через %.1f c (ключ %s)",
@@ -204,7 +223,8 @@ class OpenAICompatClient:
                 time.sleep(self.retry_backoff_s * attempt)
                 continue
             return response
-        raise LlmError(f"{self.provider_name}: запрос не удался ({last_error})")
+        raise LlmError(f"{self.provider_name}: запрос не удался ({last_error})",
+                       retryable=True)
 
     def health(self) -> bool:
         if not self.base_url or not self.api_key:
@@ -255,28 +275,47 @@ class OpenAICompatClient:
             "temperature": temperature,
         }
         if json_mode:
-            payload["response_format"] = {"type": "json_object"}
+            # структурированный вывод надёжнее «просто JSON»: модель не может
+            # вернуть схему вместо данных (проверено на AITUNNEL)
+            if format_schema:
+                payload["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {"name": "deck", "schema": format_schema},
+                }
+            else:
+                payload["response_format"] = {"type": "json_object"}
         payload.update(self.extra_payload)
 
         response = self._request("POST", "/chat/completions", payload=payload)
-        if response.status_code in (400, 422):
-            # часть шлюзов не поддерживает response_format или дополнительные поля:
-            # повторяем без них. На 401/402/403/404 повтор бессмысленен — ключ и
-            # баланс от повтора не изменятся.
-            simplified = False
-            if json_mode and "response_format" in payload:
+        # понижаем требования, если шлюз не умеет json_schema или лишние поля:
+        # json_schema → json_object → без response_format
+        for _ in range(2):
+            if response.status_code not in (400, 422):
+                break
+            changed = False
+            current = payload.get("response_format", {}).get("type")
+            if current == "json_schema":
+                payload["response_format"] = {"type": "json_object"}
+                changed = True
+            elif current == "json_object":
                 payload.pop("response_format", None)
-                simplified = True
-            for key in self.extra_payload:
+                changed = True
+            for key in list(self.extra_payload):
                 if key in payload:
                     payload.pop(key, None)
-                    simplified = True
-            if simplified:
-                response = self._request("POST", "/chat/completions", payload=payload)
+                    changed = True
+            if not changed:
+                break
+            log.info("%s: %s — повторяем запрос упрощённо",
+                     self.provider_name, response.status_code)
+            response = self._request("POST", "/chat/completions", payload=payload)
+
         if response.status_code != 200:
             raise LlmError(
                 f"{self.provider_name} вернул {response.status_code}: "
-                f"{self._safe(response.text)}")
+                f"{self._safe(response.text)}",
+                status=response.status_code,
+                retryable=response.status_code in self.RETRY_STATUSES)
         try:
             data = response.json()
             return data["choices"][0]["message"]["content"] or ""
@@ -317,13 +356,18 @@ class OpenAICompatClient:
 def aitunnel_client(vlm: bool = False) -> OpenAICompatClient:
     """Клиент AITUNNEL: OpenAI-совместимый шлюз с моделями Qwen (ADR-020).
 
-    Для Qwen3.5 по умолчанию отключаем режим «размышлений»: с ним модель иногда
-    генерирует длинную преамбулу и упирается в таймаут, а для структурированных
-    ответов (JSON-колода, 11 критериев) thinking не нужен.
+    Qwen3.5 по умолчанию «размышляет»: преамбула уходит в поле `reasoning`,
+    а `content` остаётся пустым, если бюджет токенов исчерпан на размышлениях
+    (замер: 39 с и пустой ответ против 0.9 с с отключённым thinking). Проверенные
+    способы: `chat_template_kwargs` и `/no_think` шлюз игнорирует, а
+    `reasoning_effort: "none"` работает — его и используем.
     """
     s = get_settings()
-    extra = ({"chat_template_kwargs": {"enable_thinking": False}}
-             if s.aitunnel_disable_thinking else None)
+    extra: dict = {}
+    if s.aitunnel_disable_thinking:
+        extra["reasoning_effort"] = "none"
+    if s.aitunnel_max_tokens:
+        extra["max_tokens"] = s.aitunnel_max_tokens
     return OpenAICompatClient(
         base_url=s.aitunnel_base_url,
         api_key=s.aitunnel_api_key,
@@ -331,7 +375,7 @@ def aitunnel_client(vlm: bool = False) -> OpenAICompatClient:
         max_retries=s.aitunnel_max_retries,
         provider_name="AITUNNEL",
         key_env="AITUNNEL_API_KEY",
-        extra_payload=extra,
+        extra_payload=extra or None,
     )
 
 

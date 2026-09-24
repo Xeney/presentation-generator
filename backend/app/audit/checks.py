@@ -17,7 +17,7 @@ from pptx.enum.dml import MSO_FILL_TYPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
 
 from ..content.corpus import looks_like_placeholder
-from ..models.deck import Deck
+from ..models.deck import Deck, SlideType
 from ..render.images import hex_to_rgb
 from ..render.pptx_renderer import IMAGE_SLOT_NAME
 
@@ -117,6 +117,9 @@ class Audit:
     def audit(self, deck: Deck, pptx_bytes: bytes) -> dict:
         prs = Presentation(io.BytesIO(pptx_bytes))
         self.W, self.H = prs.slide_width, prs.slide_height
+        # колода нужна проверкам, которым важен смысл слайда (тип, назначение):
+        # витринные слайды вправе быть почти пустыми
+        self._deck = deck
         issues: list[Issue] = []
 
         slide_objs = list(prs.slides)
@@ -752,6 +755,10 @@ class Audit:
         layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
         if layout.get("role") not in (None, "content", "agenda"):
             return
+        if self._deck is not None and 0 <= si < len(self._deck.slides):
+            # титул, раздел, оглавление и финал вправе быть лаконичными
+            if self._deck.slides[si].slide_type != SlideType.CONTENT:
+                return
         area = self._content_area(slide)
         area_emu = ((area[2] * 914400) * (area[3] * 914400)) if area else (self.W * self.H)
         if area_emu <= 0:

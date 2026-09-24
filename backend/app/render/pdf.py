@@ -14,15 +14,37 @@ class PdfExportError(RuntimeError):
     pass
 
 
+# Типичные места установки: в Windows и macOS soffice не всегда попадает в PATH
+COMMON_SOFFICE_PATHS = (
+    r"C:\Program Files\LibreOffice\program\soffice.exe",
+    r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+    "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+    "/usr/bin/soffice",
+    "/usr/local/bin/soffice",
+    "/snap/bin/libreoffice",
+)
+
+
+def find_soffice(explicit: str | None = None) -> str:
+    """Ищет LibreOffice: аргумент → SOFFICE → PATH → типовые каталоги установки."""
+    import shutil
+
+    candidates = [explicit, os.environ.get("SOFFICE"), shutil.which("soffice"),
+                  shutil.which("libreoffice"), *COMMON_SOFFICE_PATHS]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return candidate
+    return ""
+
+
 def pptx_to_pdf(pptx_bytes: bytes, soffice: str | None = None, timeout_s: int = 300) -> bytes:
     """Конвертирует PPTX в PDF байтовым потоком (работает и в контейнере)."""
-    bin = soffice or os.environ.get("SOFFICE", "")
+    bin = find_soffice(soffice)
     if not bin:
-        import shutil
-
-        bin = shutil.which("soffice") or shutil.which("libreoffice") or ""
-    if not bin:
-        raise PdfExportError("LibreOffice не найден (переменная SOFFICE или soffice в PATH)")
+        raise PdfExportError(
+            "LibreOffice не найден: задайте SOFFICE, добавьте soffice в PATH или "
+            "установите LibreOffice (Windows: winget install "
+            "TheDocumentFoundation.LibreOffice; macOS: brew install --cask libreoffice)")
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_p = Path(tmp)
@@ -44,14 +66,24 @@ def pptx_to_pdf(pptx_bytes: bytes, soffice: str | None = None, timeout_s: int = 
         return pdfs[0].read_bytes()
 
 
-def pptx_to_pngs(pptx_bytes: bytes, dpi: int = 90, **kw) -> list[bytes]:
-    """Миниатюры слайдов PNG. Требует LibreOffice + PyMuPDF (fitz)."""
+def _load_pymupdf():
+    """Импорт PyMuPDF: новое имя `pymupdf`, старое `fitz` — запасной вариант."""
     try:
-        import fitz  # PyMuPDF
-    except ImportError as exc:  # noqa: BLE001 — сообщаем как ошибку экспорта, а не 500
+        import pymupdf  # noqa: PLC0415 — импорт по требованию
+        return pymupdf
+    except ImportError:
+        pass
+    try:
+        import fitz  # noqa: PLC0415 — устаревшее имя, но работает
+        return fitz
+    except ImportError as exc:  # noqa: BLE001
         raise PdfExportError(
             "PyMuPDF не установлен: миниатюры недоступны (pip install PyMuPDF)") from exc
 
+
+def pptx_to_pngs(pptx_bytes: bytes, dpi: int = 90, **kw) -> list[bytes]:
+    """Миниатюры слайдов PNG. Требует LibreOffice + PyMuPDF."""
+    fitz = _load_pymupdf()
     pdf = pptx_to_pdf(pptx_bytes, **kw)
     out = []
     doc = fitz.open(stream=pdf, filetype="pdf")

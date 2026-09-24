@@ -11,7 +11,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class SlideType(str, Enum):
@@ -84,6 +84,9 @@ class Block(BaseModel):
     factoids: list[dict[str, str]] = Field(default_factory=list, max_length=6)
     quote_text: Optional[str] = Field(default=None, max_length=300)
     quote_author: Optional[str] = Field(default=None, max_length=80)
+    # --- изображения, см. ниже ---
+    # (поля перечислены в порядке объявления; валидатор ниже выравнивает данные
+    #  под заявленный kind, чтобы слабые модели не оставляли пустые слайды)
     # --- изображения (kind="image") ---
     # image_ref — ключ картинки в контент-пакете (имя файла внутри PPTX/DOCX)
     image_ref: Optional[str] = Field(default=None, max_length=160)
@@ -91,6 +94,44 @@ class Block(BaseModel):
     # image_prompt — описание для text-to-image (используется, если генерация включена)
     image_prompt: Optional[str] = Field(default=None, max_length=300)
     source_ref: Optional[str] = Field(default=None, max_length=120)
+
+    @model_validator(mode="after")
+    def align_payload_with_kind(self) -> "Block":
+        """Приводит данные блока к заявленному типу.
+
+        Модель нередко указывает `kind="factoids"`, а данные кладёт в `items`.
+        Раньше такой блок считался пустым и пропадал: слайд оставался с одним
+        заголовком. Теперь строки превращаются в фактоиды (число — крупно,
+        остальное — подпись), а если данных нет вовсе — понятная ошибка, чтобы
+        планировщик повторил запрос, а не собрал пустую колоду.
+        """
+        if self.kind == "factoids" and not self.factoids and self.items:
+            self.factoids = [self._to_factoid(item) for item in self.items[:6]]
+            self.items = []
+        if self.kind == "table" and self.table is None:
+            raise ValueError("для kind='table' нужно поле table")
+        if self.kind == "chart" and self.chart is None:
+            raise ValueError("для kind='chart' нужно поле chart")
+        if self.kind == "quote" and not self.quote_text and self.text:
+            self.quote_text = self.text
+            self.text = None
+        return self
+
+    @staticmethod
+    def _to_factoid(text: str) -> dict[str, str]:
+        """«Время отчётов сократилось на 40%» → value «40%», label — остальное."""
+        import re
+
+        match = re.search(r"\d+(?:[.,]\d+)?\s*(?:%|₽|\$|€|руб\w*|млн\w*|млрд\w*|"
+                          r"тыс\w*|чел\w*|задач\w*|город\w*|отдел\w*|подразделени\w*|"
+                          r"сотрудник\w*|пользовател\w*|раз\w*|балл\w*|пункт\w*)",
+                          text or "", re.IGNORECASE)
+        if match:
+            value = match.group(0).strip()
+            label = (text[:match.start()] + text[match.end():]).strip(" ,.;—-")
+            return {"value": value[:20], "label": (label or text)[:60]}
+        words = (text or "").split()
+        return {"value": " ".join(words[:2])[:20], "label": " ".join(words[2:])[:60]}
 
 
 class Slide(BaseModel):

@@ -34,9 +34,13 @@ class Settings(BaseSettings):
     aitunnel_vlm_model: str = "qwen3.5-9b"
     aitunnel_timeout_sec: int = 120
     aitunnel_max_retries: int = 1
-    # Qwen3.5 по умолчанию «размышляет» и может долго генерировать преамбулу;
-    # для структурированных ответов thinking выключаем (быстрее и стабильнее JSON)
+    # Qwen3.5 по умолчанию «размышляет»: преамбула съедает бюджет токенов и
+    # время. Для структурированных ответов thinking выключаем (reasoning_effort)
     aitunnel_disable_thinking: bool = True
+    # предел длины ответа: защищает от «убежавшей» генерации и от таймаута
+    aitunnel_max_tokens: int = 4096
+    # эмбеддинги AITUNNEL (для смысловой части grounding без локальной BGE-M3)
+    aitunnel_embedding_model: str = "qwen3-embedding-8b"
 
     # DEMO_MODE=true — без тихого отката: если модель недоступна, задание
     # завершается понятной ошибкой, а не офлайн-колодой (для живого демо).
@@ -130,10 +134,12 @@ class Settings(BaseSettings):
 
     @property
     def active_embedding_model(self) -> str:
+        if self.llm_provider == "aitunnel" and self.aitunnel_embedding_model:
+            return self.aitunnel_embedding_model
         if self.llm_provider == "openai_compat" and self.openai_compat_embedding_model:
             return self.openai_compat_embedding_model
-        # у AITUNNEL эмбеддинги не заявлены: смысловая часть grounding работает
-        # на локальной BGE-M3, числа проверяются всегда
+        # без внешних эмбеддингов смысловая часть grounding работает на локальной
+        # BGE-M3, а числа проверяются всегда
         return self.embedding_model
 
     @property

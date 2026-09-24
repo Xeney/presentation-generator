@@ -27,6 +27,11 @@ def deck():
     return FallbackPlanner().plan(BRIEF, "", "project")
 
 
+# в колоде офлайн-планировщика: 0 — титул, 1 — оглавление, 2 — раздел,
+# 3.. — контентные слайды. Проверки плотности применяются только к контенту.
+CONTENT_SLIDE = 3
+
+
 @pytest.fixture(scope="module")
 def rendered(profile_of, render_variants, synthetic_template, deck):
     """Колода «compact» на синтетическом шаблоне: 0 проблем до мутаций."""
@@ -138,7 +143,7 @@ def test_slide_too_sparse(profile_of, synthetic_template, deck, rendered):
     profile = profile_of(synthetic_template)
 
     def mutate(prs):
-        slide = prs.slides[1]
+        slide = prs.slides[CONTENT_SLIDE]
         for shape in list(slide.shapes):
             if not (shape.is_placeholder and shape.has_text_frame
                     and shape.text_frame.text.strip()):
@@ -153,8 +158,8 @@ def test_slide_too_dense(profile_of, synthetic_template, deck, rendered):
 
     def mutate(prs):
         from pptx.enum.shapes import MSO_SHAPE
-        prs.slides[1].shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.4), Inches(0.4),
-                                       Inches(12.5), Inches(6.7))
+        prs.slides[CONTENT_SLIDE].shapes.add_shape(
+            MSO_SHAPE.RECTANGLE, Inches(0.4), Inches(0.4), Inches(12.5), Inches(6.7))
 
     assert "slide_too_dense" in _codes_after(profile, deck, rendered, mutate)
 
