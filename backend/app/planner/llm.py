@@ -133,7 +133,7 @@ class OpenAICompatClient:
     def __init__(self, base_url: Optional[str] = None, api_key: Optional[str] = None,
                  timeout_s: Optional[int] = None, max_retries: int = 0,
                  provider_name: str = "шлюз", key_env: str = "OPENAI_COMPAT_API_KEY",
-                 retry_backoff_s: float = 1.5):
+                 retry_backoff_s: float = 1.5, extra_payload: Optional[dict] = None):
         s = get_settings()
         self.provider_name = provider_name
         self.key_env = key_env
@@ -142,6 +142,8 @@ class OpenAICompatClient:
         self.timeout = httpx.Timeout(timeout_s or s.llm_timeout_s)
         self.max_retries = max(0, int(max_retries))
         self.retry_backoff_s = retry_backoff_s
+        # дополнительные поля запроса (например, отключение thinking у Qwen3.5)
+        self.extra_payload = dict(extra_payload or {})
 
     # ------------------------------------------------------------- служебное
     def masked_key(self) -> str:
@@ -254,13 +256,23 @@ class OpenAICompatClient:
         }
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
+        payload.update(self.extra_payload)
 
         response = self._request("POST", "/chat/completions", payload=payload)
-        if response.status_code in (400, 422) and json_mode:
-            # часть шлюзов не поддерживает response_format: повторяем без него.
-            # На 401/402/403/404 повтор бессмысленен — ключ и баланс не изменятся.
-            payload.pop("response_format", None)
-            response = self._request("POST", "/chat/completions", payload=payload)
+        if response.status_code in (400, 422):
+            # часть шлюзов не поддерживает response_format или дополнительные поля:
+            # повторяем без них. На 401/402/403/404 повтор бессмысленен — ключ и
+            # баланс от повтора не изменятся.
+            simplified = False
+            if json_mode and "response_format" in payload:
+                payload.pop("response_format", None)
+                simplified = True
+            for key in self.extra_payload:
+                if key in payload:
+                    payload.pop(key, None)
+                    simplified = True
+            if simplified:
+                response = self._request("POST", "/chat/completions", payload=payload)
         if response.status_code != 200:
             raise LlmError(
                 f"{self.provider_name} вернул {response.status_code}: "
@@ -303,8 +315,15 @@ class OpenAICompatClient:
 
 
 def aitunnel_client(vlm: bool = False) -> OpenAICompatClient:
-    """Клиент AITUNNEL: OpenAI-совместимый шлюз с моделями Qwen (ADR-020)."""
+    """Клиент AITUNNEL: OpenAI-совместимый шлюз с моделями Qwen (ADR-020).
+
+    Для Qwen3.5 по умолчанию отключаем режим «размышлений»: с ним модель иногда
+    генерирует длинную преамбулу и упирается в таймаут, а для структурированных
+    ответов (JSON-колода, 11 критериев) thinking не нужен.
+    """
     s = get_settings()
+    extra = ({"chat_template_kwargs": {"enable_thinking": False}}
+             if s.aitunnel_disable_thinking else None)
     return OpenAICompatClient(
         base_url=s.aitunnel_base_url,
         api_key=s.aitunnel_api_key,
@@ -312,6 +331,7 @@ def aitunnel_client(vlm: bool = False) -> OpenAICompatClient:
         max_retries=s.aitunnel_max_retries,
         provider_name="AITUNNEL",
         key_env="AITUNNEL_API_KEY",
+        extra_payload=extra,
     )
 
 

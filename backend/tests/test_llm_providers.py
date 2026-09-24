@@ -41,9 +41,12 @@ class _FakeResponse:
 def compat(monkeypatch):
     """Клиент шлюза с подменёнными настройками и перехваченными запросами."""
     monkeypatch.setenv("LLM_PROVIDER", "openai_compat")
+    # VLM-провайдер не задан: должен унаследоваться от LLM-провайдера
+    monkeypatch.setenv("VLM_PROVIDER", "")
     monkeypatch.setenv("OPENAI_COMPAT_BASE_URL", "https://gateway.example/v1")
     monkeypatch.setenv("OPENAI_COMPAT_API_KEY", SECRET)
     monkeypatch.setenv("OPENAI_COMPAT_MODEL", "test-model")
+    monkeypatch.setenv("OPENAI_COMPAT_VLM_MODEL", "")
     get_settings.cache_clear()
 
     calls: list[dict] = []
@@ -309,6 +312,48 @@ def test_aitunnel_does_not_retry_client_error(aitunnel):
         client.generate_text("привет")
     assert "402" in str(error.value)
     assert len(calls) == 1
+
+
+def test_aitunnel_disables_thinking_by_default(aitunnel):
+    """Qwen3.5 «размышляет» по умолчанию: для JSON-ответов thinking выключаем."""
+    from app.planner.llm import aitunnel_client
+
+    _, calls = aitunnel
+    client = aitunnel_client()
+    client.generate_text("привет")
+    payload = calls[-1]["payload"]
+    assert payload["chat_template_kwargs"] == {"enable_thinking": False}
+    assert payload["response_format"] == {"type": "json_object"}
+
+
+def test_thinking_flag_can_be_disabled(monkeypatch):
+    monkeypatch.setenv("AITUNNEL_DISABLE_THINKING", "false")
+    monkeypatch.setenv("AITUNNEL_API_KEY", AITUNNEL_KEY)
+    get_settings.cache_clear()
+    try:
+        from app.planner.llm import aitunnel_client
+
+        assert aitunnel_client().extra_payload == {}
+    finally:
+        get_settings.cache_clear()
+
+
+def test_unsupported_extra_fields_are_dropped_on_retry(aitunnel):
+    """Если шлюз не знает chat_template_kwargs — повторяем без него."""
+    from app.planner.llm import aitunnel_client
+
+    state, calls = aitunnel
+    client = aitunnel_client()
+    client.retry_backoff_s = 0.0
+    state["status"] = 400
+    state["body"] = '{"error":"unknown field chat_template_kwargs"}'
+
+    with pytest.raises(LlmError):
+        client.generate_text("привет")
+
+    assert len(calls) >= 2, "после 400 должен быть повтор без лишних полей"
+    assert "chat_template_kwargs" not in calls[-1]["payload"]
+    assert "response_format" not in calls[-1]["payload"]
 
 
 def test_aitunnel_key_is_masked_in_logs(aitunnel, caplog):

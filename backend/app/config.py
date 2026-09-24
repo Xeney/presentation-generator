@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     aitunnel_vlm_model: str = "qwen3.5-9b"
     aitunnel_timeout_sec: int = 120
     aitunnel_max_retries: int = 1
+    # Qwen3.5 по умолчанию «размышляет» и может долго генерировать преамбулу;
+    # для структурированных ответов thinking выключаем (быстрее и стабильнее JSON)
+    aitunnel_disable_thinking: bool = True
 
     # DEMO_MODE=true — без тихого отката: если модель недоступна, задание
     # завершается понятной ошибкой, а не офлайн-колодой (для живого демо).

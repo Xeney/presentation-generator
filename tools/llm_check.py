@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +29,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--vlm", action="store_true",
                         help="проверить провайдера VLM-аудита (VLM_PROVIDER)")
     parser.add_argument("--json-call", action="store_true",
-                        help="сделать крошечный запрос и проверить JSON-режим")
+                        help="сделать крошечный запрос и проверить JSON-режим; "
+                             "с --vlm отправляет реальную картинку слайда")
     args = parser.parse_args(argv)
 
     if args.provider:
@@ -91,6 +93,8 @@ def main(argv: list[str]) -> int:
         preview = ", ".join(models[:8])
         print(f"первые:         {preview}{' …' if len(models) > 8 else ''}")
 
+    if args.json_call and args.vlm:
+        return _vlm_smoke(client, settings)
     if args.json_call:
         print("\nтестовый запрос…")
         try:
@@ -107,6 +111,64 @@ def main(argv: list[str]) -> int:
             print("  ! модель не вернула JSON — планировщик уйдёт в офлайн-fallback")
             return 1
     print("\nOK")
+    return 0
+
+
+def _fake_slide_png() -> str:
+    """Простая картинка слайда (заголовок-вывод + три тезиса) для VLM-проверки."""
+    import base64
+    import io
+
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGB", (960, 540), "white")
+    draw = ImageDraw.Draw(image)
+    draw.rectangle([0, 0, 960, 96], fill="#1B4DFF")
+    draw.text((40, 34), "Отчёты готовятся втрое быстрее", fill="white")
+    for index, line in enumerate((
+            "Время подготовки отчёта: 8 ч → 3 ч",
+            "Автоматизировано 12 рутинных задач",
+            "Охват вырос до 5 подразделений")):
+        draw.text((60, 180 + index * 70), f"• {line}", fill="#1A1A1A")
+    draw.text((60, 470), "Источник: бриф проекта", fill="#666666")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+def _vlm_smoke(client, settings) -> int:
+    """Реальный VLM-запрос: картинка слайда + 11 вопросов ТЗ."""
+    from app.audit.vlm import CRITERIA, PROMPTS
+
+    print("\nVLM-запрос с реальной картинкой слайда…")
+    system = (PROMPTS / "system.md").read_text(encoding="utf-8")
+    prompt = ("Слайд 1 из 1. Язык колоды: ru. Предыдущий слайд: нет (первый слайд). "
+              "Следующий слайд: нет (последний слайд).\n"
+              "Оцени слайд по 11 критериям и верни JSON.")
+    started = time.perf_counter()
+    try:
+        text = client.generate_text(prompt, system, model=settings.active_vlm_model,
+                                    temperature=0.0, json_mode=True,
+                                    images=[_fake_slide_png()])
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ошибка: {exc}")
+        return 1
+    elapsed = time.perf_counter() - started
+    data = client._parse_json(text)
+    if not data:
+        print(f"  ! модель не вернула JSON ({elapsed:.1f} c): {text[:200]}")
+        return 1
+    yes = [int(x) for x in data.get("answers_yes", []) if str(x).isdigit()]
+    no = [int(x) for x in data.get("answers_no", []) if str(x).isdigit()]
+    print(f"  модель: {settings.vlm_label}, время {elapsed:.1f} c")
+    print(f"  ответов «да»: {len(yes)} из {len(CRITERIA)}, «нет»: {len(no)}")
+    for number in no:
+        print(f"    критерий {number}: {CRITERIA.get(number, '?')}")
+    if data.get("summary"):
+        print(f"  комментарий модели: {data['summary'][:200]}")
+    if not yes and not no:
+        print("  ! модель не отметила ни одного критерия")
+        return 1
     return 0
 
 

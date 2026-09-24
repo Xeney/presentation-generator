@@ -21,6 +21,9 @@ os.environ.setdefault("OLLAMA_BASE_URL", "http://127.0.0.1:1")
 # получать запросы с реальным ключом. Тесты провайдера задают окружение сами
 # и подменяют HTTP-вызовы.
 os.environ.setdefault("LLM_PROVIDER", "ollama")
+# VLM-провайдер тоже не берём из локального .env: тесты должны быть одинаковыми
+# на машине разработчика и в CI
+os.environ.setdefault("VLM_PROVIDER", "ollama")
 
 ROOT = Path(__file__).resolve().parents[2]
 BACKEND = ROOT / "backend"
