@@ -45,7 +45,9 @@ class OllamaClient:
     def __init__(self, base_url: Optional[str] = None, timeout_s: Optional[int] = None):
         s = get_settings()
         self.base_url = (base_url or s.ollama_base_url).rstrip("/")
-        self.timeout = httpx.Timeout(timeout_s or s.llm_timeout_s)
+        # у локального инференса свой таймаут: на CPU 300 с ожидания съедают
+        # бюджет генерации целиком, а офлайн-планировщик даёт результат быстрее
+        self.timeout = httpx.Timeout(timeout_s or s.ollama_timeout_s)
 
     def health(self) -> bool:
         try:
@@ -65,8 +67,13 @@ class OllamaClient:
     def generate_text(self, prompt: str, system: Optional[str] = None, *,
                       model: Optional[str] = None, temperature: float = 0.3,
                       json_mode: bool = True, format_schema: Optional[dict] = None,
-                      images: Optional[list[str]] = None) -> str:
-        """Вызов /api/generate. images — список base64 PNG для VLM."""
+                      images: Optional[list[str]] = None,
+                      timeout_s: Optional[float] = None) -> str:
+        """Вызов /api/generate. images — список base64 PNG для VLM.
+
+        `timeout_s` — лимит именно этого запроса: VLM-стадия передаёт остаток
+        общего бюджета, чтобы один медленный слайд не съел время всей стадии.
+        """
         s = get_settings()
         payload: dict = {
             "model": model or s.llm_model,
@@ -80,7 +87,8 @@ class OllamaClient:
         if images:
             payload["images"] = images
         try:
-            r = httpx.post(f"{self.base_url}/api/generate", json=payload, timeout=self.timeout)
+            r = httpx.post(f"{self.base_url}/api/generate", json=payload,
+                       timeout=httpx.Timeout(timeout_s) if timeout_s else self.timeout)
         except Exception as exc:
             raise OllamaError(f"Ошибка вызова Ollama: {exc}") from exc
         if r.status_code != 200:
@@ -252,8 +260,12 @@ class OpenAICompatClient:
     def generate_text(self, prompt: str, system: Optional[str] = None, *,
                       model: Optional[str] = None, temperature: float = 0.3,
                       json_mode: bool = True, format_schema: Optional[dict] = None,
-                      images: Optional[list[str]] = None) -> str:
-        """Запрос к /chat/completions. images — base64 PNG для VLM-моделей."""
+                      images: Optional[list[str]] = None,
+                      timeout_s: Optional[float] = None) -> str:
+        """Запрос к /chat/completions. images — base64 PNG для VLM-моделей.
+
+        `timeout_s` — лимит этого запроса (остаток бюджета стадии VLM).
+        """
         if not self.base_url:
             raise LlmError(f"{self.provider_name}: не задан адрес API")
         if not self.api_key:
@@ -286,7 +298,9 @@ class OpenAICompatClient:
                 payload["response_format"] = {"type": "json_object"}
         payload.update(self.extra_payload)
 
-        response = self._request("POST", "/chat/completions", payload=payload)
+        per_request = httpx.Timeout(timeout_s) if timeout_s else None
+        response = self._request("POST", "/chat/completions", payload=payload,
+                                 timeout=per_request)
         # понижаем требования, если шлюз не умеет json_schema или лишние поля:
         # json_schema → json_object → без response_format
         for _ in range(2):
@@ -308,7 +322,8 @@ class OpenAICompatClient:
                 break
             log.info("%s: %s — повторяем запрос упрощённо",
                      self.provider_name, response.status_code)
-            response = self._request("POST", "/chat/completions", payload=payload)
+            response = self._request("POST", "/chat/completions", payload=payload,
+                                     timeout=per_request)
 
         if response.status_code != 200:
             raise LlmError(

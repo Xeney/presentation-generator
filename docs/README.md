@@ -123,7 +123,8 @@ python tools/import_corpus.py data/templates/content_pack.pptx --text
 | `VLM_MODEL` | `qwen2.5vl:7b` | недетерминированный аудит слайдов |
 | `EMBEDDING_MODEL` | `bge-m3` | эмбеддинги: дедупликация слайдов, grounding фактов |
 | `DISABLE_LLM` | `false` | `true` — принудительный офлайн-планировщик (dev/CI) |
-| `LLM_TIMEOUT_S` | `300` | таймаут запроса к Ollama |
+| `LLM_TIMEOUT_S` | `300` | таймаут запроса к внешнему шлюзу |
+| `OLLAMA_TIMEOUT_S` | `120` | таймаут запроса к локальной Ollama (на CPU короче — дальше офлайн-планировщик) |
 | `PLANNER_LLM_MAX_RETRIES` | `3` | попытки получить валидный JSON по Pydantic-схеме |
 | `MAX_SLIDES` / `MIN_SLIDES` | `15` / `4` | целевой объём колоды (ТЗ: 10–15) |
 | `TARGET_DURATION_MIN` | `5` | бюджет времени генерации, минуты |

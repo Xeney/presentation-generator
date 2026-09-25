@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     vlm_model: str = "qwen2.5vl:7b"
     embedding_model: str = "bge-m3"
     llm_timeout_s: int = 300
+    # локальный инференс на CPU в бюджет 5 минут не укладывается: если модель не
+    # ответила за это время, честнее уйти в офлайн-планировщик, чем ждать 300 с
+    ollama_timeout_s: int = 120
     disable_llm: bool = False
     planner_llm_max_retries: int = 3
 

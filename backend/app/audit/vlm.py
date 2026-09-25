@@ -65,6 +65,13 @@ def violations_to_issues(result: dict) -> list[dict]:
     return issues
 
 
+# Минимальный бюджет стадии и минимальный лимит одного запроса: короче — модель
+# (особенно на CPU) не успеет ответить. Вынесены в константы, чтобы тесты могли
+# проверить механику бюджета без ожидания в минуты.
+MIN_STAGE_BUDGET_S = 30.0
+MIN_REQUEST_TIMEOUT_S = 15.0
+
+
 class VlmAudit:
     """Оценка смысла слайдов моделью: контекстная, а не детерминированная часть аудита."""
 
@@ -129,26 +136,33 @@ class VlmAudit:
         # чем проверить каждый слайд; непроверенные честно помечаются.
         verdicts: list[dict] = [{} for _ in images]
         timings: list[float] = [0.0 for _ in images]
-        deadline = started + max(30, self.settings.vlm_audit_budget_s)
+        deadline = started + max(MIN_STAGE_BUDGET_S, self.settings.vlm_audit_budget_s)
         workers = max(1, min(self.settings.vlm_audit_workers, len(images)))
 
         def ask(index: int) -> None:
             began = time.perf_counter()
             context = self._context(index, len(images), deck, source_digest)
-            verdicts[index] = self._ask_one(images[index], context)
+            # запрос живёт не дольше остатка бюджета стадии: иначе медленная
+            # модель (CPU) держит пул и стадия растягивается на минуты
+            budget_left = max(MIN_REQUEST_TIMEOUT_S,
+                              deadline - time.perf_counter())
+            verdicts[index] = self._ask_one(images[index], context, budget_left)
             timings[index] = round(time.perf_counter() - began, 2)
 
+        # Слайдов больше, чем воркеров: задачи, начавшиеся после дедлайна,
+        # получают остаток бюджета (минимум 15 с) и быстро отваливаются по
+        # таймауту, поэтому стадия укладывается в бюджет + один запрос.
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futures = {pool.submit(ask, index): index for index in range(len(images))}
             for future in as_completed(futures):
                 index = futures[future]
-                if time.perf_counter() > deadline and not verdicts[index]:
-                    verdicts[index] = {"skipped": True,
-                                       "error": "не проверено: исчерпан бюджет стадии"}
                 try:
                     future.result()
                 except Exception as exc:  # noqa: BLE001 — один слайд не рушит стадию
                     verdicts[index] = {"error": str(exc)[:200]}
+                if time.perf_counter() > deadline and not verdicts[index]:
+                    verdicts[index] = {"skipped": True,
+                                       "error": "не проверено: исчерпан бюджет стадии"}
 
         slides = []
         errors = 0
@@ -234,12 +248,14 @@ class VlmAudit:
             "source_digest": (source_digest or "исходные материалы не переданы")[:1200],
         }
 
-    def _ask_one(self, image_b64: str, context: dict) -> dict:
+    def _ask_one(self, image_b64: str, context: dict,
+                 timeout_s: Optional[float] = None) -> dict:
         prompt = self.user_template.format(**context)
         try:
             text = self.llm.generate_text(
                 prompt, self.system, model=self.settings.active_vlm_model,
-                temperature=0.0, json_mode=True, images=[image_b64])
+                temperature=0.0, json_mode=True, images=[image_b64],
+                timeout_s=timeout_s)
         except Exception as exc:  # noqa: BLE001
             log.warning("VLM-запрос не удался: %s", exc)
             return {"answers_yes": [], "answers_no": [], "summary": "",

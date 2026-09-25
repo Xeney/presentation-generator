@@ -131,6 +131,61 @@ def test_violations_become_audit_issues():
     assert "цифры и опечатки" in issues[0]["message"]
 
 
+def test_slow_model_respects_stage_budget(deck, monkeypatch):
+    """Медленная модель (CPU) не растягивает стадию: остаток бюджета — в таймаут.
+
+    Раньше бюджет только помечал слайды, но запросы продолжали висеть до
+    собственного таймаута: стадия VLM на CPU занимала 15 минут вместо трёх.
+    """
+    import time
+
+    from app.audit import vlm as vlm_module
+
+    class _SlowLlm(_FakeLlm):
+        def __init__(self):
+            super().__init__()
+            self.timeouts: list[float] = []
+
+        def generate_text(self, prompt, system=None, **kwargs):  # noqa: D102
+            self.timeouts.append(float(kwargs.get("timeout_s") or 30))
+            time.sleep(self.timeouts[-1])
+            return json.dumps(ANSWER)
+
+    monkeypatch.setattr("app.audit.vlm.pptx_to_pngs", _fake_pngs(4))
+    monkeypatch.setattr(vlm_module, "get_settings", lambda: _BudgetSettings())
+    # минимальные бюджет и лимит запроса уменьшены, чтобы тест не спал минуту
+    monkeypatch.setattr(vlm_module, "MIN_STAGE_BUDGET_S", 0.4)
+    monkeypatch.setattr(vlm_module, "MIN_REQUEST_TIMEOUT_S", 0.2)
+    llm = _SlowLlm()
+    audit = VlmAudit(llm=llm, profile={})
+    started = time.perf_counter()
+    result = audit.audit(b"PK", deck=deck)
+    elapsed = time.perf_counter() - started
+
+    assert result["available"] is True
+    # 4 слайда, 2 воркера, бюджет 0.4 с: первая волна получает весь бюджет,
+    # вторая — минимум 0.2 с; стадия свободна через ~0.6 с
+    assert result["elapsed_s"] < 1, "стадия обязана уложиться в бюджет + одну волну"
+    assert elapsed < 2
+    assert llm.timeouts, "запросы должны получать остаток бюджета"
+    assert max(llm.timeouts) <= 0.4 + 0.01, "запрос не может ждать дольше бюджета"
+    assert min(llm.timeouts) == pytest.approx(0.2), \
+        "запросы после дедлайна получают минимальный лимит, а не полный таймаут"
+    assert result["per_slide_s"], "тайминги слайдов должны сохраняться"
+
+
+class _BudgetSettings:
+    """Настройки с крошечным бюджетом: два воркера, четыре слайда."""
+    vlm_audit_enabled = True
+    vlm_audit_budget_s = 0.4
+    vlm_audit_workers = 2
+    vlm_image_max_px = 0
+    disable_llm = False
+    active_vlm_provider = "ollama"
+    active_vlm_model = "fake-vlm"
+    vlm_label = "fake-vlm"
+
+
 def test_unknown_criteria_numbers_are_ignored(deck, monkeypatch):
     """Модель может вернуть мусорные номера — они не должны ломать аудит."""
     monkeypatch.setattr("app.audit.vlm.pptx_to_pngs", _fake_pngs(3))
