@@ -107,8 +107,8 @@ python tools/import_corpus.py data/templates/content_pack.pptx --text
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `LLM_PROVIDER` | `aitunnel` | `aitunnel` (шлюз с моделями Qwen, ADR-020), `ollama` (эталон сдачи: открытые веса, локально) или `openai_compat` (ADR-019) |
-| `VLM_PROVIDER` | `aitunnel` | провайдер VLM-аудита: `aitunnel`, `ollama`, `openai_compat` или `off` |
+| `LLM_PROVIDER` | `ollama` | `ollama` (эталон сдачи: открытые веса, локально — и без `.env`), `aitunnel` (шлюз с моделями Qwen, ADR-020) или `openai_compat` (ADR-019) |
+| `VLM_PROVIDER` | `ollama` | провайдер VLM-аудита: `ollama`, `aitunnel`, `openai_compat` или `off` |
 | `AITUNNEL_BASE_URL` | `https://api.aitunnel.ru/v1` | адрес OpenAI-совместимого API AITUNNEL |
 | `AITUNNEL_API_KEY` | — | ключ AITUNNEL; хранится только в `.env` |
 | `AITUNNEL_LLM_MODEL` / `_VLM_MODEL` | `qwen3.5-9b` | мультимодальная Qwen: планировщик и VLM-аудит |

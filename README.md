@@ -10,35 +10,43 @@ VLM и сверкой с источником) и отдаёт `.pptx`, `.pdf` �
 
 ## Быстрый старт
 
-```bash
-./start.sh                    # поднимает всё через docker compose (рекомендуется)
-```
-
-Скрипт создаёт `.env` из примера, готовит каталоги `data/`, собирает образы,
-поднимает сервисы и ждёт готовности: `--no-build` (без пересборки),
-`--local` (без Docker: uvicorn + next dev), `--with-assets DIR` (скопировать
-шаблоны из папки), `--logs`, `-h`.
-
-Вручную то же самое:
+Проверенная на чистой машине последовательность (лог — `docs/REPRODUCIBILITY.md`):
 
 ```bash
-cp .env.example .env          # Windows: Copy-Item .env.example .env
-docker compose up --build
+git clone <repo> && cd <repo>
+docker compose up --build     # первая сборка 4–9 мин, модели ~12 ГБ
 ```
 
-* UI — http://localhost:3000
+* UI — http://localhost:3000 (выберите `examples/synthetic_16x9.pptx`, при
+  желании контент-пакет `examples/builtin_corpus.md`, нажмите
+  «Сгенерировать 3 варианта»)
 * API — http://localhost:8000/docs
 
-Первый запуск скачивает модели в volume `ollama_data` (несколько ГБ). Без Ollama
-сервис работает в режиме офлайн-планировщика: колода, вёрстка, аудит и экспорт
-доступны полностью, в отчёте честно помечается `offline-fallback`.
+Локальный `.env` не обязателен: без него работают открытые веса Ollama
+(`qwen2.5:7b-instruct`, `qwen2.5vl:7b`, `bge-m3`) — зачётная конфигурация без
+внешних сервисов. Первый старт скачивает модели в volume `ollama_data`
+(несколько ГБ); прогресс — `docker compose logs -f ollama`.
 
-**Провайдеры моделей.** Выбираются переменными `LLM_PROVIDER` и `VLM_PROVIDER`:
+На **CPU** рекомендовано `cp .env.example .env` и `VLM_AUDIT_ENABLED=false`:
+локальная 7B не успевает за бюджет стадии, сервис честно уходит в
+офлайн-планировщик (`offline-fallback` в отчёте), полный прогон — около
+135 секунд. На GPU работают все стадии.
+
+Альтернатива одной командой — `./start.sh` (то же `docker compose up --build`
+плюс ожидание готовности и создание `.env`): `--no-build`, `--local`
+(без Docker: uvicorn + next dev), `--with-assets DIR` (скопировать шаблоны),
+`--logs`, `-h`.
+
+Без Ollama сервис работает в режиме офлайн-планировщика: колода, вёрстка, аудит
+и экспорт доступны полностью, в отчёте честно помечается `offline-fallback`.
+
+**Провайдеры моделей.** Выбираются переменными `LLM_PROVIDER` и `VLM_PROVIDER`;
+по умолчанию (и без `.env`) — `ollama`, то есть зачётная конфигурация:
 
 | Значение | Что это |
 |---|---|
-| `aitunnel` | OpenAI-совместимый шлюз AITUNNEL, модель `qwen3.5-9b` (Qwen, Apache 2.0) — и планировщик, и VLM-аудит (ADR-020) |
-| `ollama` | локальные открытые веса: Qwen2.5 7B/14B, Qwen2.5-VL 7B, BGE-M3 — эталон для сдачи по ТЗ |
+| `ollama` | локальные открытые веса: Qwen2.5 7B/14B, Qwen2.5-VL 7B, BGE-M3 — эталон для сдачи по ТЗ (по умолчанию) |
+| `aitunnel` | OpenAI-совместимый шлюз AITUNNEL, модель `qwen3.5-9b` (Qwen, Apache 2.0) — и планировщик, и VLM-аудит (ADR-020); включается в `.env` для отборочного этапа |
 | `openai_compat` | любой другой OpenAI-совместимый шлюз (ADR-019) |
 | `off` | только для `VLM_PROVIDER`: VLM-аудит выключен |
 
