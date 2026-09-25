@@ -344,8 +344,9 @@ class Audit:
                 continue
             # суммарный кегль: максимум по runs
             estim = self._estimate_text_h(tf, sh.width)
-            # запас 1.25 — честная защита от реальной вместимости (word_wrap)
-            if estim > 0 and estim > sh.height * 1.75 and sh.height > 0:
+            # допуск 10%: оценка высоты приблизительная, но заметное переполнение
+            # (когда текст реально обрезается краем рамки) ловиться обязано
+            if estim > 0 and estim > sh.height * 1.10 and sh.height > 0:
                 issues.append(Issue.at(
                     "text_overflow", "warning", si,
                     f"текст «{total[:40]}…» может не поместиться в «{sh.name}»",
@@ -451,6 +452,37 @@ class Audit:
         return [self._fr(sh.left, self.W), self._fr(sh.top, self.H),
                 self._fr(sh.width, self.W), self._fr(sh.height, self.H)]
 
+    def _decor_fill_at(self, slide, shape) -> Optional[str]:
+        """Заливка декора макета под фигурой: тот же расчёт, что в рендере.
+
+        Декор наследуется от макета и не виден в фигурах слайда, но именно он
+        определяет фактический фон текста: на тёмной плашке шаблона тёмный текст
+        не читается, и проверять контраст к белому бессмысленно.
+        """
+        if shape.left is None or shape.width is None or shape.height is None:
+            return None
+        layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
+        x, y = shape.left / 914400, (shape.top or 0) / 914400
+        w, h = shape.width / 914400, shape.height / 914400
+        area = w * h
+        if area <= 0:
+            return None
+        best_fill, best_ratio = None, 0.0
+        for item in layout.get("decor", []) or []:
+            fill = item.get("fill")
+            if not fill:
+                continue
+            left = max(x, float(item.get("x", 0.0)))
+            top = max(y, float(item.get("y", 0.0)))
+            right = min(x + w, float(item.get("x", 0.0)) + float(item.get("w", 0.0)))
+            bottom = min(y + h, float(item.get("y", 0.0)) + float(item.get("h", 0.0)))
+            if right <= left or bottom <= top:
+                continue
+            ratio = ((right - left) * (bottom - top)) / area
+            if ratio > best_ratio:
+                best_fill, best_ratio = fill, ratio
+        return best_fill if best_ratio >= 0.35 else None
+
     def _check_contrast(self, slide, si, issues):
         slide_bg = self._shape_bg(slide)
         for it in self._scan_runs(slide):
@@ -458,7 +490,9 @@ class Audit:
             size = it["size"]
             if not col or not size:
                 continue
-            bg = self._shape_fill(it["shape"]) or slide_bg
+            bg = (self._shape_fill(it["shape"])
+                  or self._decor_fill_at(slide, it["shape"])
+                  or slide_bg)
             large = size >= 18 or (size >= 14 and it["bold"])
             threshold = 3.0 if large else 4.5
             r, g, b = hex_to_rgb(col)

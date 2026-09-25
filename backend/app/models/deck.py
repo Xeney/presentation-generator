@@ -73,7 +73,7 @@ class Block(BaseModel):
     """Блок контента внутри слайда-контента."""
 
     kind: Literal[
-        "bullets", "text", "factoids", "table", "chart",
+        "bullets", "numbered", "text", "factoids", "table", "chart",
         "quote", "steps", "columns", "image",
     ] = "text"
     title: Optional[str] = Field(default=None, max_length=80)

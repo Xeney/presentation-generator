@@ -61,6 +61,41 @@ def test_widget_is_chosen_by_payload(block, expected):
     assert LayoutEngine.widget_for(block) == expected
 
 
+def test_numbered_widget_uses_real_autonumber(profile_of, render_variants,
+                                               synthetic_template):
+    """kind=numbered рисуется настоящей нумерацией PowerPoint, а не текстом «1.»."""
+    deck = Deck(title="Проба нумерации", slides=[
+        Slide(slide_type=SlideType.TITLE, heading="Титул презентации"),
+        Slide(slide_type=SlideType.CONTENT, heading="Этапы реализации",
+              blocks=[Block(kind="numbered", items=[
+                  "Подключить 10 отделов", "Внедрить ML-предсказания",
+                  "Обучить пользователей"])]),
+        Slide(slide_type=SlideType.FINAL, heading="Финал презентации"),
+    ])
+    profile = profile_of(synthetic_template)
+    pptx = render_variants(profile, deck, synthetic_template)["compact"]
+
+    prs = Presentation(io.BytesIO(pptx))
+    from pptx.oxml.ns import qn
+
+    numbers = 0
+    texts = []
+    for shape in prs.slides[1].shapes:
+        if not getattr(shape, "has_text_frame", False):
+            continue
+        for paragraph in shape.text_frame.paragraphs:
+            text = "".join(run.text for run in paragraph.runs)
+            if not text.strip():
+                continue
+            texts.append(text)
+            pPr = paragraph._p.find(qn("a:pPr"))
+            if pPr is not None and pPr.find(qn("a:buAutoNum")) is not None:
+                numbers += 1
+    assert numbers == 3, f"ожидались три автонумерованных пункта: {texts}"
+    assert "1." not in " ".join(texts), "номер не должен быть частью текста"
+    assert LayoutEngine.widget_for(Block(kind="numbered", items=["раз"])) == "numbered"
+
+
 def test_empty_block_detection_is_payload_based():
     assert LayoutEngine._empty(Block(kind="bullets", items=["Тезис"])) is False
     assert LayoutEngine._empty(Block(kind="factoids", items=["Рост на 25%"])) is False

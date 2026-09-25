@@ -64,6 +64,10 @@ class LayoutProfile:
     # фирменные элементы макета: колонтитул, номер слайда, дата, логотип.
     # Позиции нужны аудиту, чтобы заметить сдвиг (проверка branding_shifted).
     branding: list[dict] = field(default_factory=list)
+    # декор макета и мастера с заливками: нужен рендереру и аудиту, чтобы
+    # понимать, на каком фоне окажется текст (на тёмной плашке шаблона тёмный
+    # текст не читается) — проверка contrast_too_low и выбор цвета текста
+    decor: list[dict] = field(default_factory=list)
     has_logo: bool = False
     style_sample: dict = field(default_factory=dict)
 

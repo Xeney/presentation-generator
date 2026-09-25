@@ -196,7 +196,8 @@ class FallbackPlanner:
                             ),
                         ))
             elif stype == SlideType.SECTION:
-                blocks.append(Block(kind="text", text=digest[:260]))
+                # короткий тезис: длинный абзац не влезает в рамку разделителя
+                blocks.append(Block(kind="text", text=digest[:150]))
             elif stype == SlideType.FINAL:
                 blocks.append(Block(kind="text", text="Спасибо за внимание. Готовы ответить на вопросы."))
             slides.append(Slide(

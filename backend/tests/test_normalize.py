@@ -114,6 +114,54 @@ def test_short_heading_is_replaced():
     assert any("подставлен заголовок" in fix for fix in fixes)
 
 
+def test_empty_block_is_dropped():
+    """Модель назвала тип, но данных не дала — иначе получится пустой слайд."""
+    data = _deck(slides=[
+        {"slide_type": "title", "heading": "Титул презентации"},
+        {"slide_type": "content", "heading": "Пустой блок",
+         "blocks": [{"kind": "quote"}, {"kind": "bullets", "items": ["Тезис"]}]},
+        {"slide_type": "final", "heading": "Финал презентации"},
+    ])
+    data, fixes = normalize_deck(data)
+    assert [block["kind"] for block in data["slides"][1]["blocks"]] == ["bullets"]
+    assert any("пустой блок" in fix for fix in fixes)
+
+
+def test_duplicate_items_are_collapsed():
+    data = _deck(slides=[
+        {"slide_type": "title", "heading": "Титул презентации"},
+        {"slide_type": "content", "heading": "Синергия метрик",
+         "blocks": [{"kind": "bullets", "items": [
+             "Рост выручки на 25%", "рост выручки на 25%!",
+             "Охват — 5 отделов", "Рост выручки на 25%"][:4]}]},
+        {"slide_type": "final", "heading": "Финал презентации"},
+    ])
+    data, fixes = normalize_deck(data)
+    items = data["slides"][1]["blocks"][0]["items"]
+    assert items == ["Рост выручки на 25%", "Охват — 5 отделов"]
+    assert any("дубликаты пунктов" in fix for fix in fixes)
+
+
+def test_long_text_becomes_bullets():
+    long_text = ("Платформа сократила время отчётов на 40%. "
+                 "Автоматизированы 12 рутинных задач. Охват вырос до 5 подразделений. "
+                 "План — подключить 10 отделов к концу года и внедрить предсказания "
+                 "выручки, чтобы снизить стоимость отчётности ещё на четверть "
+                 "и высвободить время аналитиков для задач развития.")
+    data = _deck(slides=[
+        {"slide_type": "title", "heading": "Титул презентации"},
+        {"slide_type": "content", "heading": "Длинный абзац",
+         "blocks": [{"kind": "text", "text": long_text}]},
+        {"slide_type": "final", "heading": "Финал презентации"},
+    ])
+    data, fixes = normalize_deck(data)
+    block = data["slides"][1]["blocks"][0]
+    assert block["kind"] == "bullets"
+    assert block["text"] is None
+    assert len(block["items"]) >= 2
+    assert any("длинный абзац разбит" in fix for fix in fixes)
+
+
 def test_garbage_input_is_returned_unchanged():
     for payload in (None, "строка", 42, {}, {"slides": []}, {"slides": "нет"}):
         data, fixes = normalize_deck(payload)

@@ -15,8 +15,9 @@ from statistics import median
 from typing import Optional
 from zipfile import ZipFile
 
+from PIL import Image
 from pptx import Presentation
-from pptx.enum.shapes import PP_PLACEHOLDER
+from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
 from pptx.util import Emu
 
 from .profile import (
@@ -86,6 +87,17 @@ class _RawSlide:
     shapes_geo: list[tuple]         # (x,y,w,h,kind,fill)
     fills: list[str]
     texts: list[dict]
+
+
+def shape_code(shape) -> Optional[int]:
+    """Числовой код типа фигуры.
+
+    `str(shape.shape_type)` даёт «PICTURE (13)», поэтому проверки вида
+    `str(...).endswith("PICTURE")` не срабатывали: картинки и группы макетов
+    не распознавались. Сравниваем числовой код.
+    """
+    shape_type = getattr(shape, "shape_type", None)
+    return getattr(shape_type, "value", shape_type)
 
 
 def _attr(el, tag, attr):
@@ -318,8 +330,7 @@ class TemplateParser:
                 if getattr(shape, "has_chart", False):
                     kinds["charts"] += 1
                     continue
-                shape_type = getattr(shape, "shape_type", None)
-                if shape_type is not None and str(shape_type).endswith("PICTURE"):
+                if shape_code(shape) == MSO_SHAPE_TYPE.PICTURE.value:
                     kinds["pictures"] += 1
                     continue
                 if getattr(shape, "has_text_frame", False) and not shape.is_placeholder:
@@ -480,6 +491,8 @@ class TemplateParser:
                 if not theme.get("fonts"):
                     theme["fonts"] = t["fonts"]
         prof.theme_fonts, prof.theme_colors = theme.get("fonts", {}), theme.get("colors", {})
+        # кэш цветов темы: нужен, чтобы разрешать schemeClr декора в HEX
+        self._theme_colors_cache = prof.theme_colors
 
         # 2. соберём слайды один раз
         raw_slides = self._collect_slides()
@@ -583,6 +596,7 @@ class TemplateParser:
                 role, kind, reason = self._classify_layout(
                     layout.name, layout.slide_master.name, phs, shapes, slide_w, slide_h)
                 branding = self._layout_branding(layout, slide_w, slide_h)
+                decor = self._layout_decor(layout, layout.slide_master, slide_w, slide_h)
                 profs.append(LayoutProfile(
                     id=f"L{idx}",
                     master_id=f"M{self._master_index(layout.slide_master)}",
@@ -597,12 +611,94 @@ class TemplateParser:
                     body=body,
                     columns=columns,
                     branding=branding,
+                    decor=decor,
                     has_logo=any(item["type"] == "logo" for item in branding),
                     style_sample=self._layout_style_sample(layout, by_layout.get(id(layout), [])),
                 ))
             except Exception:
                 continue
         return profs
+
+    def _layout_decor(self, layout, master, slide_w: float, slide_h: float) -> list[dict]:
+        """Фоновые и декоративные фигуры макета и мастера вместе с заливками.
+
+        Рендерер использует их, чтобы понять, на каком фоне окажется текст:
+        на тёмной плашке шаблона тёмный текст не читается. Аудит — чтобы
+        проверить контраст к фактическому фону, а не к белому.
+        """
+        out: list[dict] = []
+        min_area = 0.005 * slide_w * slide_h  # отсекаем направляющие и линии
+        for source, container in (("master", master), ("layout", layout)):
+            for shape in self._walk_shapes(container):
+                try:
+                    if shape.is_placeholder:
+                        continue
+                    geo = self._shape_geo(shape)
+                    if geo is None or geo[2] * geo[3] < min_area:
+                        continue
+                    is_picture = shape_code(shape) == MSO_SHAPE_TYPE.PICTURE.value
+                    fill = self._shape_fill_hex(shape)
+                    if fill and fill.startswith("scheme:"):
+                        fill = self._resolve_scheme_name(fill)
+                    if not fill and is_picture:
+                        # у картинки заливки нет: берём доминирующий цвет изображения,
+                        # иначе под тёмным фото текст останется нечитаемым
+                        fill = self._picture_color(shape)
+                    if not fill and not is_picture:
+                        continue  # фигура без заливки фон не меняет
+                    out.append({
+                        "source": source, "name": shape.name,
+                        "x": geo[0], "y": geo[1], "w": geo[2], "h": geo[3],
+                        "fill": fill, "is_picture": is_picture,
+                    })
+                except Exception:  # noqa: BLE001
+                    continue
+        return out
+
+    @staticmethod
+    def _walk_shapes(container):
+        """Фигуры с разворотом групп: декор VK лежит именно в группах."""
+        try:
+            shapes = list(container.shapes)
+        except Exception:  # noqa: BLE001
+            return
+        for shape in shapes:
+            try:
+                is_group = shape_code(shape) == MSO_SHAPE_TYPE.GROUP.value
+            except Exception:  # noqa: BLE001
+                is_group = False
+            if is_group:
+                yield from TemplateParser._walk_shapes(shape)
+            else:
+                yield shape
+
+    @staticmethod
+    def _picture_color(shape) -> Optional[str]:
+        """Доминирующий цвет картинки по НЕПРОЗРАЧНЫМ пикселям.
+
+        Декор шаблонов часто экспортирован как PNG с прозрачным фоном: если
+        скомпоновать его на чёрном (как делает convert("RGB")), доминирующим
+        окажется чёрный, и текст на светлом слайде станет белым.
+        """
+        try:
+            from ..render.images import dominant_color
+
+            image = shape.image
+            with Image.open(io.BytesIO(image.blob)) as img:
+                rgba = img.convert("RGBA")
+                pixels = [(r, g, b) for r, g, b, alpha in rgba.getdata() if alpha > 200]
+                if not pixels:
+                    return None
+                opaque = Image.new("RGB", (len(pixels), 1))
+                opaque.putdata(pixels)
+                return dominant_color(opaque)
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _resolve_scheme_name(self, value: str) -> Optional[str]:
+        """«scheme:accent1» → HEX из темы (тема читается первой)."""
+        name = value.split(":", 1)[1] if ":" in value else value
+        return self._theme_colors_cache.get(name) if hasattr(self, "_theme_colors_cache") else None
 
     def _layout_branding(self, layout, slide_w: float, slide_h: float) -> list[dict]:
         """Фирменные элементы макета и их координаты: колонтитулы, номер, логотип.
@@ -623,8 +719,7 @@ class TemplateParser:
                         out.append({"name": shape.name, "type": info.type,
                                     "x": geo[0], "y": geo[1], "w": geo[2], "h": geo[3]})
                     continue
-                shape_type = getattr(shape, "shape_type", None)
-                if shape_type is not None and str(shape_type).endswith("PICTURE"):
+                if shape_code(shape) == MSO_SHAPE_TYPE.PICTURE.value:
                     if geo[2] * geo[3] <= 0.04 * slide_area:
                         out.append({"name": shape.name, "type": "logo",
                                     "x": geo[0], "y": geo[1], "w": geo[2], "h": geo[3]})

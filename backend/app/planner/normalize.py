@@ -19,6 +19,50 @@ BLOCK_KINDS = {"bullets", "text", "factoids", "table", "chart", "quote", "steps"
 MAX_SLIDES = 15
 MAX_BLOCKS = 6
 MAX_ITEMS = 6
+# абзац длиннее не влезает в рамку макета при крупной типографической шкале
+MAX_TEXT_CHARS = 180
+
+
+def _has_payload(block: dict) -> bool:
+    """Есть ли в блоке хоть какие-то данные (иначе он станет пустым слайдом)."""
+    return bool(block.get("items") or block.get("text") or block.get("factoids")
+                or block.get("table") or block.get("chart")
+                or block.get("quote_text") or block.get("image_ref")
+                or block.get("image_prompt"))
+
+
+def _dedupe_items(items: list) -> list:
+    """Убирает повторы пунктов, сравнивая текст без регистра и пунктуации."""
+    import re
+
+    def key(item) -> str:
+        text = item if isinstance(item, str) else str(item)
+        return re.sub(r"[\W_]+", "", text.lower())
+
+    seen: set[str] = set()
+    out: list = []
+    for item in items:
+        item_key = key(item)
+        if not item_key or item_key in seen:
+            continue
+        seen.add(item_key)
+        out.append(item)
+    return out
+
+
+def _split_sentences(text: str, limit: int) -> list[str]:
+    """Режет абзац на предложения (не больше limit штук)."""
+    import re
+
+    parts = [part.strip(" .") for part in re.split(r"(?<=[.!?;])\s+", text or "")]
+    parts = [part for part in parts if len(part) > 8]
+    if not parts:
+        return [text]
+    if len(parts) > limit:
+        head = parts[:limit - 1]
+        tail = " ".join(parts[limit - 1:])
+        return [*head, tail]
+    return parts
 
 
 def normalize_deck(data: Any, *, max_slides: int = MAX_SLIDES) -> tuple[Any, list[str]]:
@@ -78,10 +122,40 @@ def normalize_deck(data: Any, *, max_slides: int = MAX_SLIDES) -> tuple[Any, lis
                     fixes.append(f"слайд {index + 1}: удалён блок без данных")
                     continue
                 fixes.append(f"слайд {index + 1}: неизвестный тип блока заменён")
+            elif not _has_payload(block):
+                # модель назвала тип, но данных не дала: пустой блок превратился бы
+                # в пустой слайд, поэтому выбрасываем его сразу
+                fixes.append(f"слайд {index + 1}: удалён пустой блок «{kind}»")
+                continue
+            # одинаковые пункты (в т.ч. различающиеся только регистром и знаками)
+            # схлопываем: модель иногда дублирует список целиком
+            items = block.get("items")
+            if isinstance(items, list) and items:
+                unique = _dedupe_items(items)
+                if len(unique) != len(items):
+                    fixes.append(f"слайд {index + 1}: убраны дубликаты пунктов "
+                                 f"({len(items) - len(unique)})")
+                    block["items"] = unique
             items = block.get("items")
             if isinstance(items, list) and len(items) > MAX_ITEMS:
                 block["items"] = items[:MAX_ITEMS]
                 fixes.append(f"слайд {index + 1}: буллетов оставлено {MAX_ITEMS}")
+            text = block.get("text")
+            if isinstance(text, str) and len(text) > MAX_TEXT_CHARS:
+                # длинный абзац не влезает в рамку макета: у шаблонов с крупной
+                # шкалой (например, 32 pt минимум) он обрезается краем слайда.
+                # Разбиваем на короткие пункты — их вместимость проверяется аудитом.
+                sentences = _split_sentences(text, MAX_ITEMS)
+                if len(sentences) >= 2:
+                    block["kind"] = "bullets"
+                    block["items"] = [s[:MAX_TEXT_CHARS] for s in sentences]
+                    block["text"] = None
+                    fixes.append(f"слайд {index + 1}: длинный абзац разбит на "
+                                 f"{len(sentences)} пункта")
+                else:
+                    block["text"] = text[:MAX_TEXT_CHARS].rstrip() + "…"
+                    fixes.append(f"слайд {index + 1}: абзац сокращён до "
+                                 f"{MAX_TEXT_CHARS} символов")
             cleaned.append(block)
         if len(cleaned) > MAX_BLOCKS:
             fixes.append(f"слайд {index + 1}: блоков оставлено {MAX_BLOCKS}")

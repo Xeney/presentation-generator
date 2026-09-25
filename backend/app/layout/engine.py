@@ -255,7 +255,9 @@ class LayoutEngine:
         if b.chart is not None and b.chart.series:
             return "chart"
         if b.items:
-            return "steps" if b.kind == "steps" else "bullets"
+            if b.kind in ("steps", "numbered"):
+                return b.kind
+            return "bullets"
         if b.quote_text:
             return "quote"
         if b.text:

@@ -36,6 +36,9 @@ A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 # аудит использует его для проверки image_missing
 IMAGE_SLOT_NAME = "image_slot"
 
+# нумерованных пунктов на слайде — не больше, чем буллетов
+MAX_NUMBERED_ITEMS = 6
+
 CHART_MAP = {
     ChartType.BAR: XL_CHART_TYPE.BAR_CLUSTERED,
     ChartType.COLUMN: XL_CHART_TYPE.COLUMN_CLUSTERED,
@@ -108,6 +111,8 @@ class Renderer:
         self.images = images or {}
         # сдвиг по типографической шкале для текущего слайда (авто-фикс кегля)
         self._size_step = 0
+        # макет текущего слайда: из него берём декор для выбора цвета текста
+        self._layout: dict = {}
 
     # ------------------------------------------------------------- layout choice
     @staticmethod
@@ -322,6 +327,7 @@ class Renderer:
         return None
 
     def _draw_slide(self, slide, sl: Slide, layout: dict, items: list[dict]) -> None:
+        self._layout = layout
         self._draw_title(slide, sl, layout)
         for it in items:
             try:
@@ -336,9 +342,8 @@ class Renderer:
             rect = Rect(g.get("body_x", 0.5), 0.35,
                         self.profile["slide_size"]["w_in"] - g.get("body_x", 0.5) - g.get("margin_right", 0.5),
                         0.75)
-        dc = self.profile
         size = max(12.0, min(48.0, self._scale_pick("title", 28.0)))
-        color = self._text_color()
+        color = self._text_on(rect)
         for ph in slide.placeholders:
             if ph.placeholder_format.type in (1, 3):
                 self._style_placeholder(ph, sl.heading, size, color,
@@ -359,7 +364,8 @@ class Renderer:
             rr = stf.paragraphs[0].add_run()
             rr.text = sl.subheading
             self._set_run_font(rr, self._body_font(), max(11.0, size * 0.5), False,
-                          self._text_color())
+                               self._text_on(Rect(rect.x, rect.y + rect.h * 0.9,
+                                                  rect.w, 0.5)))
 
     def _style_placeholder(self, ph, text: str, size: float, color: str, headline_bold: bool):
         tf = ph.text_frame
@@ -376,6 +382,8 @@ class Renderer:
         rect = Rect(**it["rect"])
         if widget == "bullets":
             self._draw_bullets(slide, it, rect)
+        elif widget == "numbered":
+            self._draw_numbered(slide, it, rect)
         elif widget == "text":
             self._draw_text_block(slide, it, rect)
         elif widget == "paragraph":
@@ -439,6 +447,55 @@ class Renderer:
         except Exception:  # noqa: BLE001 — при сбое остаётся тёмный текст шаблона
             pass
         return dark
+
+    # ------------------------------------------------- фон под блоком и цвет
+    def _decor_at(self, rect: Rect) -> Optional[str]:
+        """Доминирующая заливка декора макета под прямоугольником (иначе None).
+
+        Декор наследуется от макета и мастера, поэтому в PPTX его не видно в
+        фигурах слайда — но именно он определяет, читается ли текст: на тёмной
+        плашке шаблона тёмный текст пропадает.
+        """
+        layout = self._layout or {}
+        best_fill, best_ratio = None, 0.0
+        area = rect.w * rect.h
+        if area <= 0:
+            return None
+        for item in layout.get("decor", []) or []:
+            fill = item.get("fill")
+            if not fill:
+                continue
+            left = max(rect.x, float(item.get("x", 0.0)))
+            top = max(rect.y, float(item.get("y", 0.0)))
+            right = min(rect.right, float(item.get("x", 0.0)) + float(item.get("w", 0.0)))
+            bottom = min(rect.bottom, float(item.get("y", 0.0)) + float(item.get("h", 0.0)))
+            if right <= left or bottom <= top:
+                continue
+            ratio = ((right - left) * (bottom - top)) / area
+            if ratio > best_ratio:
+                best_fill, best_ratio = fill, ratio
+        return best_fill if best_ratio >= 0.35 else None
+
+    def _text_on(self, rect: Rect) -> str:
+        """Цвет текста, читаемый на фактическом фоне под блоком."""
+        return self._readable_text(self._decor_at(rect) or self._bg_color())
+
+    def _accent_on(self, rect: Rect) -> str:
+        """Акцентный цвет, читаемый на фоне под блоком.
+
+        На тёмной плашке шаблона синий акцент почти сливается с фоном —
+        тогда берём читаемый нейтральный цвет.
+        """
+        from .images import contrast_ratio
+
+        accent = self._accent_color() or self._text_on(rect)
+        background = self._decor_at(rect) or self._bg_color()
+        try:
+            if contrast_ratio(accent, background) >= 3.0:
+                return accent
+        except Exception:  # noqa: BLE001
+            return accent
+        return self._text_on(rect)
 
     def _headline_font(self) -> str:
         return self.profile.get("headline_font") or self.profile.get("body_font") or "Arial"
@@ -517,8 +574,8 @@ class Renderer:
         inner = rect.padded(pad)
         if block.title and not card:
             inner = self._blk_title(slide, inner, block.title, style)
-        text_color = style.get("text_color") or self._text_color()
-        accent = style.get("accent") or self._accent_color()
+        text_color = self._text_on(inner)
+        accent = self._accent_on(inner)
         body = style.get("body") or self._body_font()
         # подбираем кегль, чтобы влезли все буллеты
         joined = "\n".join(items)
@@ -540,6 +597,58 @@ class Renderer:
             r = p.add_run()
             r.text = item
             self._set_run_font(r, body, size, False, text_color)
+
+    def _draw_numbered(self, slide, it: dict, rect: Rect) -> None:
+        """Нумерованный список настоящей нумерацией PowerPoint.
+
+        Номера рисует сам PowerPoint (`buAutoNum`), а не текст «1.»: список
+        остаётся редактируемым и пересчитывается при вставке пункта.
+        """
+        block: Block = it["block"]
+        style = it.get("style", {})
+        items = (block.items or [])[:MAX_NUMBERED_ITEMS]
+        if not items:
+            return
+        card = style.get("card", False)
+        if card:
+            self._draw_card_bg(slide, rect, style)
+        inner = rect.padded(0.16 if card else 0.04)
+        if block.title and not card:
+            inner = self._blk_title(slide, inner, block.title, style)
+        text_color = self._text_on(inner)
+        accent = self._accent_on(inner)
+        size = self._fit_size("\n".join(items), inner.w, inner.h, default=16.0)
+        tb = slide.shapes.add_textbox(_in(inner.x), _in(inner.y + 0.02),
+                                      _in(inner.w), _in(inner.h))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        tf.vertical_anchor = MSO_ANCHOR.TOP
+        for index, item in enumerate(items):
+            p = _add_para(tf, item, first=index == 0)
+            p.alignment = PP_ALIGN.LEFT
+            p.space_before = Pt(2 if size < 14 else 4)
+            p.line_spacing = 1.05
+            self._set_auto_number(p, accent)
+            run = p.add_run()
+            run.text = item
+            self._set_run_font(run, self._body_font(), size, False, text_color)
+
+    @staticmethod
+    def _set_auto_number(p, accent: str) -> None:
+        """Включает автонумерацию абзаца (1. 2. 3.) в цвете акцента."""
+        pPr = p._pPr if p._pPr is not None else p._p.get_or_add_pPr()
+        pPr.set("marL", "228600")
+        pPr.set("indent", "-228600")
+        for tag in ("buNone", "buChar", "buAutoNum", "buClr", "buSzPct", "buFont"):
+            el = pPr.find(qn(f"a:{tag}"))
+            if el is not None:
+                pPr.remove(el)
+        buClr = pPr.makeelement(qn("a:buClr"), {})
+        buClr.append(pPr.makeelement(qn("a:srgbClr"),
+                                     {"val": (accent or "#888888").lstrip("#")}))
+        pPr.append(buClr)
+        pPr.append(pPr.makeelement(qn("a:buFont"), {"typeface": "Arial"}))
+        pPr.append(pPr.makeelement(qn("a:buAutoNum"), {"type": "arabicPeriod"}))
 
     @staticmethod
     def _set_bullet(p, accent: str, size: float):
@@ -566,8 +675,7 @@ class Renderer:
         tf.word_wrap = True
         r = tf.paragraphs[0].add_run()
         r.text = title
-        self._set_run_font(r, self._headline_font(), size, True,
-                      style.get("accent") or self._accent_color())
+        self._set_run_font(r, self._headline_font(), size, True, self._accent_on(rect))
         return Rect(rect.x, rect.y + 0.42, rect.w, max(0.2, rect.h - 0.42))
 
     def _draw_card_bg(self, slide, rect: Rect, style: dict):
@@ -607,7 +715,7 @@ class Renderer:
         is_sub = data.get("is_sub", False)
         size = self._scale_pick("title", 20.0) * (0.55 if is_sub else 0.8)
         self._set_run_font(r, self._body_font(), max(11, size), False,
-                      style.get("text_color") or self._text_color())
+                           self._text_on(rect))
 
     def _draw_text_block(self, slide, it: dict, rect: Rect) -> None:
         block: Block = it["block"]
@@ -626,8 +734,7 @@ class Renderer:
         size = self._fit_size(text, inner.w, inner.h, default=15.0)
         r = tf.paragraphs[0].add_run()
         r.text = text
-        self._set_run_font(r, self._body_font(), size, False,
-                      style.get("text_color") or self._text_color())
+        self._set_run_font(r, self._body_font(), size, False, self._text_on(inner))
 
     # ---------------------------------------------------------------- factoids
     def _draw_factoids(self, slide, it: dict, rect: Rect) -> None:
@@ -645,8 +752,6 @@ class Renderer:
         cell_w = (rect.w - gap * (cols - 1)) / cols
         cell_h = rect.h / rows
         big = self._scale_pick("title", 34.0) * (0.55 if card else 0.9)
-        accent = style.get("accent") or self._accent_color() or self._text_color()
-        label_c = style.get("text_color") or self._text_color()
         for i, fd in enumerate(items):
             value = fd.get("value", "")
             label = fd.get("label", "")
@@ -656,6 +761,10 @@ class Renderer:
             if card:
                 self._draw_card_bg(slide, cell, style)
                 cell = cell.padded(0.14)
+            # цвет выбирается по фону ПОД этой ячейкой: правая колонка KPI часто
+            # попадает на тёмную плашку макета, где тёмный текст пропадает
+            accent = self._accent_on(cell)
+            label_c = self._text_on(cell)
             tb = slide.shapes.add_textbox(_in(cell.x), _in(cell.y),
                                           _in(cell.w), _in(cell.h * 0.5))
             tf = tb.text_frame
@@ -891,14 +1000,14 @@ class Renderer:
         r = p.add_run()
         r.text = "«" + text + "»"
         self._set_run_font(r, self._headline_font(),
-                      self._fit_size(text, inner.w, inner.h * 0.8, default=20.0),
-                      False, style.get("text_color") or self._text_color(), italic=True)
+                           self._fit_size(text, inner.w, inner.h * 0.8, default=20.0),
+                           False, self._text_on(inner), italic=True)
         if author:
             ap = tf.add_paragraph()
             ap.alignment = PP_ALIGN.LEFT
             ar = ap.add_run()
             ar.text = "— " + author
-            self._set_run_font(ar, self._body_font(), 14, True, accent)
+            self._set_run_font(ar, self._body_font(), 14, True, self._accent_on(inner))
 
     # -------------------------------------------------------------------- steps
     def _draw_steps(self, slide, it: dict, rect: Rect) -> None:
@@ -974,8 +1083,7 @@ class Renderer:
             tf.word_wrap = True
             run = tf.paragraphs[0].add_run()
             run.text = block.image_caption
-            self._set_run_font(run, self._body_font(), 11.0, False,
-                          style.get("text_color") or self._text_color())
+            self._set_run_font(run, self._body_font(), 11.0, False, self._text_on(rect))
 
     def _resolve_image(self, block: Block) -> Optional[bytes]:
         """Ищет байты изображения в реестре контент-пакета по ключам блока."""
