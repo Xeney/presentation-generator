@@ -335,6 +335,15 @@ class Renderer:
             except Exception as e:
                 log.warning("не удалось нарисовать виджет %s: %s", it.get("widget"), e)
 
+    @staticmethod
+    def _is_vertical(shape) -> bool:
+        """Вертикальный текст в рамке (`bodyPr/@vert`: vert, vert270, eaVert…)."""
+        try:
+            body = shape.text_frame._txBody.find(qn("a:bodyPr"))
+            return bool(body is not None and body.get("vert"))
+        except Exception:  # noqa: BLE001
+            return False
+
     def _draw_title(self, slide, sl: Slide, layout: dict) -> None:
         rect = self._title_rect(slide, layout, sl)
         if rect is None:
@@ -346,7 +355,17 @@ class Renderer:
         color = self._text_on(rect)
         for ph in slide.placeholders:
             if ph.placeholder_format.type in (1, 3):
-                self._style_placeholder(ph, sl.heading, size, color,
+                # заголовок подбирается под рамку: длинный в две строки не влезал
+                # в однострочную рамку макета, а в вертикальной рамке (vert270,
+                # шаблон scholar) текст обрезался по высоте
+                vertical = self._is_vertical(ph)
+                box_w = (ph.height if vertical else ph.width) or 0
+                box_h = (ph.width if vertical else ph.height) or 0
+                fitted = self._fit_size(sl.heading,
+                                        max(0.4, box_w / 914400.0 - 0.10),
+                                        max(0.2, box_h / 914400.0 * 0.95),
+                                        default=size, kind="title", min_size=10.0)
+                self._style_placeholder(ph, sl.heading, fitted, color,
                                         headline_bold=True)
                 return
         tb = slide.shapes.add_textbox(_in(rect.x), _in(rect.y), _in(rect.w), _in(rect.h))
@@ -480,18 +499,23 @@ class Renderer:
         """Цвет текста, читаемый на фактическом фоне под блоком."""
         return self._readable_text(self._decor_at(rect) or self._bg_color())
 
-    def _accent_on(self, rect: Rect) -> str:
+    def _accent_on(self, rect: Rect, large: bool = False) -> str:
         """Акцентный цвет, читаемый на фоне под блоком.
 
-        На тёмной плашке шаблона синий акцент почти сливается с фоном —
-        тогда берём читаемый нейтральный цвет.
+        Порог тот же, что у аудита (WCAG): 3:1 для крупного текста (≥18 pt или
+        ≥14 pt полужирного) и 4.5:1 для обычного. Раньше порог был всегда 3:1, и
+        на шаблонах с промежуточным акцентом (например, бирюзовым #0097A7)
+        мелкий акцентный текст не проходил проверку аудита — теперь акцент
+        используется только там, где он действительно читается, иначе берётся
+        читаемый нейтральный цвет.
         """
         from .images import contrast_ratio
 
         accent = self._accent_color() or self._text_on(rect)
         background = self._decor_at(rect) or self._bg_color()
+        threshold = 3.0 if large else 4.5
         try:
-            if contrast_ratio(accent, background) >= 3.0:
+            if contrast_ratio(accent, background) >= threshold:
                 return accent
         except Exception:  # noqa: BLE001
             return accent
@@ -529,9 +553,26 @@ class Renderer:
         return "#1A1A1A"
 
     def _accent_color(self) -> Optional[str]:
+        """Акцентный цвет шаблона.
+
+        Берём из `DesignContext` (тема → accent1/dk2 → самая насыщенная тёмная
+        краска палитры). Прежняя эвристика «пятый цвет палитры» на Slidesgo-
+        шаблонах возвращала почти белый `#F3F3F3`: контраст с фоном не проходил
+        порог, и акцент на всех слайдах подменялся чёрным текстом.
+        """
+        try:
+            if getattr(self, "_dc_accent", "") == "":
+                from ..layout.engine import DesignContext
+
+                self._dc_accent = DesignContext.from_profile(self.profile).accent or ""
+            if self._dc_accent:
+                return self._dc_accent
+        except Exception:  # noqa: BLE001 — профиль может быть неполным
+            pass
         pal = self._palette()
-        for h in pal[4:]:
-            if h and h.upper() not in ("#000000", "#FFFFFF", "#FFFFFFFF"):
+        for h in pal:
+            if (h and h.upper() not in ("#000000", "#FFFFFF", "#FFFFFFFF")
+                    and _saturation(h) > 0.15):
                 return h
         return pal[1] if len(pal) > 1 else None
 
@@ -554,24 +595,50 @@ class Renderer:
         return "#%02X%02X%02X" % (
             round(ra * (1 - t) + rb * t), round(ga * (1 - t) + gb * t), round(ba * (1 - t) + bb * t))
 
-    def _fit_size(self, text: str, w: float, h: float, default: float,
-                  min_size: float = 9.0) -> float:
-        from ..layout.geometry import fit_font_size, text_height_in
+    def _fit_one_line(self, text: str, w: float, max_h: float, default: float,
+                      min_size: float = 9.0, kind: str = "any") -> Optional[float]:
+        """Максимальный кегль шкалы, при котором текст влезает В ОДНУ строку.
 
-        sizes = self.profile.get("type_scale", {}).get("body") or []
-        candidates = sorted({float(x) for x in sizes if float(x) >= min_size}) or [default]
-        sz, _ = fit_font_size(text, w, h, candidates, min_size=min_size)
-        snapped = self._snap_size(sz)
-        # снап кегля к шкале может округлить вверх и вывести текст за рамку:
-        # в этом случае берём ближайшее значение шкалы, которое влезает
-        if snapped > sz:
-            lower = [c for c in candidates if c < snapped]
-            for candidate in sorted(lower, reverse=True):
-                if text_height_in(text, w, candidate) <= h + 1e-6:
-                    return candidate
-            if lower:
-                return min(lower)
-        return snapped
+        Для крупных значений KPI: без этого «12 задач» набиралось 40-м кеглем
+        и рвалось на три строки внутри карточки.
+        """
+        from ..layout.geometry import lines_needed
+
+        scale = self.profile.get("type_scale", {}) or {}
+        if kind == "any":
+            raw = (scale.get("title") or []) + (scale.get("body") or [])
+        else:
+            raw = scale.get(kind) or []
+        candidates = sorted({float(x) for x in raw if float(x) >= min_size}) or [default]
+        for candidate in sorted(candidates, reverse=True):
+            final = self._snap_size(candidate)
+            if lines_needed(text, w, final) == 1 and final * 1.35 / 72.0 <= max_h:
+                return candidate
+        return None
+
+    def _fit_size(self, text: str, w: float, h: float, default: float,
+                  min_size: float = 9.0, kind: str = "body") -> float:
+        """Максимальный кегль шкалы, при котором текст влезает в рамку.
+
+        Проверяем не сам кандидат, а его итоговый размер после `_set_run_font`:
+        снап к шкале и сдвиг `type_scale_step` (авто-фикс «увеличить/уменьшить
+        шрифт») могут изменить кегль, и тогда текст вылезает за рамку. Так на
+        слайде с `type_scale_step=1` подпись шеврона 14 pt превращалась в 22 pt
+        и наезжала на соседние шевроны.
+        """
+        from ..layout.geometry import text_height_in
+
+        scale = self.profile.get("type_scale", {}) or {}
+        if kind == "any":  # крупное значение KPI может ужаться до кеглей тела
+            raw = (scale.get("title") or []) + (scale.get("body") or [])
+        else:
+            raw = scale.get(kind) or []
+        candidates = sorted({float(x) for x in raw if float(x) >= min_size}) or [default]
+        for candidate in sorted(candidates, reverse=True):
+            final = self._snap_size(candidate)
+            if text_height_in(text, w, final) <= h + 1e-6:
+                return candidate
+        return min(candidates)
 
     # ----------------------------------------------------------------- bullets
     def _draw_bullets(self, slide, it: dict, rect: Rect) -> None:
@@ -686,7 +753,9 @@ class Renderer:
         tf.word_wrap = True
         r = tf.paragraphs[0].add_run()
         r.text = title
-        self._set_run_font(r, self._headline_font(), size, True, self._accent_on(rect))
+        # порог контраста как у аудита: 3:1 для ≥14 pt полужирного
+        self._set_run_font(r, self._headline_font(), size, True,
+                           self._accent_on(rect, large=size >= 14))
         return Rect(rect.x, rect.y + 0.42, rect.w, max(0.2, rect.h - 0.42))
 
     def _draw_card_bg(self, slide, rect: Rect, style: dict):
@@ -772,21 +841,50 @@ class Renderer:
             if card:
                 self._draw_card_bg(slide, cell, style)
                 cell = cell.padded(0.14)
-            # цвет выбирается по фону ПОД этой ячейкой: правая колонка KPI часто
-            # попадает на тёмную плашку макета, где тёмный текст пропадает
-            accent = self._accent_on(cell)
-            label_c = self._text_on(cell)
             # Кегли и рамки считаются от высоты ячейки, а не от половины её:
             # в плотной сетке (несколько блоков на слайде) 30 pt не влезал в
             # рамку 0.25″, текст наезжал на соседние ячейки (аудит: text_overflow).
             # ВАЖНО: кегль снапится к шкале шаблона внутри _set_run_font, поэтому
             # рамку считаем уже от снапнутого размера (иначе 10 pt превращались
             # в 14 pt и текст не влезал).
-            label_size = self._snap_size(max(8.0, big * 0.35))
-            label_h = label_size * 1.35 / 72.0
-            value_size = self._snap_size(max(10.0, min(big, (cell.h - label_h) * 72 / 1.45)))
-            value_h = max(0.24, min(cell.h - 0.10, value_size * 1.35 / 72.0))
-            tb = slide.shapes.add_textbox(_in(cell.x), _in(cell.y),
+            from ..layout.geometry import text_height_in
+
+            # минус внутренние поля текстовой рамки PowerPoint (~0.1″ с каждой
+            # стороны): иначе полужирный Georgia 32 pt «в притирку» переносился
+            # на вторую строку и наезжал на подпись
+            text_w = max(0.5, cell.w - 0.25)
+            label_budget = max(0.18, min(0.5, cell.h * 0.4))
+            label_size = self._fit_size(label or value, text_w, label_budget,
+                                        default=max(8.0, big * 0.35), kind="any",
+                                        min_size=8.0)
+            label_h = max(0.16, min(cell.h * 0.6,
+                                    text_height_in(label, text_w, label_size) + 0.02))
+            # значение подбирается под остаток ячейки С УЧЁТОМ ПЕРЕНОСА: в узкой
+            # карточке «5 подразделений» переносилось на две строки и наезжало
+            # на подпись (аудит: text_overflow). Рамка = оценка высоты текста,
+            # а не «кегль × 1.35»: последнее верно только для одной строки.
+            value_room = max(0.24, cell.h - label_h)
+            one_line = self._fit_one_line(value, text_w, value_room, big,
+                                          min_size=10.0)
+            if one_line:
+                value_size = one_line
+                value_h = max(0.24, value_size * 1.35 / 72.0 + 0.02)
+            else:
+                value_size = self._fit_size(value, text_w, value_room, default=big,
+                                            kind="any", min_size=10.0)
+                value_h = max(0.24, min(cell.h - 0.10,
+                                        text_height_in(value, text_w, value_size) + 0.02))
+            # цвет выбирается по фону ПОД этой ячейкой: правая колонка KPI часто
+            # попадает на тёмную плашку макета, где тёмный текст пропадает;
+            # порог контраста — как у аудита (крупное значение: 3:1)
+            accent = self._accent_on(cell, large=value_size >= 18)
+            label_c = self._text_on(cell)
+            # группа «значение + подпись» центрируется по ячейке: иначе на KPI-
+            # слайде с одной ячейкой текст прижимался к верхнему краю и низ
+            # слайда оставался пустым (аудит: slide_too_sparse)
+            group_h = value_h + (label_h if label else 0.0)
+            group_y = cell.y + max(0.0, (cell.h - group_h) / 2)
+            tb = slide.shapes.add_textbox(_in(cell.x), _in(group_y),
                                           _in(cell.w), _in(value_h))
             tf = tb.text_frame
             tf.word_wrap = True
@@ -795,7 +893,7 @@ class Renderer:
             r.text = value
             self._set_run_font(r, self._headline_font(), value_size, True, accent)
             if label:
-                lb = slide.shapes.add_textbox(_in(cell.x), _in(cell.y + value_h),
+                lb = slide.shapes.add_textbox(_in(cell.x), _in(group_y + value_h),
                                               _in(cell.w), _in(label_h))
                 ltf = lb.text_frame
                 ltf.word_wrap = True

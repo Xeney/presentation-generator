@@ -794,7 +794,13 @@ class Audit:
             return
         if self._deck is not None and 0 <= si < len(self._deck.slides):
             # титул, раздел, оглавление и финал вправе быть лаконичными
-            if self._deck.slides[si].slide_type != SlideType.CONTENT:
+            model = self._deck.slides[si]
+            if model.slide_type != SlideType.CONTENT:
+                return
+            # слайд-фактоид (одна крупная цифра) и цитата лаконичны по замыслу:
+            # заполненность рамок тут ничего не говорит о качестве вёрстки
+            kinds = {b.kind for b in model.blocks}
+            if kinds and kinds <= {"factoids", "quote"}:
                 return
         area = self._content_area(slide)
         area_emu = ((area[2] * 914400) * (area[3] * 914400)) if area else (self.W * self.H)

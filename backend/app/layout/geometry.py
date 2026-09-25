@@ -44,7 +44,7 @@ class Rect:
         return f"Rect({self.x:.2f},{self.y:.2f},{self.w:.2f}x{self.h:.2f})"
 
 
-CHAR_FACTOR = 0.53   # средняя ширина символа кириллицы относительно кегля
+CHAR_FACTOR = 0.56   # средняя ширина символа кириллицы (с запасом на полужирный)
 LINE_FACTOR = 1.32   # межстрочный интервал относительно кегля
 
 
@@ -62,7 +62,16 @@ def lines_needed(text: str, w_in: float, size_pt: float, bullet_indent: float = 
     lines, cur = 0, 0
     for w in words:
         wl = len(w) + 1
-        if cur + wl > cpl:
+        if wl > cpl:
+            # слово длиннее строки: PowerPoint переносит его на несколько строк,
+            # а не «сжимает» в одну. Без этого «подразделений» считалось одной
+            # строкой, кегль выбирался втрое больше нужного и текст вылезал
+            # из карточки KPI
+            if cur:
+                lines += 1
+                cur = 0
+            lines += math.ceil(wl / cpl)
+        elif cur + wl > cpl:
             lines += 1
             cur = wl
         else:

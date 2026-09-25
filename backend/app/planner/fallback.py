@@ -76,6 +76,20 @@ def metric_value(text: str) -> Optional[float]:
         return None
 
 
+def _comparable(values: list[float], ratio: float = 50.0) -> bool:
+    """Значения сопоставимы для одной диаграммы (нет разброса на порядки).
+
+    Брифы часто смешивают единицы: 3 города, 150 000 человек, 870 руб., 18 %.
+    На одной шкале столбцы нечитаемы — «3» и «870» не видно рядом с «150 000»,
+    а подписи наезжают друг на друга. Диаграмму в этом случае не строим:
+    фактоиды остаются и читаются как KPI.
+    """
+    positive = [abs(v) for v in values if v]
+    if len(positive) < 3:
+        return False
+    return max(positive) / max(1e-9, min(positive)) <= ratio
+
+
 def _sentences(text: str, limit: int = 30) -> list[str]:
     parts = [re.sub(r"\s+", " ", s).strip(" .") for s in re.split(r"(?<=[.!?])\s+|\n", text)]
     return [s for s in parts if len(s) > 8][:limit]
@@ -94,10 +108,21 @@ def _find_metrics(brief: str) -> list[str]:
 
 
 def _title_text(brief: str) -> str:
+    """Заголовок обложки: первая фраза брифа, но короткая (до 60 символов).
+
+    Бриф часто начинается перечислением метрик («...на 40%, автоматизировала
+    12 задач, охватила 5 подразделений»). В рамке титульного макета такая фраза
+    обрезается (аудит: text_overflow), поэтому берём часть до запятой/двоеточия.
+    """
     first = _sentences(brief, 1)
-    if first:
-        return first[0][:100]
-    return brief.strip()[:100] or "Презентация проекта"
+    sentence = (first[0] if first else brief.strip()) or "Презентация проекта"
+    if len(sentence) <= 60:
+        return sentence
+    for sep in (",", ":", " — ", " - ", ";", "("):
+        head = sentence.split(sep)[0].strip()
+        if 20 <= len(head) <= 60:
+            return head
+    return sentence[:57].rstrip(" ,;:—-") + "…"
 
 
 def _bullet_items(brief: str, source: str, n: int = 5) -> list[str]:
@@ -143,7 +168,11 @@ class FallbackPlanner:
             Slide(
                 slide_type=SlideType.TITLE,
                 heading=title[:100],
-                subheading=f"{self.purposes['purposes'].get(purpose, 'Проект')} — краткий обзор",
+                # подзаголовок — суть брифа, а не шаблонная фраза: на обложке
+                # «проект: цели, объём, команда, сроки — краткий обзор» выглядит
+                # заполнителем и ничего не сообщает (визуальный чек-лист, п. 1)
+                subheading=(digest[:150] or
+                            f"{self.purposes['purposes'].get(purpose, 'Проект')}"),
                 blocks=[],
             )
         ]
@@ -183,7 +212,8 @@ class FallbackPlanner:
                     numeric = [(metric, metric_value(metric)) for metric in metrics]
                     numeric = [(metric, value) for metric, value in numeric
                                if value is not None]
-                    if has_metrics and len(numeric) >= 3:
+                    if (has_metrics and len(numeric) >= 3
+                            and _comparable([value for _, value in numeric])):
                         blocks.append(Block(
                             kind="chart",
                             title="Ключевые показатели из брифа",

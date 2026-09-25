@@ -6,11 +6,11 @@
       "id": "planner/system",
       "kind": "prompt",
       "agent": "planner",
-      "version": "1.4",
+      "version": "1.5",
       "path": "planner/system.md",
       "model": "qwen2.5:7b-instruct",
       "purpose": "роль, жёсткие правила содержания и формат ответа планировщика колоды",
-      "hash": "62150650a884a3bc"
+      "hash": "cf6b8a86dedc7fd9"
     },
     {
       "id": "planner/user",
