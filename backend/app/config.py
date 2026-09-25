@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     aitunnel_max_tokens: int = 4096
     # эмбеддинги AITUNNEL (для смысловой части grounding без локальной BGE-M3)
     aitunnel_embedding_model: str = "qwen3-embedding-8b"
+    # запасная модель планирования: подключается, если основная не дала валидную
+    # колоду (например, qwen3.5-27b — тоже открытые веса, ≤ 35B)
+    aitunnel_fallback_model: str = "qwen3.5-27b"
 
     # DEMO_MODE=true — без тихого отката: если модель недоступна, задание
     # завершается понятной ошибкой, а не офлайн-колодой (для живого демо).
@@ -141,6 +144,14 @@ class Settings(BaseSettings):
         # без внешних эмбеддингов смысловая часть grounding работает на локальной
         # BGE-M3, а числа проверяются всегда
         return self.embedding_model
+
+    @property
+    def fallback_llm_model(self) -> str:
+        """Запасная модель планирования (пусто, если не задана или совпадает)."""
+        if self.active_llm_provider == "aitunnel" and self.aitunnel_fallback_model \
+                and self.aitunnel_fallback_model != self.aitunnel_llm_model:
+            return self.aitunnel_fallback_model
+        return ""
 
     @property
     def planner_label(self) -> str:

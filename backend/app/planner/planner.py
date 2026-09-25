@@ -15,6 +15,7 @@ from ..config import get_settings
 from ..models.deck import Deck
 from .fallback import FallbackPlanner
 from .llm import LlmError, OllamaClient, get_llm_client
+from .normalize import describe, normalize_or_report
 
 log = logging.getLogger("planner")
 
@@ -26,12 +27,14 @@ class PlanningResult:
     """Результат планирования: колода плюс сведения о том, кто её собрал."""
 
     def __init__(self, deck: Deck, used_llm: bool, attempts: int,
-                 provider: str = "offline", model: str = ""):
+                 provider: str = "offline", model: str = "",
+                 normalizations: list[str] | None = None):
         self.deck = deck
         self.used_llm = used_llm
         self.attempts = attempts
         self.provider = provider
         self.model = model
+        self.normalizations = normalizations or []
 
     @property
     def label(self) -> str:
@@ -43,7 +46,7 @@ class PlanningResult:
     def to_dict(self) -> dict:
         return {"used_llm": self.used_llm, "attempts": self.attempts,
                 "provider": self.provider, "model": self.model,
-                "label": self.label}
+                "label": self.label, "normalizations": self.normalizations}
 
 
 def _profile_summary(profile: dict) -> str:
@@ -114,51 +117,63 @@ class Planner:
         user = self._render_user(brief, source, purpose, profile, corpus)
         system = self._load_prompt("system.md")
         model = self.settings.active_llm_model
+        attempts = 0
         for attempt in range(1, self.settings.planner_llm_max_retries + 1):
-            try:
-                raw = self.llm.generate_text(user, system, model=model, temperature=0.3,
-                                             format_schema=self._schema_dict())
-            except LlmError as exc:
-                # провайдер отказал: постоянные ошибки (ключ, баланс, доступ к
-                # модели) и таймауты не повторяем — бюджет 5 минут важнее
-                last_error = str(exc)
-                log.warning("LLM недоступна (попытка %s): %s", attempt, exc)
-                if not exc.retryable:
-                    break
-                if attempt < self.settings.planner_llm_max_retries:
-                    time.sleep(2.0)
-                    continue
-                break
-            data = self.llm._parse_json(raw)
-            if data is None or self._looks_like_schema(data):
-                log.warning("LLM вернула не данные, а %s (попытка %s)",
-                            "схему" if data else "не JSON", attempt)
-                last_error = "ответ модели не является колодой"
-                user += ("\n\nНе возвращай JSON-схему и пояснения. Верни ДАННЫЕ: "
-                         "объект с полями title, language, slides — как в примере "
-                         "реальной колоды.")
-                continue
-            try:
-                deck = Deck.model_validate(data)
+            attempts = attempt
+            deck, fixes, error, fatal = self._attempt(user, system, model)
+            if deck is not None:
                 log.info("LLM-планировщик %s: колода из %s слайдов (попытка %s)",
                          label, len(deck.slides), attempt)
                 return PlanningResult(deck, used_llm=True, attempts=attempt,
                                       provider=self.settings.active_llm_provider,
-                                      model=model)
-            except Exception as exc:
-                last_error = f"ответ не прошёл валидацию: {str(exc)[:200]}"
-                log.warning("LLM не прошёл Pydantic-валидацию (попытка %s): %s",
-                            attempt, str(exc)[:300])
-                user += (
-                    "\n\nПоследняя попытка не прошла валидацию. Ошибки:\n"
-                    + str(exc)[:800]
-                    + "\nВерни исправленный JSON строго по схеме."
-                )
+                                      model=model, normalizations=fixes)
+            last_error = error
+            log.warning("LLM-планировщик (попытка %s, %s): %s", attempt, model, error)
+            if fatal:
+                # постоянная ошибка (ключ, баланс, доступ к модели, таймаут):
+                # повторять бессмысленно и дорого
+                break
+            user += ("\n\nПредыдущий ответ отклонён: " + error
+                     + "\nВерни исправленный JSON строго по схеме и ограничениям.")
+
+        # запасная модель: одна попытка более крупной моделью того же провайдера
+        fallback_model = self.settings.fallback_llm_model
+        if fallback_model and not self.settings.demo_mode:
+            log.info("пробуем запасную модель %s", fallback_model)
+            deck, fixes, error, _ = self._attempt(user, system, fallback_model)
+            if deck is not None:
+                return PlanningResult(deck, used_llm=True, attempts=attempts + 1,
+                                      provider=self.settings.active_llm_provider,
+                                      model=fallback_model, normalizations=fixes)
+            last_error = f"{fallback_model}: {error}"
+            log.warning("запасная модель не помогла: %s", error)
 
         if self.settings.demo_mode:
             raise LlmError(f"DEMO_MODE: планировщик {label} не дал валидную колоду "
                            f"({last_error}); офлайн-fallback отключён")
         log.info("LLM-планировщик исчерпал попытки — офлайн-fallback (%s)", last_error)
         return PlanningResult(self.fallback.plan(brief, source, purpose, corpus=corpus),
-                              used_llm=False,
-                              attempts=self.settings.planner_llm_max_retries)
+                              used_llm=False, attempts=attempts)
+
+    def _attempt(self, user: str, system: str, model: str
+                 ) -> tuple[Optional[Deck], list[str], str, bool]:
+        """Одна попытка получить колоду: запрос → нормализация → валидация.
+
+        Возвращает (колода, правки нормализации, текст ошибки, фатальная ли ошибка).
+        """
+        try:
+            raw = self.llm.generate_text(user, system, model=model, temperature=0.3,
+                                         format_schema=self._schema_dict())
+        except LlmError as exc:
+            return None, [], str(exc), not exc.retryable
+        data = self.llm._parse_json(raw)
+        if data is None or self._looks_like_schema(data):
+            return None, [], ("модель вернула схему вместо данных" if data
+                              else "ответ модели не является JSON"), False
+        data, fixes = normalize_or_report(data, max_slides=self.settings.max_slides)
+        if fixes:
+            log.info("LLM-планировщик: нормализация колоды — %s", describe(fixes))
+        try:
+            return Deck.model_validate(data), fixes, "", False
+        except Exception as exc:  # noqa: BLE001 — текст ошибки уходит модели
+            return None, fixes, f"ответ не прошёл валидацию: {str(exc)[:200]}", False

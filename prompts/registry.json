@@ -6,7 +6,7 @@
       "id": "planner/system",
       "kind": "prompt",
       "agent": "planner",
-      "version": "1.2",
+      "version": "1.3",
       "path": "planner/system.md",
       "model": "qwen2.5:7b-instruct",
       "purpose": "роль, жёсткие правила содержания и формат ответа планировщика колоды",
@@ -16,11 +16,11 @@
       "id": "planner/user",
       "kind": "prompt",
       "agent": "planner",
-      "version": "1.2",
+      "version": "1.3",
       "path": "planner/user.md",
       "model": "qwen2.5:7b-instruct",
       "purpose": "шаблон запроса: бриф, контент-пакет, контекст шаблона, JSON-схема, доступные изображения",
-      "hash": "ae91375cb68802dd"
+      "hash": "7143c697d2e264a5"
     },
     {
       "id": "planner/purpose",

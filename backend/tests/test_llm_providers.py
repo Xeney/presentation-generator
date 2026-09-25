@@ -207,10 +207,18 @@ def aitunnel(monkeypatch):
     get_settings.cache_clear()
 
     calls: list[dict] = []
-    state = {"failures": 0, "status": 200, "body": ""}
+    state: dict = {"failures": 0, "status": 200, "body": "", "broken_models": set(),
+                   "schema_echo_models": set()}
 
     def fake_post(url, json=None, headers=None, timeout=None):
         calls.append({"url": url, "headers": headers or {}, "payload": json})
+        model = (json or {}).get("model", "")
+        if model in state.get("schema_echo_models", ()):
+            # модель вернула саму схему вместо данных
+            return _FakeResponse(200, {"choices": [{"message": {
+                "content": '{"$defs": {}, "properties": {}}'}}]})
+        if model in state.get("broken_models", ()):
+            return _FakeResponse(400, text='{"error":"model unavailable"}')
         if state["failures"] > 0:
             state["failures"] -= 1
             return _FakeResponse(503, text='{"error":"temporary"}')
@@ -264,6 +272,50 @@ def test_aitunnel_planner_returns_valid_plan(aitunnel):
     assert len(result.deck.slides) == 3
     assert result.deck.slides[0].slide_type.value == "title"
     assert result.to_dict()["label"] == "aitunnel/qwen3.5-9b"
+
+
+def test_fallback_model_takes_over_when_primary_fails(aitunnel, monkeypatch):
+    """Если основная модель не даёт колоду, пробуем запасную (та же лицензия)."""
+    monkeypatch.setenv("AITUNNEL_FALLBACK_MODEL", "qwen3.5-27b")
+    get_settings.cache_clear()
+    from app.planner.llm import aitunnel_client
+    from app.planner.planner import Planner
+
+    state, calls = aitunnel
+    state["schema_echo_models"] = {"qwen3.5-9b"}
+
+    result = Planner(llm=aitunnel_client()).plan(
+        "Платформа аналитики ускорила отчёты на 40% и охватила 5 подразделений.",
+        "", "project")
+
+    assert result.used_llm is True
+    assert result.model == "qwen3.5-27b"
+    # три попытки основной моделью + одна запасной
+    assert result.attempts == 4
+    assert any(call["payload"].get("model") == "qwen3.5-27b" for call in calls)
+    get_settings.cache_clear()
+
+
+def test_normalization_is_reported_in_result(aitunnel, monkeypatch):
+    """Правки структуры не скрываются: они попадают в результат задания."""
+    from app.planner.llm import aitunnel_client
+    from app.planner.planner import Planner
+
+    state, _ = aitunnel
+    # колода без титульного слайда — нормализация обязана его поставить
+    state["schema_echo_models"] = set()
+    def fake_normalize(data, max_slides=15):
+        slides = list(data["slides"])
+        slides[0] = {**slides[0], "slide_type": "content"}
+        slides.insert(0, {"slide_type": "title", "heading": "Перенесённый титул"})
+        return {**data, "slides": slides}, ["титульный слайд перенесён в начало"]
+
+    monkeypatch.setattr("app.planner.planner.normalize_or_report", fake_normalize)
+    result = Planner(llm=aitunnel_client()).plan(
+        "Платформа аналитики ускорила отчёты на 40%.", "", "project")
+    assert result.normalizations == ["титульный слайд перенесён в начало"]
+    assert result.to_dict()["normalizations"]
+    get_settings.cache_clear()
 
 
 def test_aitunnel_missing_key_is_explained(monkeypatch):
