@@ -20,7 +20,8 @@ services:
         ollama serve &
         sleep 5 &&
         (ollama pull qwen2.5:7b-instruct || true) &&
-        (ollama pull qwen2.5-vl:7b-instruct || true) &&
+        (ollama pull qwen2.5vl:7b || true) &&
+        (ollama pull bge-m3 || true) &&
         touch /tmp/models-ready &&
         wait
     healthcheck:

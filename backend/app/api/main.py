@@ -95,15 +95,23 @@ def health():
     from ..planner.llm import get_llm_client, get_vlm_client
 
     client = get_llm_client()
-    available = False if settings.disable_llm else client.health()
     models: list[str] = []
-    if available and hasattr(client, "list_models"):
+    if hasattr(client, "list_models"):
         try:
             models = client.list_models()
         except Exception:  # noqa: BLE001 — health не должен падать
             models = []
+    available = False if settings.disable_llm else _model_ready(
+        client, settings.active_llm_model, models)
     vlm_client = get_vlm_client()
-    vlm_available = bool(vlm_client) and not settings.disable_llm and vlm_client.health()
+    vlm_models: list[str] = []
+    if vlm_client is not None and hasattr(vlm_client, "list_models"):
+        try:
+            vlm_models = vlm_client.list_models()
+        except Exception:  # noqa: BLE001
+            vlm_models = []
+    vlm_available = bool(vlm_client) and not settings.disable_llm and _model_ready(
+        vlm_client, settings.active_vlm_model, vlm_models)
     return {
         "status": "ok",
         "variants": VARIANTS,
@@ -121,9 +129,25 @@ def health():
             "model": settings.active_vlm_model,
             "available": vlm_available,
             "label": settings.vlm_label,
+            "models": vlm_models,
         },
         "content_formats": ["pptx", "docx", "txt", "md"],
     }
+
+
+def _model_ready(client, model: str, models: list[str]) -> bool:
+    """Провайдер жив и нужная модель есть в наличии.
+
+    Сервер Ollama может отвечать, но модели в нём ещё нет (идёт скачивание или
+    опечатка в теге): тогда провайдер формально доступен, а каждый запрос падает.
+    Наличие модели проверяем по списку, если провайдер его отдаёт.
+    """
+    if client is None or not client.health():
+        return False
+    if not models:
+        return True
+    short = {name.split(":")[0] for name in models}
+    return model in models or model.split(":")[0] in short
 
 
 @app.post("/api/generate")

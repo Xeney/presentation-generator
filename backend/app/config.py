@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://ollama:11434"
     llm_model: str = "qwen2.5:7b-instruct"
     llm_model_14b: str = "qwen2.5:14b-instruct"
-    vlm_model: str = "qwen2.5-vl:7b-instruct"
+    vlm_model: str = "qwen2.5vl:7b"
     embedding_model: str = "bge-m3"
     llm_timeout_s: int = 300
     disable_llm: bool = False

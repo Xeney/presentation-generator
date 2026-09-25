@@ -37,7 +37,7 @@
       "agent": "vlm_auditor",
       "version": "2.0",
       "path": "vlm/system.md",
-      "model": "qwen2.5-vl:7b-instruct",
+      "model": "qwen2.5vl:7b",
       "purpose": "11 вопросов Приложения 1 ТЗ и формат JSON-ответа для недетерминированного аудита",
       "hash": "799c8b467e8dea75"
     },
@@ -47,7 +47,7 @@
       "agent": "vlm_auditor",
       "version": "2.0",
       "path": "vlm/user.md",
-      "model": "qwen2.5-vl:7b-instruct",
+      "model": "qwen2.5vl:7b",
       "purpose": "контекст слайда: номер, язык колоды, заголовки соседей, выжимка исходников",
       "hash": "676666b6b963deb9"
     }

@@ -1,4 +1,4 @@
-# README: сетап, окружение, ограничения
+﻿# README: сетап, окружение, ограничения
 
 > Краткая версия — в корневом [README.md](../README.md). Здесь полный сетап,
 > переменные окружения, ограничения и troubleshooting.
@@ -11,7 +11,7 @@
 | Docker Compose | v2 | профиль `docker-compose.yml` |
 | GPU (опционально) | NVIDIA + `nvidia-container-toolkit` | ускорение LLM/VLM; на CPU работает, но медленнее |
 | Свободное место | ~15 ГБ | образы + модели Ollama |
-| RAM | 16 ГБ минимум | qwen2.5:7b-instruct ≈ 5 ГБ, qwen2.5-vl:7b ≈ 6 ГБ |
+| RAM | 16 ГБ минимум | qwen2.5:7b-instruct ≈ 5 ГБ, qwen2.5vl:7b ≈ 6 ГБ |
 
 Локальный запуск без Docker возможен, но требует Python 3.11 и LibreOffice
 (см. §6). Рекомендуемый путь — Docker.
@@ -42,8 +42,9 @@ Docker: uvicorn + next dev, требуются Python 3.11 и Node 20), `--with-
 | backend | http://localhost:8000 | API (Swagger: `/docs`, health: `/api/health`) |
 | ollama | http://localhost:11434 | локальный инференс LLM/VLM/эмбеддингов |
 
-Первый старт: контейнер `ollama` скачивает `qwen2.5:7b-instruct` и
-`qwen2.5-vl:7b-instruct` (несколько ГБ). Прогресс:
+Первый старт: контейнер `ollama` скачивает `qwen2.5:7b-instruct` (планировщик),
+`qwen2.5vl:7b` (VLM-аудит) и `bge-m3` (эмбеддинги grounding) — суммарно ~12 ГБ.
+Прогресс:
 
 ```bash
 docker compose logs -f ollama
@@ -119,7 +120,7 @@ python tools/import_corpus.py data/templates/content_pack.pptx --text
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | адрес Ollama; в compose подставляется `http://ollama:11434` |
 | `LLM_MODEL` | `qwen2.5:7b-instruct` | планировщик колоды |
 | `LLM_MODEL_14B` | `qwen2.5:14b-instruct` | более сильный планировщик (если есть ресурсы) |
-| `VLM_MODEL` | `qwen2.5-vl:7b-instruct` | недетерминированный аудит слайдов |
+| `VLM_MODEL` | `qwen2.5vl:7b` | недетерминированный аудит слайдов |
 | `EMBEDDING_MODEL` | `bge-m3` | эмбеддинги: дедупликация слайдов, grounding фактов |
 | `DISABLE_LLM` | `false` | `true` — принудительный офлайн-планировщик (dev/CI) |
 | `LLM_TIMEOUT_S` | `300` | таймаут запроса к Ollama |
@@ -216,7 +217,7 @@ uvicorn app.api.main:app --reload --app-dir backend --port 8000
 | В отчёте «планировщик: offline-fallback» при включённом `DEMO_MODE=false` | модель недоступна: смотрите причину в логе (`llm`), при `DEMO_MODE=true` задание завершится ошибкой с тем же текстом |
 | Генерация идёт дольше 5 минут | модели ещё скачиваются (`docker compose logs ollama`) либо нет GPU; проверьте `docker compose exec ollama ollama list` |
 | `LLM: offline-fallback` в отчёте | Ollama недоступна или `DISABLE_LLM=true`; проверьте `GET /api/health` |
-| Пустой результат VLM-аудита | `VLM_AUDIT_ENABLED=false` или модель `qwen2.5-vl:7b-instruct` не скачана |
+| Пустой результат VLM-аудита | `VLM_AUDIT_ENABLED=false` или модель `qwen2.5vl:7b` не скачана |
 | `413 шаблон больше 60 МБ` | поднимите `MAX_UPLOAD_MB` в `.env` |
 | Кириллица в именах файлов искажена в консоли Windows | `chcp 65001` перед запуском команд |
 
