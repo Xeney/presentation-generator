@@ -106,13 +106,20 @@ def all_templates() -> list[tuple[str, bytes]]:
 # --------------------------------------------------------------- помощники
 @pytest.fixture(scope="session")
 def profile_of():
-    """bytes шаблона → dict-профиль дизайн-системы (с кэшем на сессию)."""
+    """bytes шаблона → dict-профиль дизайн-системы (с кэшем на сессию).
+
+    Ключ — sha256 содержимого, а не id(bytes): идентификаторы объектов Python
+    переиспользуются после сборки мусора, и тест мог получить профиль чужого
+    шаблона (плавающий сбой).
+    """
+    import hashlib
+
     from app.template.parser import TemplateParser
 
-    cache: dict[int, dict] = {}
+    cache: dict[str, dict] = {}
 
     def build(template_bytes: bytes) -> dict:
-        key = id(template_bytes)
+        key = hashlib.sha256(template_bytes).hexdigest()
         if key not in cache:
             cache[key] = TemplateParser(template_bytes).parse().to_dict()
         return cache[key]
