@@ -556,11 +556,22 @@ class Renderer:
 
     def _fit_size(self, text: str, w: float, h: float, default: float,
                   min_size: float = 9.0) -> float:
-        from ..layout.geometry import fit_font_size
+        from ..layout.geometry import fit_font_size, text_height_in
+
         sizes = self.profile.get("type_scale", {}).get("body") or []
-        candidates = [float(x) for x in sizes if float(x) >= min_size] or [default]
+        candidates = sorted({float(x) for x in sizes if float(x) >= min_size}) or [default]
         sz, _ = fit_font_size(text, w, h, candidates, min_size=min_size)
-        return self._snap_size(sz)
+        snapped = self._snap_size(sz)
+        # снап кегля к шкале может округлить вверх и вывести текст за рамку:
+        # в этом случае берём ближайшее значение шкалы, которое влезает
+        if snapped > sz:
+            lower = [c for c in candidates if c < snapped]
+            for candidate in sorted(lower, reverse=True):
+                if text_height_in(text, w, candidate) <= h + 1e-6:
+                    return candidate
+            if lower:
+                return min(lower)
+        return snapped
 
     # ----------------------------------------------------------------- bullets
     def _draw_bullets(self, slide, it: dict, rect: Rect) -> None:
@@ -765,22 +776,32 @@ class Renderer:
             # попадает на тёмную плашку макета, где тёмный текст пропадает
             accent = self._accent_on(cell)
             label_c = self._text_on(cell)
+            # Кегли и рамки считаются от высоты ячейки, а не от половины её:
+            # в плотной сетке (несколько блоков на слайде) 30 pt не влезал в
+            # рамку 0.25″, текст наезжал на соседние ячейки (аудит: text_overflow).
+            # ВАЖНО: кегль снапится к шкале шаблона внутри _set_run_font, поэтому
+            # рамку считаем уже от снапнутого размера (иначе 10 pt превращались
+            # в 14 pt и текст не влезал).
+            label_size = self._snap_size(max(8.0, big * 0.35))
+            label_h = label_size * 1.35 / 72.0
+            value_size = self._snap_size(max(10.0, min(big, (cell.h - label_h) * 72 / 1.45)))
+            value_h = max(0.24, min(cell.h - 0.10, value_size * 1.35 / 72.0))
             tb = slide.shapes.add_textbox(_in(cell.x), _in(cell.y),
-                                          _in(cell.w), _in(cell.h * 0.5))
+                                          _in(cell.w), _in(value_h))
             tf = tb.text_frame
             tf.word_wrap = True
             p = tf.paragraphs[0]
             r = p.add_run()
             r.text = value
-            self._set_run_font(r, self._headline_font(), big, True, accent)
+            self._set_run_font(r, self._headline_font(), value_size, True, accent)
             if label:
-                lb = slide.shapes.add_textbox(_in(cell.x), _in(cell.y + cell.h * 0.5),
-                                              _in(cell.w), _in(cell.h * 0.5))
+                lb = slide.shapes.add_textbox(_in(cell.x), _in(cell.y + value_h),
+                                              _in(cell.w), _in(label_h))
                 ltf = lb.text_frame
                 ltf.word_wrap = True
                 lr = ltf.paragraphs[0].add_run()
                 lr.text = label
-                self._set_run_font(lr, self._body_font(), max(11.0, big * 0.35), False, label_c)
+                self._set_run_font(lr, self._body_font(), label_size, False, label_c)
 
     # ------------------------------------------------------------------- table
     def _draw_table(self, slide, it: dict, rect: Rect) -> None:

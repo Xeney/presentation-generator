@@ -342,11 +342,14 @@ class Audit:
             total = tf.text.strip()
             if not total:
                 continue
-            # суммарный кегль: максимум по runs
+            # суммарный кегль: максимум по runs; оценка — в дюймах
             estim = self._estimate_text_h(tf, sh.width)
             # допуск 10%: оценка высоты приблизительная, но заметное переполнение
-            # (когда текст реально обрезается краем рамки) ловиться обязано
-            if estim > 0 and estim > sh.height * 1.10 and sh.height > 0:
+            # (когда текст реально обрезается краем рамки) ловиться обязано.
+            # ВАЖНО: sh.height — в EMU, поэтому сравниваем в одних единицах:
+            # раньше дюймы сравнивались с EMU и проверка не срабатывала никогда.
+            height_in = (sh.height or 0) / 914400.0
+            if estim > 0 and height_in > 0 and estim > height_in * 1.10:
                 issues.append(Issue.at(
                     "text_overflow", "warning", si,
                     f"текст «{total[:40]}…» может не поместиться в «{sh.name}»",
