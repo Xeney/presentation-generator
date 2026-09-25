@@ -72,7 +72,11 @@ class Settings(BaseSettings):
     # общий бюджет стадии: не проверенные слайды честно помечаются
     vlm_audit_budget_s: int = 180
     grounding_enabled: bool = True
-    grounding_off_source_threshold: float = 0.55
+    # порог смысловой близости слайда к источникам. Колода строится по брифу и
+    # пересказывает его своими словами: при пороге 0.55 под предупреждение
+    # попадала почти каждая колода (11 из 15 слайдов), что выглядит как «сервис
+    # сам себя не прошёл». 0.45 ловит действительно посторонние слайды.
+    grounding_off_source_threshold: float = 0.45
     grounding_duplicate_threshold: float = 0.92
 
     # --- Хранилище ---

@@ -122,6 +122,9 @@ class TemplateParser:
         self.counters = Counter()
         self.slide_count = 0
         self.layout_count = 0
+        # кэш доминирующих цветов картинок: одинаковые картинки повторяются
+        # в десятках макетов, без кэша разбор занимал десятки секунд
+        self._picture_colors: dict[str, Optional[str]] = {}
 
     # ------------------------------------------------------------------ helpers
     def _load(self):
@@ -672,26 +675,43 @@ class TemplateParser:
             else:
                 yield shape
 
-    @staticmethod
-    def _picture_color(shape) -> Optional[str]:
+    def _picture_color(self, shape) -> Optional[str]:
         """Доминирующий цвет картинки по НЕПРОЗРАЧНЫМ пикселям.
 
         Декор шаблонов часто экспортирован как PNG с прозрачным фоном: если
         скомпоновать его на чёрном (как делает convert("RGB")), доминирующим
         окажется чёрный, и текст на светлом слайде станет белым.
+
+        Результат кэшируется по хэшу изображения: одни и те же картинки
+        повторяются в десятках макетов, а разбор 39 макетов с картинками
+        занимал почти 30 секунд.
         """
         try:
+            from hashlib import sha1
+
             from ..render.images import dominant_color
 
-            image = shape.image
-            with Image.open(io.BytesIO(image.blob)) as img:
+            blob = shape.image.blob
+            key = sha1(blob).hexdigest()
+            if key in self._picture_colors:
+                return self._picture_colors[key]
+            color = None
+            with Image.open(io.BytesIO(blob)) as img:
                 rgba = img.convert("RGBA")
+                # уменьшаем до 256 px: перебор пикселей полноразмерной картинки
+                # (миллионы точек) занимал секунды на каждый макет
+                if max(rgba.size) > 256:
+                    ratio = 256 / max(rgba.size)
+                    rgba = rgba.resize(
+                        (max(1, round(rgba.width * ratio)),
+                         max(1, round(rgba.height * ratio))), Image.NEAREST)
                 pixels = [(r, g, b) for r, g, b, alpha in rgba.getdata() if alpha > 200]
-                if not pixels:
-                    return None
-                opaque = Image.new("RGB", (len(pixels), 1))
-                opaque.putdata(pixels)
-                return dominant_color(opaque)
+                if pixels:
+                    opaque = Image.new("RGB", (len(pixels), 1))
+                    opaque.putdata(pixels)
+                    color = dominant_color(opaque)
+            self._picture_colors[key] = color
+            return color
         except Exception:  # noqa: BLE001
             return None
 

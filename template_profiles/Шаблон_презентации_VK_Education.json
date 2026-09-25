@@ -145,9 +145,9 @@
       "master_id": "M0",
       "name": "1_Титульный слайд",
       "role": "title",
-      "kind": "bullets",
-      "role_reason": "имя: титульный слайд, блоков 1",
-      "score": 0.85,
+      "kind": "image_text",
+      "role_reason": "имя: титульный слайд с картинкой и текстом",
+      "score": 0.81,
       "placeholders": [
         {
           "idx": 1,
@@ -199,8 +199,39 @@
         "h": 0.6058595800524934
       },
       "columns": [],
-      "branding": [],
-      "has_logo": false,
+      "branding": [
+        {
+          "name": "Google Shape;57;p2",
+          "type": "logo",
+          "x": 0.7204866579177602,
+          "y": 0.7569444444444444,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;53;p2",
+          "x": 6.59794072615923,
+          "y": 0.7646073928258967,
+          "w": 6.743939195100612,
+          "h": 6.743939195100612,
+          "fill": "#FF9DC2",
+          "is_picture": true
+        },
+        {
+          "source": "layout",
+          "name": "Google Shape;57;p2",
+          "x": 0.7204866579177602,
+          "y": 0.7569444444444444,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835,
+          "fill": "#FFFFFF",
+          "is_picture": true
+        }
+      ],
+      "has_logo": true,
       "style_sample": {
         "font": null,
         "sizes": [],
@@ -212,9 +243,9 @@
       "master_id": "M0",
       "name": "3_Титульный слайд",
       "role": "title",
-      "kind": "bullets",
-      "role_reason": "имя: титульный слайд, блоков 1",
-      "score": 0.85,
+      "kind": "image_text",
+      "role_reason": "имя: титульный слайд с картинкой и текстом",
+      "score": 0.81,
       "placeholders": [
         {
           "idx": 1,
@@ -266,8 +297,39 @@
         "h": 0.6058595800524934
       },
       "columns": [],
-      "branding": [],
-      "has_logo": false,
+      "branding": [
+        {
+          "name": "Google Shape;62;p3",
+          "type": "logo",
+          "x": 0.7204866579177602,
+          "y": 0.7569444444444444,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;62;p3",
+          "x": 0.7204866579177602,
+          "y": 0.7569444444444444,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835,
+          "fill": "#FFFFFF",
+          "is_picture": true
+        },
+        {
+          "source": "layout",
+          "name": "Google Shape;63;p3",
+          "x": 9.628001968503938,
+          "y": 0.0,
+          "w": 3.715857392825897,
+          "h": 7.5,
+          "fill": "#ED95BF",
+          "is_picture": true
+        }
+      ],
+      "has_logo": true,
       "style_sample": {
         "font": "Play",
         "sizes": [
@@ -281,9 +343,9 @@
       "master_id": "M0",
       "name": "2_Титульный слайд",
       "role": "title",
-      "kind": "bullets",
-      "role_reason": "имя: титульный слайд, блоков 1",
-      "score": 0.85,
+      "kind": "image_text",
+      "role_reason": "имя: титульный слайд с картинкой и текстом",
+      "score": 0.82,
       "placeholders": [
         {
           "idx": 1,
@@ -335,8 +397,39 @@
         "h": 0.6058595800524934
       },
       "columns": [],
-      "branding": [],
-      "has_logo": false,
+      "branding": [
+        {
+          "name": "Google Shape;68;p4",
+          "type": "logo",
+          "x": 0.7204866579177602,
+          "y": 0.7569444444444444,
+          "w": 3.031824146981627,
+          "h": 0.5354713473315835
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;68;p4",
+          "x": 0.7204866579177602,
+          "y": 0.7569444444444444,
+          "w": 3.031824146981627,
+          "h": 0.5354713473315835,
+          "fill": "#0074F8",
+          "is_picture": true
+        },
+        {
+          "source": "layout",
+          "name": "Google Shape;69;p4",
+          "x": 6.59794072615923,
+          "y": 0.7646073928258967,
+          "w": 6.743939195100612,
+          "h": 6.743939195100612,
+          "fill": "#848AD2",
+          "is_picture": true
+        }
+      ],
+      "has_logo": true,
       "style_sample": {
         "font": null,
         "sizes": [],
@@ -348,9 +441,9 @@
       "master_id": "M0",
       "name": "4_Титульный слайд",
       "role": "title",
-      "kind": "bullets",
-      "role_reason": "имя: титульный слайд, блоков 1",
-      "score": 0.85,
+      "kind": "image_text",
+      "role_reason": "имя: титульный слайд с картинкой и текстом",
+      "score": 0.81,
       "placeholders": [
         {
           "idx": 1,
@@ -402,8 +495,39 @@
         "h": 0.6058595800524934
       },
       "columns": [],
-      "branding": [],
-      "has_logo": false,
+      "branding": [
+        {
+          "name": "Google Shape;72;p5",
+          "type": "logo",
+          "x": 0.7204866579177602,
+          "y": 0.7569444444444444,
+          "w": 3.031824146981627,
+          "h": 0.5354713473315835
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;72;p5",
+          "x": 0.7204866579177602,
+          "y": 0.7569444444444444,
+          "w": 3.031824146981627,
+          "h": 0.5354713473315835,
+          "fill": "#0074F8",
+          "is_picture": true
+        },
+        {
+          "source": "layout",
+          "name": "Google Shape;75;p5",
+          "x": 9.617475940507436,
+          "y": 0.0,
+          "w": 3.715857392825897,
+          "h": 7.5,
+          "fill": "#9667BF",
+          "is_picture": true
+        }
+      ],
+      "has_logo": true,
       "style_sample": {
         "font": null,
         "sizes": [],
@@ -417,7 +541,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "имя: контентный слайд с картинкой и текстом",
-      "score": 0.9,
+      "score": 0.94,
       "placeholders": [
         {
           "idx": 0,
@@ -483,8 +607,29 @@
         "h": 2.3430293088363956
       },
       "columns": [],
-      "branding": [],
-      "has_logo": false,
+      "branding": [
+        {
+          "name": "Google Shape;79;p6",
+          "type": "logo",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;79;p6",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835,
+          "fill": "#FFFFFF",
+          "is_picture": true
+        }
+      ],
+      "has_logo": true,
       "style_sample": {
         "font": null,
         "sizes": [],
@@ -532,6 +677,7 @@
       "body": null,
       "columns": [],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -587,6 +733,18 @@
       "body": null,
       "columns": [],
       "branding": [],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;85;p8",
+          "x": 6.598015091863517,
+          "y": 0.7560608048993875,
+          "w": 6.743939195100612,
+          "h": 6.743939195100612,
+          "fill": "#FFFFFF",
+          "is_picture": true
+        }
+      ],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -638,6 +796,18 @@
       "body": null,
       "columns": [],
       "branding": [],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;88;p9",
+          "x": 9.632524059492564,
+          "y": 0.0,
+          "w": 3.7120450568678915,
+          "h": 7.5,
+          "fill": "#FFFFFF",
+          "is_picture": true
+        }
+      ],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -654,7 +824,7 @@
       "role": "content",
       "kind": "bullets",
       "role_reason": "имя: контентный слайд, блоков 1",
-      "score": 0.95,
+      "score": 1.0,
       "placeholders": [
         {
           "idx": 1,
@@ -707,6 +877,18 @@
       },
       "columns": [],
       "branding": [],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;92;p10",
+          "x": 6.666666666666667,
+          "y": 0.0,
+          "w": 6.666666666666667,
+          "h": 7.5,
+          "fill": "#262626",
+          "is_picture": false
+        }
+      ],
       "has_logo": false,
       "style_sample": {
         "font": "Consolas",
@@ -864,6 +1046,7 @@
           "h": 0.26403871391076117
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -883,7 +1066,7 @@
       "role": "content",
       "kind": "multi_column",
       "role_reason": "нет заголовка, блоков 3",
-      "score": 0.75,
+      "score": 0.797,
       "placeholders": [
         {
           "idx": 1,
@@ -960,6 +1143,7 @@
           "h": 0.26403871391076117
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1050,6 +1234,7 @@
         }
       ],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1066,7 +1251,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "заголовок + картинка + 1 блок(ов)",
-      "score": 0.9,
+      "score": 0.981,
       "placeholders": [
         {
           "idx": 11,
@@ -1154,6 +1339,18 @@
           "y": 0.1837062554680665,
           "w": 11.89236111111111,
           "h": 0.26403871391076117
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;115;p14",
+          "x": 8.2922364391951,
+          "y": 0.4946216097987752,
+          "w": 3.4719936570428698,
+          "h": 6.552253937007874,
+          "fill": "#282827",
+          "is_picture": true
         }
       ],
       "has_logo": false,
@@ -1246,6 +1443,7 @@
         }
       ],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1262,7 +1460,7 @@
       "role": "content",
       "kind": "bullets",
       "role_reason": "имя: контентный слайд, блоков 1",
-      "score": 0.95,
+      "score": 1.0,
       "placeholders": [
         {
           "idx": 1,
@@ -1315,6 +1513,7 @@
       },
       "columns": [],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -1327,9 +1526,9 @@
       "master_id": "M0",
       "name": "Паттерн + фото",
       "role": "content",
-      "kind": "bullets",
-      "role_reason": "заголовок + 1 текстовый блок(ов)",
-      "score": 0.95,
+      "kind": "image_text",
+      "role_reason": "заголовок + картинка + 1 блок(ов)",
+      "score": 0.954,
       "placeholders": [
         {
           "idx": 1,
@@ -1382,6 +1581,18 @@
       },
       "columns": [],
       "branding": [],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;127;p17",
+          "x": 5.835117016622922,
+          "y": 0.0,
+          "w": 7.5155293088363955,
+          "h": 7.4971084864391955,
+          "fill": "#B68884",
+          "is_picture": true
+        }
+      ],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1394,9 +1605,9 @@
       "master_id": "M0",
       "name": "1_Паттерн + фото",
       "role": "content",
-      "kind": "bullets",
-      "role_reason": "заголовок + 1 текстовый блок(ов)",
-      "score": 0.95,
+      "kind": "image_text",
+      "role_reason": "заголовок + картинка + 1 блок(ов)",
+      "score": 0.954,
       "placeholders": [
         {
           "idx": 1,
@@ -1449,6 +1660,18 @@
       },
       "columns": [],
       "branding": [],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;131;p18",
+          "x": 5.832391732283464,
+          "y": 0.0,
+          "w": 7.5,
+          "h": 7.5,
+          "fill": "#AEACA9",
+          "is_picture": true
+        }
+      ],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1463,7 +1686,7 @@
       "role": "final",
       "kind": "bullets",
       "role_reason": "имя: финальный слайд",
-      "score": 0.85,
+      "score": 0.857,
       "placeholders": [
         {
           "idx": 0,
@@ -1529,8 +1752,39 @@
         "h": 0.3888888888888889
       },
       "columns": [],
-      "branding": [],
-      "has_logo": false,
+      "branding": [
+        {
+          "name": "Google Shape;137;p19",
+          "type": "logo",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;133;p19",
+          "x": 6.587107392825897,
+          "y": 0.7569433508311461,
+          "w": 6.746225940507436,
+          "h": 6.746225940507436,
+          "fill": "#005EFF",
+          "is_picture": true
+        },
+        {
+          "source": "layout",
+          "name": "Google Shape;137;p19",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835,
+          "fill": "#FFFFFF",
+          "is_picture": true
+        }
+      ],
+      "has_logo": true,
       "style_sample": {
         "font": null,
         "sizes": [],
@@ -1544,7 +1798,7 @@
       "role": "final",
       "kind": "bullets",
       "role_reason": "имя: финальный слайд",
-      "score": 0.85,
+      "score": 0.857,
       "placeholders": [
         {
           "idx": 0,
@@ -1610,8 +1864,39 @@
         "h": 0.3888888888888889
       },
       "columns": [],
-      "branding": [],
-      "has_logo": false,
+      "branding": [
+        {
+          "name": "Google Shape;142;p20",
+          "type": "logo",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;142;p20",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.0318208661417323,
+          "h": 0.5354713473315835,
+          "fill": "#FFFFFF",
+          "is_picture": true
+        },
+        {
+          "source": "layout",
+          "name": "Google Shape;143;p20",
+          "x": 9.617475940507436,
+          "y": 0.0,
+          "w": 3.715857392825897,
+          "h": 7.5,
+          "fill": "#005EFF",
+          "is_picture": true
+        }
+      ],
+      "has_logo": true,
       "style_sample": {
         "font": null,
         "sizes": [],
@@ -1625,7 +1910,7 @@
       "role": "final",
       "kind": "bullets",
       "role_reason": "имя: финальный слайд",
-      "score": 0.85,
+      "score": 0.857,
       "placeholders": [
         {
           "idx": 0,
@@ -1691,8 +1976,39 @@
         "h": 0.3888888888888889
       },
       "columns": [],
-      "branding": [],
-      "has_logo": false,
+      "branding": [
+        {
+          "name": "Google Shape;148;p21",
+          "type": "logo",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.031824146981627,
+          "h": 0.5354713473315835
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;148;p21",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.031824146981627,
+          "h": 0.5354713473315835,
+          "fill": "#0074F8",
+          "is_picture": true
+        },
+        {
+          "source": "layout",
+          "name": "Google Shape;149;p21",
+          "x": 6.59794072615923,
+          "y": 0.7646073928258967,
+          "w": 6.743939195100612,
+          "h": 6.743939195100612,
+          "fill": "#848AD2",
+          "is_picture": true
+        }
+      ],
+      "has_logo": true,
       "style_sample": {
         "font": null,
         "sizes": [],
@@ -1706,7 +2022,7 @@
       "role": "final",
       "kind": "bullets",
       "role_reason": "имя: финальный слайд",
-      "score": 0.85,
+      "score": 0.857,
       "placeholders": [
         {
           "idx": 0,
@@ -1772,8 +2088,39 @@
         "h": 0.3888888888888889
       },
       "columns": [],
-      "branding": [],
-      "has_logo": false,
+      "branding": [
+        {
+          "name": "Google Shape;154;p22",
+          "type": "logo",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.031824146981627,
+          "h": 0.5354713473315835
+        }
+      ],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;154;p22",
+          "x": 0.7204866579177602,
+          "y": 6.245778652668417,
+          "w": 3.031824146981627,
+          "h": 0.5354713473315835,
+          "fill": "#0074F8",
+          "is_picture": true
+        },
+        {
+          "source": "layout",
+          "name": "Google Shape;155;p22",
+          "x": 9.617475940507436,
+          "y": 0.0,
+          "w": 3.715857392825897,
+          "h": 7.5,
+          "fill": "#9667BF",
+          "is_picture": true
+        }
+      ],
+      "has_logo": true,
       "style_sample": {
         "font": null,
         "sizes": [],
@@ -1821,6 +2168,18 @@
       "body": null,
       "columns": [],
       "branding": [],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;158;p23",
+          "x": 6.598015091863517,
+          "y": 0.7646073928258967,
+          "w": 6.743939195100612,
+          "h": 6.743939195100612,
+          "fill": null,
+          "is_picture": true
+        }
+      ],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1869,6 +2228,18 @@
       "body": null,
       "columns": [],
       "branding": [],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;161;p24",
+          "x": 9.632524059492564,
+          "y": 0.0,
+          "w": 3.7120450568678915,
+          "h": 7.5,
+          "fill": null,
+          "is_picture": true
+        }
+      ],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1883,7 +2254,7 @@
       "role": "content",
       "kind": "bullets",
       "role_reason": "имя: контентный слайд, блоков 1",
-      "score": 0.95,
+      "score": 1.0,
       "placeholders": [
         {
           "idx": 1,
@@ -1936,6 +2307,7 @@
       },
       "columns": [],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2024,6 +2396,7 @@
         }
       ],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2038,7 +2411,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "заголовок + картинка + 1 блок(ов)",
-      "score": 0.9,
+      "score": 0.97,
       "placeholders": [
         {
           "idx": 2,
@@ -2105,6 +2478,7 @@
       },
       "columns": [],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2119,7 +2493,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "заголовок + картинка + 1 блок(ов)",
-      "score": 0.9,
+      "score": 0.97,
       "placeholders": [
         {
           "idx": 2,
@@ -2186,6 +2560,7 @@
       },
       "columns": [],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2200,7 +2575,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "заголовок + картинка + 3 блок(ов)",
-      "score": 0.95,
+      "score": 1.0,
       "placeholders": [
         {
           "idx": 2,
@@ -2302,6 +2677,7 @@
         }
       ],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2350,6 +2726,18 @@
       "body": null,
       "columns": [],
       "branding": [],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;228;p31",
+          "x": 6.598015091863517,
+          "y": 0.7646073928258967,
+          "w": 6.743939195100612,
+          "h": 6.743939195100612,
+          "fill": null,
+          "is_picture": true
+        }
+      ],
       "has_logo": false,
       "style_sample": {
         "font": "Play",
@@ -2401,6 +2789,18 @@
       "body": null,
       "columns": [],
       "branding": [],
+      "decor": [
+        {
+          "source": "layout",
+          "name": "Google Shape;231;p32",
+          "x": 9.632524059492564,
+          "y": 0.0,
+          "w": 3.7120450568678915,
+          "h": 7.5,
+          "fill": null,
+          "is_picture": true
+        }
+      ],
       "has_logo": false,
       "style_sample": {
         "font": "Play",

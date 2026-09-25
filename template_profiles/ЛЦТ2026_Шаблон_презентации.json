@@ -184,7 +184,7 @@
       "role": "title",
       "kind": "image_text",
       "role_reason": "имя: титульный слайд с картинкой и текстом",
-      "score": 0.8,
+      "score": 0.824,
       "placeholders": [
         {
           "idx": 10,
@@ -265,6 +265,7 @@
       },
       "columns": [],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -327,6 +328,7 @@
       "body": null,
       "columns": [],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -544,6 +546,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": "+mn-lt",
@@ -637,6 +640,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": "+mj-lt",
@@ -659,7 +663,7 @@
       "role": "content",
       "kind": "bullets",
       "role_reason": "имя: контентный слайд, блоков 1",
-      "score": 0.95,
+      "score": 1.0,
       "placeholders": [
         {
           "idx": 1,
@@ -779,6 +783,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -934,6 +939,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1117,6 +1123,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1205,6 +1212,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1360,6 +1368,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1475,6 +1484,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1489,7 +1499,7 @@
       "role": "agenda",
       "kind": "multi_column",
       "role_reason": "имя: оглавление, блоков 18",
-      "score": 0.9,
+      "score": 0.909,
       "placeholders": [
         {
           "idx": 2,
@@ -1866,6 +1876,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -1883,7 +1894,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "заголовок + картинка + 1 блок(ов)",
-      "score": 0.9,
+      "score": 0.95,
       "placeholders": [
         {
           "idx": 2,
@@ -2045,6 +2056,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2234,6 +2246,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2248,7 +2261,7 @@
       "role": "content",
       "kind": "multi_column",
       "role_reason": "6 блоков на макете",
-      "score": 0.95,
+      "score": 0.978,
       "placeholders": [
         {
           "idx": 2,
@@ -2438,6 +2451,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2452,7 +2466,7 @@
       "role": "content",
       "kind": "multi_column",
       "role_reason": "8 блоков на макете",
-      "score": 0.95,
+      "score": 0.968,
       "placeholders": [
         {
           "idx": 2,
@@ -2670,6 +2684,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -2684,7 +2699,7 @@
       "role": "content",
       "kind": "multi_column",
       "role_reason": "8 блоков на макете",
-      "score": 0.95,
+      "score": 0.968,
       "placeholders": [
         {
           "idx": 2,
@@ -2902,6 +2917,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -3187,6 +3203,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -3406,6 +3423,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -3420,7 +3438,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "заголовок + картинка + 3 блок(ов)",
-      "score": 0.95,
+      "score": 0.97,
       "placeholders": [
         {
           "idx": 14,
@@ -3595,6 +3613,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -3609,7 +3628,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "заголовок + картинка + 2 блок(ов)",
-      "score": 0.95,
+      "score": 0.974,
       "placeholders": [
         {
           "idx": 2,
@@ -3778,6 +3797,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -3792,7 +3812,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "заголовок + картинка + 8 блок(ов)",
-      "score": 0.95,
+      "score": 0.968,
       "placeholders": [
         {
           "idx": 14,
@@ -4031,6 +4051,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -4045,7 +4066,7 @@
       "role": "content",
       "kind": "image_text",
       "role_reason": "заголовок + картинка + 4 блок(ов)",
-      "score": 0.95,
+      "score": 0.962,
       "placeholders": [
         {
           "idx": 14,
@@ -4282,6 +4303,7 @@
           "h": 0.3993055555555556
         }
       ],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,
@@ -4302,6 +4324,7 @@
       "body": null,
       "columns": [],
       "branding": [],
+      "decor": [],
       "has_logo": false,
       "style_sample": {
         "font": null,

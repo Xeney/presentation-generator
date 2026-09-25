@@ -29,16 +29,22 @@ def fit_crop(img: Image.Image, w: int, h: int) -> Image.Image:
 
 
 def dominant_color(img: Image.Image, n: int = 8) -> Optional[str]:
-    """Самый частый цвет изображения (квантование), иначе None."""
+    """Самый частый цвет изображения (квантование), иначе None.
+
+    `getcolors()` без явного лимита возвращает None, если цветов больше
+    ожидаемого — на вытянутых в полосу картинках это ломало определение цвета.
+    """
     try:
         small = img.convert("RGB").resize((64, 64))
-        q = small.quantize(colors=n, method=Image.MEDIANCUT)
-        counts = sorted(enumerate(q.getcolors()), key=lambda x: -x[1][0])
-        if not counts:
+        quantized = small.quantize(colors=n, method=Image.MEDIANCUT)
+        colors = quantized.getcolors(maxcolors=1 << 16)
+        if not colors:
             return None
-        idx = counts[0][1][1]
-        return "#%02X%02X%02X" % q.getpalette()[idx * 3:idx * 3 + 3]
-    except Exception:
+        _, index = max(colors, key=lambda item: item[0])
+        palette = quantized.getpalette()
+        red, green, blue = palette[index * 3:index * 3 + 3]
+        return f"#{red:02X}{green:02X}{blue:02X}"
+    except Exception:  # noqa: BLE001
         return None
 
 

@@ -97,6 +97,8 @@ def main(argv: list[str]) -> int:
         print("нет шаблонов: положите PPTX в data/templates/ или передайте --templates")
         return 1
     corpus_bytes, corpus_name = discover_corpus(args.corpus)
+    # абсолютный путь: иначе relative_to в отчёте падает на относительном --out
+    args.out = args.out.resolve()
 
     from app.config import get_settings
 

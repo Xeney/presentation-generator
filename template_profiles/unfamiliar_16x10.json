@@ -1,0 +1,1678 @@
+{
+  "template_id": "unfamiliar_16x10.pptx",
+  "source_file": "unfamiliar_16x10.pptx",
+  "slide_size": {
+    "w_in": 12.8,
+    "h_in": 8.0,
+    "w_emus": 11704320,
+    "h_emus": 7315200
+  },
+  "theme_fonts": {
+    "major": {
+      "latin": "Georgia",
+      "ea": ""
+    },
+    "minor": {
+      "latin": "Courier New",
+      "ea": ""
+    }
+  },
+  "theme_colors": {
+    "dk1": "#000000",
+    "lt1": "#FFFFFF",
+    "dk2": "#1F497D",
+    "lt2": "#EEECE1",
+    "accent1": "#14532D",
+    "accent2": "#B45309",
+    "accent3": "#9BBB59",
+    "accent4": "#8064A2",
+    "accent5": "#4BACC6",
+    "accent6": "#F79646",
+    "hlink": "#0000FF",
+    "folHlink": "#800080"
+  },
+  "palette": [
+    {
+      "hex": "#000000",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#FFFFFF",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#1F497D",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#EEECE1",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#14532D",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#B45309",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#9BBB59",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#8064A2",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#4BACC6",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#F79646",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#0000FF",
+      "count": 117,
+      "source": "theme"
+    },
+    {
+      "hex": "#800080",
+      "count": 117,
+      "source": "theme"
+    }
+  ],
+  "text_colors": [],
+  "fonts": [],
+  "headline_font": "Georgia",
+  "body_font": "Courier New",
+  "type_scale": {
+    "title": [
+      40.0,
+      32.0,
+      30.0,
+      28.0
+    ],
+    "body": [
+      18.0,
+      16.0,
+      14.0
+    ],
+    "min_body": 14.0,
+    "max_title": 40.0
+  },
+  "grid": {
+    "margin_left": 0.5,
+    "margin_top": 1.75,
+    "margin_right": 3.3,
+    "margin_bottom": 1.3,
+    "body_x": 0.5,
+    "body_y": 1.75,
+    "body_w": 9.0,
+    "body_h": 4.95
+  },
+  "layouts": [
+    {
+      "id": "L0",
+      "master_id": "M0",
+      "name": "Layout 1",
+      "role": "title",
+      "kind": "blank",
+      "role_reason": "подзаголовок на макете: титульный макет",
+      "score": 0.35,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "center_title",
+          "name": "Title 1",
+          "x": 0.75,
+          "y": 2.329861111111111,
+          "w": 8.5,
+          "h": 1.6076388888888888,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "subtitle",
+          "name": "Subtitle 2",
+          "x": 1.5,
+          "y": 4.25,
+          "w": 7.0,
+          "h": 1.9166666666666667,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 3",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 4",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 5",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "center_title",
+        "name": "Title 1",
+        "x": 0.75,
+        "y": 2.329861111111111,
+        "w": 8.5,
+        "h": 1.6076388888888888,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "branding": [
+        {
+          "name": "Date Placeholder 3",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 4",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 5",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [
+          40.0,
+          18.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L1",
+      "master_id": "M0",
+      "name": "Layout 4",
+      "role": "content",
+      "kind": "bullets",
+      "role_reason": "заголовок + 1 текстовый блок(ов)",
+      "score": 1.0,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Title 1",
+          "x": 0.5,
+          "y": 0.3003477690288714,
+          "w": 9.0,
+          "h": 1.25,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "object",
+          "name": "Content Placeholder 2",
+          "x": 0.5,
+          "y": 1.75,
+          "w": 9.0,
+          "h": 4.9496533245844265,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 3",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 4",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 5",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Title 1",
+        "x": 0.5,
+        "y": 0.3003477690288714,
+        "w": 9.0,
+        "h": 1.25,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.5,
+        "y": 1.75,
+        "w": 9.0,
+        "h": 4.9496533245844265
+      },
+      "columns": [],
+      "branding": [
+        {
+          "name": "Date Placeholder 3",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 4",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 5",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [
+          28.0,
+          32.0,
+          16.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L2",
+      "master_id": "M0",
+      "name": "Layout 5",
+      "role": "content",
+      "kind": "bullets",
+      "role_reason": "заголовок + 1 текстовый блок(ов)",
+      "score": 0.991,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Title 1",
+          "x": 0.7899311023622048,
+          "y": 4.819444444444445,
+          "w": 8.5,
+          "h": 1.4895833333333333,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Text Placeholder 2",
+          "x": 0.7899311023622048,
+          "y": 3.1788199912510935,
+          "w": 8.5,
+          "h": 1.640624453193351,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 3",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 4",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 5",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Title 1",
+        "x": 0.7899311023622048,
+        "y": 4.819444444444445,
+        "w": 8.5,
+        "h": 1.4895833333333333,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.7899311023622048,
+        "y": 3.1788199912510935,
+        "w": 8.5,
+        "h": 1.640624453193351
+      },
+      "columns": [],
+      "branding": [
+        {
+          "name": "Date Placeholder 3",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 4",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 5",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L3",
+      "master_id": "M0",
+      "name": "Layout 6",
+      "role": "content",
+      "kind": "bullets",
+      "role_reason": "заголовок + 2 текстовый блок(ов)",
+      "score": 1.0,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Title 1",
+          "x": 0.5,
+          "y": 0.3003477690288714,
+          "w": 9.0,
+          "h": 1.25,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "object",
+          "name": "Content Placeholder 2",
+          "x": 0.5,
+          "y": 1.75,
+          "w": 4.416666666666667,
+          "h": 4.9496533245844265,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Content Placeholder 3",
+          "x": 5.083333333333333,
+          "y": 1.75,
+          "w": 4.416666666666667,
+          "h": 4.9496533245844265,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 4",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 5",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 6",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Title 1",
+        "x": 0.5,
+        "y": 0.3003477690288714,
+        "w": 9.0,
+        "h": 1.25,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.5,
+        "y": 1.75,
+        "w": 4.416666666666667,
+        "h": 4.9496533245844265
+      },
+      "columns": [
+        {
+          "x": 5.083333333333333,
+          "y": 1.75,
+          "w": 4.416666666666667,
+          "h": 4.9496533245844265
+        }
+      ],
+      "branding": [
+        {
+          "name": "Date Placeholder 4",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 5",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 6",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [
+          14.0,
+          30.0
+        ],
+        "colors": []
+      }
+    },
+    {
+      "id": "L4",
+      "master_id": "M0",
+      "name": "Layout 7",
+      "role": "content",
+      "kind": "multi_column",
+      "role_reason": "4 блоков на макете",
+      "score": 1.0,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Title 1",
+          "x": 0.5,
+          "y": 0.3003477690288714,
+          "w": 9.0,
+          "h": 1.25,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Text Placeholder 2",
+          "x": 0.5,
+          "y": 1.6788199912510937,
+          "w": 4.4184033245844265,
+          "h": 0.6996522309711286,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "object",
+          "name": "Content Placeholder 3",
+          "x": 0.5,
+          "y": 2.3784722222222223,
+          "w": 4.4184033245844265,
+          "h": 4.321181102362205,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 3,
+          "type": "body",
+          "name": "Text Placeholder 4",
+          "x": 5.079861111111111,
+          "y": 1.6788199912510937,
+          "w": 4.420138888888889,
+          "h": 0.6996522309711286,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 4,
+          "type": "object",
+          "name": "Content Placeholder 5",
+          "x": 5.079861111111111,
+          "y": 2.3784722222222223,
+          "w": 4.420138888888889,
+          "h": 4.321181102362205,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 6",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 7",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 8",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Title 1",
+        "x": 0.5,
+        "y": 0.3003477690288714,
+        "w": 9.0,
+        "h": 1.25,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 5.079861111111111,
+        "y": 2.3784722222222223,
+        "w": 4.420138888888889,
+        "h": 4.321181102362205
+      },
+      "columns": [
+        {
+          "x": 5.079861111111111,
+          "y": 1.6788199912510937,
+          "w": 4.420138888888889,
+          "h": 0.6996522309711286
+        }
+      ],
+      "branding": [
+        {
+          "name": "Date Placeholder 6",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 7",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 8",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L5",
+      "master_id": "M0",
+      "name": "Layout 8",
+      "role": "title",
+      "kind": "blank",
+      "role_reason": "крупный заголовок (1.25″) без контента",
+      "score": 0.35,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Title 1",
+          "x": 0.5,
+          "y": 0.3003477690288714,
+          "w": 9.0,
+          "h": 1.25,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 2",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 3",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 4",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Title 1",
+        "x": 0.5,
+        "y": 0.3003477690288714,
+        "w": 9.0,
+        "h": 1.25,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": null,
+      "columns": [],
+      "branding": [
+        {
+          "name": "Date Placeholder 2",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 3",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 4",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L6",
+      "master_id": "M0",
+      "name": "Layout 9",
+      "role": "content",
+      "kind": "blank",
+      "role_reason": "пустой/декоративный макет без контентных рамок",
+      "score": 0.25,
+      "placeholders": [
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 1",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 2",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 3",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": null,
+      "body": null,
+      "columns": [],
+      "branding": [
+        {
+          "name": "Date Placeholder 1",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 2",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 3",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L7",
+      "master_id": "M0",
+      "name": "Layout 10",
+      "role": "content",
+      "kind": "bullets",
+      "role_reason": "заголовок + 2 текстовый блок(ов)",
+      "score": 1.0,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Title 1",
+          "x": 0.5,
+          "y": 0.2986111111111111,
+          "w": 3.2899311023622047,
+          "h": 1.2708333333333333,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "object",
+          "name": "Content Placeholder 2",
+          "x": 3.9097222222222223,
+          "y": 0.2986111111111111,
+          "w": 5.590277777777778,
+          "h": 6.401042213473316,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Text Placeholder 3",
+          "x": 0.5,
+          "y": 1.5694444444444444,
+          "w": 3.2899311023622047,
+          "h": 5.130208880139983,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 4",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 5",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 6",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Title 1",
+        "x": 0.5,
+        "y": 0.2986111111111111,
+        "w": 3.2899311023622047,
+        "h": 1.2708333333333333,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 3.9097222222222223,
+        "y": 0.2986111111111111,
+        "w": 5.590277777777778,
+        "h": 6.401042213473316
+      },
+      "columns": [
+        {
+          "x": 3.9097222222222223,
+          "y": 0.2986111111111111,
+          "w": 5.590277777777778,
+          "h": 6.401042213473316
+        }
+      ],
+      "branding": [
+        {
+          "name": "Date Placeholder 4",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 5",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 6",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L8",
+      "master_id": "M0",
+      "name": "Layout 11",
+      "role": "content",
+      "kind": "image_text",
+      "role_reason": "заголовок + картинка + 1 блок(ов)",
+      "score": 0.915,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Title 1",
+          "x": 1.9600699912510937,
+          "y": 5.25,
+          "w": 6.0,
+          "h": 0.6197922134733158,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "picture",
+          "name": "Picture Placeholder 2",
+          "x": 1.9600699912510937,
+          "y": 0.6701388888888888,
+          "w": 6.0,
+          "h": 4.5,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 2,
+          "type": "body",
+          "name": "Text Placeholder 3",
+          "x": 1.9600699912510937,
+          "y": 5.869792213473316,
+          "w": 6.0,
+          "h": 0.8802077865266842,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 4",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 5",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 6",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Title 1",
+        "x": 1.9600699912510937,
+        "y": 5.25,
+        "w": 6.0,
+        "h": 0.6197922134733158,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 1.9600699912510937,
+        "y": 5.869792213473316,
+        "w": 6.0,
+        "h": 0.8802077865266842
+      },
+      "columns": [],
+      "branding": [
+        {
+          "name": "Date Placeholder 4",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 5",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 6",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L9",
+      "master_id": "M0",
+      "name": "Layout 2",
+      "role": "content",
+      "kind": "bullets",
+      "role_reason": "заголовок + 1 текстовый блок(ов)",
+      "score": 1.0,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Title 1",
+          "x": 0.5,
+          "y": 0.3003477690288714,
+          "w": 9.0,
+          "h": 1.25,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Vertical Text Placeholder 2",
+          "x": 0.5,
+          "y": 1.75,
+          "w": 9.0,
+          "h": 4.9496533245844265,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 3",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 4",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 5",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Title 1",
+        "x": 0.5,
+        "y": 0.3003477690288714,
+        "w": 9.0,
+        "h": 1.25,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.5,
+        "y": 1.75,
+        "w": 9.0,
+        "h": 4.9496533245844265
+      },
+      "columns": [],
+      "branding": [
+        {
+          "name": "Date Placeholder 3",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 4",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 5",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    },
+    {
+      "id": "L10",
+      "master_id": "M0",
+      "name": "Layout 3",
+      "role": "content",
+      "kind": "bullets",
+      "role_reason": "заголовок + 1 текстовый блок(ов)",
+      "score": 1.0,
+      "placeholders": [
+        {
+          "idx": 0,
+          "type": "title",
+          "name": "Vertical Title 1",
+          "x": 7.25,
+          "y": 0.3003477690288714,
+          "w": 2.25,
+          "h": 6.399305555555555,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": true
+        },
+        {
+          "idx": 1,
+          "type": "body",
+          "name": "Vertical Text Placeholder 2",
+          "x": 0.5,
+          "y": 0.3003477690288714,
+          "w": 6.583333333333333,
+          "h": 6.399305555555555,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 10,
+          "type": "date",
+          "name": "Date Placeholder 3",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 11,
+          "type": "footer",
+          "name": "Footer Placeholder 4",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        },
+        {
+          "idx": 12,
+          "type": "slide_number",
+          "name": "Slide Number Placeholder 5",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556,
+          "font": null,
+          "size": null,
+          "color": null,
+          "align": "left",
+          "is_title": false
+        }
+      ],
+      "title_ph": {
+        "idx": 0,
+        "type": "title",
+        "name": "Vertical Title 1",
+        "x": 7.25,
+        "y": 0.3003477690288714,
+        "w": 2.25,
+        "h": 6.399305555555555,
+        "font": null,
+        "size": null,
+        "color": null,
+        "align": "left",
+        "is_title": true
+      },
+      "body": {
+        "x": 0.5,
+        "y": 0.3003477690288714,
+        "w": 6.583333333333333,
+        "h": 6.399305555555555
+      },
+      "columns": [],
+      "branding": [
+        {
+          "name": "Date Placeholder 3",
+          "type": "date",
+          "x": 0.5,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Footer Placeholder 4",
+          "type": "footer",
+          "x": 3.4166666666666665,
+          "y": 6.951388888888889,
+          "w": 3.1666666666666665,
+          "h": 0.3993055555555556
+        },
+        {
+          "name": "Slide Number Placeholder 5",
+          "type": "slide_number",
+          "x": 7.166666666666667,
+          "y": 6.951388888888889,
+          "w": 2.3333333333333335,
+          "h": 0.3993055555555556
+        }
+      ],
+      "decor": [],
+      "has_logo": false,
+      "style_sample": {
+        "font": null,
+        "sizes": [],
+        "colors": []
+      }
+    }
+  ],
+  "layout_groups": {
+    "title": [
+      "L0",
+      "L5"
+    ],
+    "content": [
+      "L1",
+      "L2",
+      "L3",
+      "L4",
+      "L6",
+      "L7",
+      "L8",
+      "L9",
+      "L10"
+    ]
+  },
+  "example_patterns": [],
+  "slide_count": 6,
+  "layout_count": 11,
+  "notes": ""
+}
