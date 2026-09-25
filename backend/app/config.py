@@ -65,6 +65,12 @@ class Settings(BaseSettings):
     target_duration_min: int = 5
     vlm_audit_enabled: bool = True
     vlm_audit_all_variants: bool = False
+    # параллельные запросы к VLM: стадия дорогая, а слайды независимы
+    vlm_audit_workers: int = 3
+    # ширина картинки слайда перед отправкой в модель (0 — без уменьшения)
+    vlm_image_max_px: int = 1280
+    # общий бюджет стадии: не проверенные слайды честно помечаются
+    vlm_audit_budget_s: int = 180
     grounding_enabled: bool = True
     grounding_off_source_threshold: float = 0.55
     grounding_duplicate_threshold: float = 0.92

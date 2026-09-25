@@ -33,6 +33,23 @@ class _FakeLlm(OllamaClient):
         return json.dumps(self._answer, ensure_ascii=False)
 
 
+def _fake_pngs(count: int = 3):
+    """Реальные PNG вместо заглушек: модуль уменьшает картинки через Pillow."""
+    import io
+
+    from PIL import Image
+
+    def factory(data: bytes, dpi: int = 110) -> list[bytes]:
+        out = []
+        for _ in range(count):
+            buffer = io.BytesIO()
+            Image.new("RGB", (320, 180), "white").save(buffer, format="PNG")
+            out.append(buffer.getvalue())
+        return out
+
+    return factory
+
+
 @pytest.fixture(autouse=True)
 def _llm_enabled(monkeypatch):
     """VLM-аудит должен быть включён: в CI окружение может стоять DISABLE_LLM=true."""
@@ -72,8 +89,7 @@ def test_unavailable_without_ollama(deck, monkeypatch):
 
 
 def test_audit_returns_violations_with_text(deck, monkeypatch):
-    monkeypatch.setattr("app.audit.vlm.pptx_to_pngs",
-                        lambda data, dpi=110: [b"png-1", b"png-2", b"png-3"])
+    monkeypatch.setattr("app.audit.vlm.pptx_to_pngs", _fake_pngs(3))
     audit = VlmAudit(llm=_FakeLlm(), profile={})
     result = audit.audit(b"PK", deck=deck, source_digest="40% и 12 задач")
 
@@ -91,8 +107,7 @@ def test_audit_returns_violations_with_text(deck, monkeypatch):
 
 
 def test_prompt_contains_neighbour_context(deck, monkeypatch):
-    monkeypatch.setattr("app.audit.vlm.pptx_to_pngs",
-                        lambda data, dpi=110: [b"png-1", b"png-2", b"png-3"])
+    monkeypatch.setattr("app.audit.vlm.pptx_to_pngs", _fake_pngs(3))
     llm = _FakeLlm()
     VlmAudit(llm=llm, profile={}).audit(b"PK", deck=deck, source_digest="выжимка")
 
@@ -118,8 +133,7 @@ def test_violations_become_audit_issues():
 
 def test_unknown_criteria_numbers_are_ignored(deck, monkeypatch):
     """Модель может вернуть мусорные номера — они не должны ломать аудит."""
-    monkeypatch.setattr("app.audit.vlm.pptx_to_pngs",
-                        lambda data, dpi=110: [b"png-1", b"png-2", b"png-3"])
+    monkeypatch.setattr("app.audit.vlm.pptx_to_pngs", _fake_pngs(3))
     llm = _FakeLlm(answer={"answers_yes": [1, 42], "answers_no": [99],
                            "summary": ""})
     result = VlmAudit(llm=llm, profile={}).audit(b"PK", deck=deck)

@@ -106,14 +106,25 @@ def _blocks_to_html(deck: Deck, slide) -> str:
 
 
 def deck_to_html(deck: Deck, profile: dict, brief: str = "") -> str:
+    """HTML-версия колоды: слайд = секция, навигация стрелками и клавиатурой.
+
+    Строки собираются заранее, а не выражениями внутри f-строк: обратные слэши
+    и вложенные кавычки в выражениях запрещены до Python 3.12, а сервис должен
+    запускаться на 3.11 (базовый образ Docker и требование ТЗ).
+    """
+    total = len(deck.slides)
     slides_html = []
     for i, s in enumerate(deck.slides, start=1):
         body = _blocks_to_html(deck, s)
+        active = "active" if i == 1 else ""
+        subheading = ""
+        if s.subheading:
+            subheading = f'<div class="sub">{_esc(s.subheading)}</div>'
+        counters = f'<div class="counters">{i} / {total}</div>'
         slides_html.append(
-            f'<section class="slide {"active" if i == 1 else ""}" id="s{i}">'
-            f'<h1>{_esc(s.heading)}</h1>'
-            f'{"<div class=\"sub\">" + _esc(s.subheading) + "</div>" if s.subheading else ""}'
-            f'{body}<div class="counters">{i} / {len(deck.slides)}</div></section>')
+            f'<section class="slide {active}" id="s{i}">'
+            f"<h1>{_esc(s.heading)}</h1>"
+            f"{subheading}{body}{counters}</section>")
     nav_js = """const slides=document.querySelectorAll('.slide');let cur=0;
 function go(n){cur=(n+slides.length)%slides.length;slides.forEach((s,i)=>s.classList.toggle('active',i===cur));}
 document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);});"""

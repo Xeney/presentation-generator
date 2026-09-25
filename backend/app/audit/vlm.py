@@ -13,6 +13,7 @@ from __future__ import annotations
 import base64
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional
 
@@ -123,28 +124,54 @@ class VlmAudit:
                     "criteria": CRITERIA}
 
         started = time.perf_counter()
-        slides = []
-        per_slide_seconds = []
-        errors = 0
-        last_error = ""
-        for index, image in enumerate(images):
-            context = self._context(index, len(images), deck, source_digest)
+        # слайды независимы: спрашиваем модель параллельно, порядок сохраняем.
+        # Общий бюджет стадии ограничен — на живом демо важнее уложиться во время,
+        # чем проверить каждый слайд; непроверенные честно помечаются.
+        verdicts: list[dict] = [{} for _ in images]
+        timings: list[float] = [0.0 for _ in images]
+        deadline = started + max(30, self.settings.vlm_audit_budget_s)
+        workers = max(1, min(self.settings.vlm_audit_workers, len(images)))
+
+        def ask(index: int) -> None:
             began = time.perf_counter()
-            verdict = self._ask_one(image, context)
-            per_slide_seconds.append(round(time.perf_counter() - began, 2))
+            context = self._context(index, len(images), deck, source_digest)
+            verdicts[index] = self._ask_one(images[index], context)
+            timings[index] = round(time.perf_counter() - began, 2)
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(ask, index): index for index in range(len(images))}
+            for future in as_completed(futures):
+                index = futures[future]
+                if time.perf_counter() > deadline and not verdicts[index]:
+                    verdicts[index] = {"skipped": True,
+                                       "error": "не проверено: исчерпан бюджет стадии"}
+                try:
+                    future.result()
+                except Exception as exc:  # noqa: BLE001 — один слайд не рушит стадию
+                    verdicts[index] = {"error": str(exc)[:200]}
+
+        slides = []
+        errors = 0
+        skipped = 0
+        last_error = ""
+        for index, verdict in enumerate(verdicts):
+            if verdict.get("skipped"):
+                skipped += 1
             if verdict.get("error"):
                 errors += 1
                 last_error = verdict["error"]
             failed = sorted(verdict.get("answers_no", []))
             slides.append({
                 "slide": index,
-                "ok": not failed,
+                "ok": not failed and not verdict.get("error"),
                 "violations": failed,
                 "violations_text": [CRITERIA.get(n, str(n)) for n in failed],
                 "criteria_yes": sorted(verdict.get("answers_yes", [])),
                 "summary": (verdict.get("summary") or "")[:300],
+                "error": verdict.get("error", ""),
             })
-        if errors and errors == len(images):
+        per_slide_seconds = timings
+        if errors and errors >= len(images):
             # модель ответила отказом на каждый слайд: честнее сказать «недоступно»,
             # чем показать «замечаний нет»
             return {"available": False, "slides": [], "criteria": CRITERIA,
@@ -156,6 +183,7 @@ class VlmAudit:
             "model": self.settings.active_vlm_model,
             "slides": slides,
             "errors": errors,
+            "skipped": skipped,
             "criteria": CRITERIA,
             "elapsed_s": round(time.perf_counter() - started, 2),
             "per_slide_s": per_slide_seconds,
@@ -164,8 +192,29 @@ class VlmAudit:
 
     # -------------------------------------------------------------- helpers
     def _slide_pngs_b64(self, pptx_bytes: bytes) -> list[str]:
-        pngs = pptx_to_pngs(pptx_bytes, dpi=110)
-        return [base64.b64encode(png).decode("ascii") for png in pngs]
+        """PNG слайдов в base64, уменьшенные до читаемого для модели размера.
+
+        Рендер в 110 dpi даёт ~340 КБ на слайд: это лишние токены и секунды на
+        передачу, а для оценки композиции и текста достаточно 1280 px по ширине.
+        """
+        from io import BytesIO
+
+        from PIL import Image
+
+        limit = self.settings.vlm_image_max_px
+        encoded: list[str] = []
+        for png in pptx_to_pngs(pptx_bytes, dpi=110):
+            if limit:
+                with Image.open(BytesIO(png)) as image:
+                    if image.width > limit:
+                        ratio = limit / image.width
+                        image = image.resize((limit, max(1, round(image.height * ratio))),
+                                             Image.LANCZOS)
+                    buffer = BytesIO()
+                    image.convert("RGB").save(buffer, format="PNG", optimize=True)
+                    png = buffer.getvalue()
+            encoded.append(base64.b64encode(png).decode("ascii"))
+        return encoded
 
     @staticmethod
     def _context(index: int, total: int, deck, source_digest: str) -> dict:
