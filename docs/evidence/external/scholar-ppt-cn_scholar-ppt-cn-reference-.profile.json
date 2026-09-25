@@ -1,0 +1,408 @@
+{
+ "template_id": "template.pptx",
+ "source_file": "template.pptx",
+ "slide_size": {
+  "w_in": 13.333333333333334,
+  "h_in": 7.5,
+  "w_emus": 12192000,
+  "h_emus": 6858000
+ },
+ "theme_fonts": {
+  "major": {
+   "latin": "Verdana",
+   "ea": ""
+  },
+  "minor": {
+   "latin": "Verdana",
+   "ea": ""
+  }
+ },
+ "theme_colors": {
+  "dk1": "#000000",
+  "lt1": "#FFFFFF",
+  "dk2": "#44546A",
+  "lt2": "#E7E6E6",
+  "accent1": "#4472C4",
+  "accent2": "#ED7D31",
+  "accent3": "#A5A5A5",
+  "accent4": "#FFC000",
+  "accent5": "#5B9BD5",
+  "accent6": "#70AD47",
+  "hlink": "#0563C1",
+  "folHlink": "#954F72"
+ },
+ "palette": [
+  {
+   "hex": "#000000",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#FFFFFF",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#44546A",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#E7E6E6",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#4472C4",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#ED7D31",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#A5A5A5",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#FFC000",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#5B9BD5",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#70AD47",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#0563C1",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#954F72",
+   "count": 117,
+   "source": "theme"
+  },
+  {
+   "hex": "#024C98",
+   "count": 3,
+   "source": "text"
+  },
+  {
+   "hex": "#C00000",
+   "count": 1,
+   "source": "shape"
+  },
+  {
+   "hex": "#993300",
+   "count": 1,
+   "source": "text"
+  }
+ ],
+ "text_colors": [
+  "#024C98",
+  "#5B9BD5",
+  "#993300",
+  "#C00000",
+  "#000000"
+ ],
+ "fonts": [
+  {
+   "name": "微软雅黑",
+   "bold": true,
+   "count": 10
+  },
+  {
+   "name": "Arial",
+   "bold": true,
+   "count": 5
+  },
+  {
+   "name": "微软雅黑",
+   "bold": false,
+   "count": 2
+  },
+  {
+   "name": "Times New Roman",
+   "bold": true,
+   "count": 1
+  },
+  {
+   "name": "Arial",
+   "bold": false,
+   "count": 1
+  }
+ ],
+ "headline_font": "微软雅黑",
+ "body_font": "微软雅黑",
+ "type_scale": {
+  "title": [
+   54.0,
+   32.0,
+   24.0,
+   21.35
+  ],
+  "body": [
+   32.0,
+   21.35,
+   20.0,
+   16.0,
+   13.35
+  ],
+  "min_body": 13.35,
+  "max_title": 54.0
+ },
+ "grid": {
+  "margin_left": 1.0,
+  "margin_top": 1.0,
+  "margin_right": 2.306,
+  "margin_bottom": 1.0,
+  "body_x": 1.0,
+  "body_y": 1.0,
+  "body_w": 10.028,
+  "body_h": 5.5
+ },
+ "layouts": [
+  {
+   "id": "L0",
+   "master_id": "M0",
+   "name": "标题幻灯片",
+   "role": "title",
+   "kind": "blank",
+   "role_reason": "имя: титульный слайд, контента нет",
+   "score": 0.15,
+   "placeholders": [],
+   "title_ph": null,
+   "body": null,
+   "columns": [],
+   "branding": [],
+   "decor": [],
+   "has_logo": false,
+   "style_sample": {
+    "font": "Arial",
+    "sizes": [
+     54.0,
+     32.0,
+     24.0
+    ],
+    "colors": [
+     "#024C98",
+     "#993300"
+    ]
+   }
+  },
+  {
+   "id": "L1",
+   "master_id": "M0",
+   "name": "标题和内容",
+   "role": "content",
+   "kind": "bullets",
+   "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+   "score": 0.5,
+   "placeholders": [],
+   "title_ph": null,
+   "body": null,
+   "columns": [],
+   "branding": [],
+   "decor": [],
+   "has_logo": false,
+   "style_sample": {
+    "font": null,
+    "sizes": [],
+    "colors": []
+   }
+  },
+  {
+   "id": "L2",
+   "master_id": "M0",
+   "name": "竖排标题与文本",
+   "role": "content",
+   "kind": "bullets",
+   "role_reason": "имя: контентный слайд, блоков 1",
+   "score": 1.0,
+   "placeholders": [
+    {
+     "idx": 0,
+     "type": "title",
+     "name": "竖排标题 1",
+     "x": 11.192913385826772,
+     "y": 1.0,
+     "w": 1.141732283464567,
+     "h": 5.5,
+     "font": null,
+     "size": null,
+     "color": null,
+     "align": "left",
+     "is_title": true
+    },
+    {
+     "idx": 1,
+     "type": "body",
+     "name": "竖排文字占位符 2",
+     "x": 1.0,
+     "y": 1.0,
+     "w": 10.027559055118111,
+     "h": 5.5,
+     "font": null,
+     "size": null,
+     "color": null,
+     "align": "left",
+     "is_title": false
+    }
+   ],
+   "title_ph": {
+    "idx": 0,
+    "type": "title",
+    "name": "竖排标题 1",
+    "x": 11.192913385826772,
+    "y": 1.0,
+    "w": 1.141732283464567,
+    "h": 5.5,
+    "font": null,
+    "size": null,
+    "color": null,
+    "align": "left",
+    "is_title": true
+   },
+   "body": {
+    "x": 1.0,
+    "y": 1.0,
+    "w": 10.027559055118111,
+    "h": 5.5
+   },
+   "columns": [],
+   "branding": [],
+   "decor": [],
+   "has_logo": false,
+   "style_sample": {
+    "font": null,
+    "sizes": [],
+    "colors": []
+   }
+  },
+  {
+   "id": "L3",
+   "master_id": "M0",
+   "name": "空白",
+   "role": "content",
+   "kind": "blank",
+   "role_reason": "пустой/декоративный макет без контентных рамок",
+   "score": 0.25,
+   "placeholders": [],
+   "title_ph": null,
+   "body": null,
+   "columns": [],
+   "branding": [],
+   "decor": [],
+   "has_logo": false,
+   "style_sample": {
+    "font": "微软雅黑",
+    "sizes": [
+     32.0
+    ],
+    "colors": [
+     "#024C98",
+     "#C00000"
+    ]
+   }
+  },
+  {
+   "id": "L4",
+   "master_id": "M1",
+   "name": "标题幻灯片",
+   "role": "title",
+   "kind": "blank",
+   "role_reason": "имя: титульный слайд, контента нет",
+   "score": 0.15,
+   "placeholders": [],
+   "title_ph": null,
+   "body": null,
+   "columns": [],
+   "branding": [],
+   "decor": [],
+   "has_logo": false,
+   "style_sample": {
+    "font": "微软雅黑",
+    "sizes": [
+     32.0,
+     21.35,
+     13.35,
+     20.0
+    ],
+    "colors": [
+     "#024C98",
+     "#5B9BD5",
+     "#000000"
+    ]
+   }
+  },
+  {
+   "id": "L5",
+   "master_id": "M1",
+   "name": "标题和内容",
+   "role": "content",
+   "kind": "bullets",
+   "role_reason": "имя: контентный слайд, рамок нет (сетка профиля)",
+   "score": 0.5,
+   "placeholders": [],
+   "title_ph": null,
+   "body": null,
+   "columns": [],
+   "branding": [],
+   "decor": [],
+   "has_logo": false,
+   "style_sample": {
+    "font": null,
+    "sizes": [],
+    "colors": []
+   }
+  },
+  {
+   "id": "L6",
+   "master_id": "M1",
+   "name": "空白",
+   "role": "content",
+   "kind": "blank",
+   "role_reason": "пустой/декоративный макет без контентных рамок",
+   "score": 0.25,
+   "placeholders": [],
+   "title_ph": null,
+   "body": null,
+   "columns": [],
+   "branding": [],
+   "decor": [],
+   "has_logo": false,
+   "style_sample": {
+    "font": null,
+    "sizes": [],
+    "colors": []
+   }
+  }
+ ],
+ "layout_groups": {
+  "title": [
+   "L0",
+   "L4"
+  ],
+  "content": [
+   "L1",
+   "L2",
+   "L3",
+   "L5",
+   "L6"
+  ]
+ },
+ "example_patterns": [],
+ "slide_count": 5,
+ "layout_count": 7,
+ "notes": ""
+}

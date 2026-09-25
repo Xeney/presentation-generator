@@ -162,6 +162,48 @@ def test_long_text_becomes_bullets():
     assert any("длинный абзац разбит" in fix for fix in fixes)
 
 
+def test_subheading_on_content_slide_becomes_block():
+    """Реальный сбой: Qwen3.5 положила текст слайда в subheading, blocks пусты.
+
+    subheading рисуется только на титуле и разделе, поэтому контент терялся —
+    слайд выходил с одним заголовком. Нормализация переносит текст в блок.
+    """
+    data = _deck(slides=[
+        {"slide_type": "title", "heading": "Титул презентации",
+         "subheading": "Короткий подзаголовок обложки"},
+        {"slide_type": "content", "heading": "Эффект квартала",
+         "subheading": "Платформа сократила время подготовки отчётов на 40%",
+         "blocks": []},
+        {"slide_type": "final", "heading": "Финал презентации"},
+    ])
+    data, fixes = normalize_deck(data)
+    slide = data["slides"][1]
+    assert slide["blocks"], "текст из subheading обязан стать блоком"
+    assert slide["subheading"] is None
+    assert "40%" in (slide["blocks"][0].get("text") or "")
+    assert data["slides"][0]["subheading"] == "Короткий подзаголовок обложки", \
+        "подзаголовок титула не трогаем"
+    assert any("вне схемы" in fix for fix in fixes)
+    assert Deck.model_validate(data)
+
+
+def test_stray_fields_are_moved_to_blocks():
+    """Поля вне схемы (body/content/items на уровне слайда) не теряются."""
+    data = _deck(slides=[
+        {"slide_type": "title", "heading": "Титул презентации"},
+        {"slide_type": "content", "heading": "Метрики", "body": "Охват вырос до 5 отделов",
+         "content": ["Отчёты быстрее на 40%", "12 задач автоматизированы"]},
+        {"slide_type": "final", "heading": "Финал презентации"},
+    ])
+    data, fixes = normalize_deck(data)
+    slide = data["slides"][1]
+    assert "body" not in slide and "content" not in slide
+    items = slide["blocks"][0].get("items") or [slide["blocks"][0].get("text")]
+    assert any("5 отделов" in str(i) for i in items)
+    assert any("вне схемы" in fix for fix in fixes)
+    assert Deck.model_validate(data)
+
+
 def test_garbage_input_is_returned_unchanged():
     for payload in (None, "строка", 42, {}, {"slides": []}, {"slides": "нет"}):
         data, fixes = normalize_deck(payload)

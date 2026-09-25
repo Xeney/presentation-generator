@@ -6,10 +6,17 @@
 """
 from __future__ import annotations
 
+from collections import Counter
+
 import pytest
+from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 from app.models.deck import Block, Chart, ChartType, Slide, SlideType, Table
 from app.render.pptx_renderer import Renderer
+from app.template.parser import TemplateParser
+from app.template.profile import PlaceholderInfo
+
+EMU = 914400
 
 ROLES = {"title", "section", "agenda", "content", "final"}
 KINDS = {"bullets", "multi_column", "image", "image_text", "table", "chart", "blank"}
@@ -54,6 +61,91 @@ def test_roles_on_all_available_templates(all_templates, profile_of):
         _check_profile(profile, name)
         assert "content" in profile["layout_groups"], \
             f"{name}: нет ни одного контентного макета: {profile['layout_groups']}"
+
+
+def _ph(type_: str, w: float, h: float, x: float = 0.0, y: float = 0.0,
+        is_title: bool = False) -> PlaceholderInfo:
+    return PlaceholderInfo(idx=0, type=type_, name="ph", x=x, y=y, w=w, h=h,
+                           is_title=is_title)
+
+
+def _classifier() -> TemplateParser:
+    """Классификатор как чистая функция: PPTX не нужен, `_classify_layout` — метод."""
+    return TemplateParser(b"template.pptx")
+
+
+def test_cover_subtitle_stays_subtitle():
+    """Стандартная обложка Office: подзаголовок крупный, но остаётся обложкой.
+
+    Подзаголовок сопоставим с заголовком (2.6″ против 1.98″) — это конвенция
+    обложки, а не тело слайда.
+    """
+    phs = [_ph("center_title", 11.46, 1.98, is_title=True), _ph("subtitle", 11.46, 2.6)]
+    role, kind, _ = _classifier()._classify_layout(
+        "Title Slide", "Office", phs, {}, 13.333, 7.5)
+    assert (role, kind) == ("title", "blank")
+
+
+def test_slidesgo_subtitle_is_body():
+    """Slidesgo объявляет тело подзаголовком: тело в разы больше заголовка."""
+    phs = [_ph("title", 8.44, 0.59, is_title=True), _ph("subtitle", 8.44, 3.97)]
+    role, kind, reason = _classifier()._classify_layout(
+        "TITLE_AND_BODY", "Slidesgo", phs, {}, 10.0, 5.62)
+    assert (role, kind) == ("content", "bullets")
+    assert "тело-подзаголовков 1" in reason
+
+
+def test_several_subtitles_are_columns():
+    phs = [_ph("title", 8.44, 0.59, is_title=True)]
+    phs += [_ph("subtitle", 2.98, 0.59) for _ in range(4)]
+    role, kind, _ = _classifier()._classify_layout(
+        "TITLE_AND_TWO_COLUMNS", "Slidesgo", phs, {}, 10.0, 5.62)
+    assert (role, kind) == ("content", "multi_column")
+
+
+def test_full_bleed_picture_is_background():
+    """Картинка во весь слайд — фон, а не контентная картинка макета."""
+    class _Pic:
+        shape_type = MSO_SHAPE_TYPE.PICTURE
+        is_placeholder = False
+        has_table = has_chart = has_text_frame = False
+        left, top = 0, 0
+        width, height = int(10.0 * EMU), int(5.62 * EMU)
+
+    class _Layout:
+        shapes = [_Pic()]
+
+    kinds = _classifier()._layout_shape_kinds(_Layout(), 10.0, 5.62)
+    assert kinds["pictures"] == 0
+    phs = [_ph("center_title", 5.82, 2.73, is_title=True)]
+    role, kind, _ = _classifier()._classify_layout(
+        "MAIN_POINT", "Slidesgo", phs, kinds, 10.0, 5.62)
+    assert (role, kind) == ("title", "blank")
+
+
+def test_roles_stable_when_layouts_renamed(profile_of, synthetic_template):
+    """Переименование макетов в «Layout N» не меняет структурные решения.
+
+    Единственное допустимое расхождение — разделитель: у него «заголовок +
+    тело», и роль section выводится только из имени (структура неотличима от
+    контентного макета). Поэтому сравниваем композиционные типы полностью,
+    а роли — всюду, кроме пары section↔content.
+    """
+    from tools.make_fixtures import mutate_template
+
+    original = profile_of(synthetic_template)
+    renamed = profile_of(mutate_template(synthetic_template, prefix="Layout"))
+    assert [l["name"] for l in renamed["layouts"]] != [l["name"] for l in original["layouts"]]
+    assert (sorted(l["kind"] for l in original["layouts"])
+            == sorted(l["kind"] for l in renamed["layouts"]))
+    before = Counter(l["role"] for l in original["layouts"])
+    after = Counter(l["role"] for l in renamed["layouts"])
+    for role in set(before) | set(after):
+        if role in ("section", "content"):
+            continue
+        assert before[role] == after[role], f"{role}: {before[role]} → {after[role]}"
+    assert after["content"] >= before["content"]
+    assert after["title"] >= 1 and after["content"] >= 1
 
 
 def test_layout_pick_uses_kind_for_data_slides(profile_of, unfamiliar_template):

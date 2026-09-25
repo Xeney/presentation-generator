@@ -16,11 +16,11 @@
       "id": "planner/user",
       "kind": "prompt",
       "agent": "planner",
-      "version": "1.4",
+      "version": "1.5",
       "path": "planner/user.md",
       "model": "qwen2.5:7b-instruct",
       "purpose": "шаблон запроса: бриф, контент-пакет, контекст шаблона, JSON-схема, доступные изображения",
-      "hash": "7143c697d2e264a5"
+      "hash": "91d15626367c1c93"
     },
     {
       "id": "planner/purpose",

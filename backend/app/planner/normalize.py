@@ -21,6 +21,9 @@ MAX_BLOCKS = 6
 MAX_ITEMS = 6
 # абзац длиннее не влезает в рамку макета при крупной типографической шкале
 MAX_TEXT_CHARS = 180
+# поля, которыми модель подменяет blocks (в схеме их нет либо они для другого)
+STRAY_BLOCK_FIELDS = ("body", "content", "text", "description", "summary",
+                      "items", "bullets", "subtitle")
 
 
 def _has_payload(block: dict) -> bool:
@@ -63,6 +66,38 @@ def _split_sentences(text: str, limit: int) -> list[str]:
         tail = " ".join(parts[limit - 1:])
         return [*head, tail]
     return parts
+
+
+def _rescue_stray_text(slide: dict, index: int, fixes: list[str]) -> None:
+    """Переносит содержание из полей вне схемы в блоки, если blocks пуст.
+
+    Qwen3.5 иногда кладёт текст слайда в `subheading` (поле схемы для короткого
+    подзаголовка) или в `body`/`content`, оставляя blocks пустыми: слайд выходит
+    с одним заголовком. `subheading` рисуется только на титуле и разделе, поэтому
+    на остальных слайдах это потерянный контент. Схема — источник истины, но
+    терять текст нельзя: переносим его в блок.
+    """
+    parts: list[str] = []
+    if slide.get("slide_type") not in ("title", "section"):
+        subheading = slide.get("subheading")
+        if isinstance(subheading, str) and len(subheading.strip()) >= 3:
+            parts.append(subheading.strip())
+            slide["subheading"] = None
+    for field in STRAY_BLOCK_FIELDS:
+        value = slide.pop(field, None)
+        if isinstance(value, str) and value.strip():
+            parts.append(value.strip())
+        elif isinstance(value, list):
+            parts.extend(str(item).strip() for item in value if str(item).strip())
+    if not parts:
+        return
+    text = " ".join(parts)
+    if len(text) > MAX_TEXT_CHARS:
+        items = [s[:MAX_TEXT_CHARS] for s in _split_sentences(text, MAX_ITEMS)]
+        slide["blocks"] = [{"kind": "bullets", "items": items}]
+    else:
+        slide["blocks"] = [{"kind": "text", "text": text[:MAX_TEXT_CHARS]}]
+    fixes.append(f"слайд {index + 1}: текст из поля вне схемы перенесён в блок")
 
 
 def normalize_deck(data: Any, *, max_slides: int = MAX_SLIDES) -> tuple[Any, list[str]]:
@@ -108,6 +143,7 @@ def normalize_deck(data: Any, *, max_slides: int = MAX_SLIDES) -> tuple[Any, lis
         blocks = slide.get("blocks")
         if not isinstance(blocks, list):
             slide["blocks"] = []
+            _rescue_stray_text(slide, index, fixes)
             continue
         cleaned: list[dict] = []
         for block in blocks:
@@ -161,6 +197,8 @@ def normalize_deck(data: Any, *, max_slides: int = MAX_SLIDES) -> tuple[Any, lis
             fixes.append(f"слайд {index + 1}: блоков оставлено {MAX_BLOCKS}")
             cleaned = cleaned[:MAX_BLOCKS]
         slide["blocks"] = cleaned
+        if not cleaned:
+            _rescue_stray_text(slide, index, fixes)
 
     # 4. обязательные поля колоды
     title = str(data.get("title") or "").strip()

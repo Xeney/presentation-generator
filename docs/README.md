@@ -72,6 +72,14 @@ docker compose exec ollama ollama list
 python tools/audit_matrix.py --layouts data/templates/my.pptx   # профиль и роли макетов
 ```
 
+Проверка адаптации к **сторонним** шаблонам (критерий ТЗ №3): три чужих шаблона
+с открытыми лицензиями, их профили и скриншоты лежат в `docs/evidence/external/`,
+разбор ошибок классификации — ADR-025 и ADR-026. Прогон:
+
+```bash
+python tools/e2e_9variants.py --templates data/external_templates/*.pptx --out data/output/external
+```
+
 ### Контент-пакет
 
 Пакет можно не только вставить текстом, но и загрузить файлом — сервис разберёт
@@ -126,7 +134,7 @@ python tools/import_corpus.py data/templates/content_pack.pptx --text
 | `VLM_AUDIT_ENABLED` | `true` | выключить VLM-аудит, если нет ресурсов/времени |
 | `VLM_AUDIT_ALL_VARIANTS` | `false` | `true` — VLM по всем трём вариантам, а не только по одному |
 | `GROUNDING_ENABLED` | `true` | проверка опоры на контент-пакет (числа и смысл) |
-| `GROUNDING_OFF_SOURCE_THRESHOLD` | `0.55` | порог косинусной близости слайда к корпусу |
+| `GROUNDING_OFF_SOURCE_THRESHOLD` | `0.45` | порог косинусной близости слайда к корпусу |
 | `GROUNDING_DUPLICATE_THRESHOLD` | `0.92` | порог семантического дубля слайдов |
 
 ## 4.1 Хранилище и кэш

@@ -109,6 +109,42 @@ def _fmt_hex(srgb: str) -> str:
     return "#" + srgb.upper() if srgb else ""
 
 
+def body_like_subtitles(phs: list, slide_w: float, slide_h: float,
+                        named_role: Optional[str] = None) -> list:
+    """Подзаголовки, которые на деле являются телом слайда.
+
+    Подзаголовок — конвенция обложек (строка под заголовком), но Slidesgo и
+    подобные шаблоны объявляют им контентную область. Отличить их по одной
+    геометрии нельзя: у стандартной обложки Office подзаголовок тоже крупный.
+    Признак — соотношение с заголовком: у обложки подзаголовок сопоставим с
+    заголовком, у контентного макета тело в разы больше (≥2.5×). Несколько
+    подзаголовков сразу — тоже тело (обложек с двумя не бывает).
+
+    Имя — только tie-breaker: явное «титульный слайд» оставляет подзаголовок
+    подзаголовком, явное «контентный/с телом» — делает его телом.
+    """
+    subtitle_phs = [p for p in phs if p.type == "subtitle"]
+    if not subtitle_phs:
+        return []
+    if named_role == "title":
+        return []
+    if named_role == "content":
+        return list(subtitle_phs)
+    slide_area = max(1e-6, slide_w * slide_h)
+    title_area = max((p.w * p.h for p in phs if p.is_title), default=0.0)
+    out = []
+    for ph in subtitle_phs:
+        area = (ph.w * ph.h) / slide_area if ph.w and ph.h else 0.0
+        if len(subtitle_phs) >= 2:
+            out.append(ph)
+        elif title_area:
+            if area * slide_area >= 2.5 * title_area:
+                out.append(ph)
+        elif area >= 0.10:
+            out.append(ph)
+    return out
+
+
 class PptxParseError(Exception):
     pass
 
@@ -318,6 +354,9 @@ class TemplateParser:
         `texts` — содержательные свободные текстовые фигуры (не плейсхолдеры):
         многие шаблоны держат контентную область именно так, и без их подсчёта
         макет выглядит как «только заголовок».
+
+        Картинка во весь слайд — фон (декор), а не контентное изображение:
+        Slidesgo и подобные шаблоны кладут такую картинку на каждый макет.
         """
         kinds = {"tables": 0, "charts": 0, "pictures": 0, "texts": 0, "shapes": 0}
         slide_area = max(1e-6, slide_w * slide_h)
@@ -334,7 +373,12 @@ class TemplateParser:
                     kinds["charts"] += 1
                     continue
                 if shape_code(shape) == MSO_SHAPE_TYPE.PICTURE.value:
-                    kinds["pictures"] += 1
+                    geo = self._shape_geo(shape)
+                    area = (geo[2] * geo[3]) if geo else 0.0
+                    if area >= 0.85 * slide_area:
+                        kinds["shapes"] += 1  # фон, не контентная картинка
+                    else:
+                        kinds["pictures"] += 1
                     continue
                 if getattr(shape, "has_text_frame", False) and not shape.is_placeholder:
                     text = shape.text_frame.text.strip()
@@ -354,21 +398,28 @@ class TemplateParser:
         Учитываются только однозначные слова («титул», «оглавление», «спасибо»),
         а не общие («title», «content»), иначе «Title and Content» превратился бы
         в титульный макет. Слова вроде «содержание» проверяются раньше «раздела».
+        Разделители имён (TITLE_ONLY, title-slide) приводятся к пробелам, иначе
+        ключ «title only» не находится.
         """
         haystack = f"{name or ''} {master_name or ''}".lower()
+        haystack = re.sub(r"[_\-–—.]+", " ", haystack)
         groups = (
             ("final", ("спасибо", "thanks", "thank", "финальн", "заключительн",
-                       "контакты", "closing", "qr")),
+                       "контакты", "closing", "qr", "谢谢", "感谢")),
             ("agenda", ("оглавлени", "содержани", "agenda", "table of content",
-                        "toc", "outline", "навигаци")),
+                        "toc", "outline", "навигаци", "目录", "议程")),
             ("section", ("раздел", "разделитель", "section", "divider",
-                         "переход", "transition")),
+                         "переход", "transition", "章节")),
             # «title slide»/«title only» — обложка; просто «title» намеренно не
-            # берём, иначе «Title and Content» стал бы титульным макетом
+            # берём, иначе «Title and Content» стал бы титульным макетом.
+            # Для китайских шаблонов — только полная фраза «标题幻灯片» (титул),
+            # иначе «标题和内容» (заголовок и содержимое) ушёл бы в обложки.
             ("title", ("титул", "обложк", "заставк", "cover", "intro",
-                       "первый слайд", "title slide", "title only", "заглавный")),
+                       "первый слайд", "title slide", "title only", "заглавный",
+                       "标题幻灯片", "封面")),
             ("content", ("контент", "content", "заголовок", "текст", "пункт",
-                         "bullet", "слайд с")),
+                         "bullet", "слайд с", "body", "text", "column", "list",
+                         "内容", "文本", "列表")),
         )
         for role, keywords in groups:
             if any(keyword in haystack for keyword in keywords):
@@ -390,14 +441,20 @@ class TemplateParser:
         def count(*types: str) -> int:
             return sum(1 for p in phs if p.type in types)
 
+        # семантическая роль из имени — tie-breaker для спорных случаев
+        named = self._named_role(name, master_name)
+
         titles = count("title", "center_title")
         bodies = count("body", "object")
-        subs = count("subtitle")
+        subtitle_phs = [p for p in phs if p.type == "subtitle"]
+        body_subs = body_like_subtitles(phs, slide_w, slide_h, named)
+        subs = len(subtitle_phs) - len(body_subs)
         pics = count("picture", "slide_image") + shapes.get("pictures", 0)
         tables = count("table") + shapes.get("tables", 0)
         charts = shapes.get("charts", 0)
         texts = shapes.get("texts", 0)
-        content_boxes = bodies + texts
+        content_boxes = bodies + texts + len(body_subs)
+        body_hint = (f", тело-подзаголовков {len(body_subs)}" if body_subs else "")
 
         # 1. данные на макете однозначны
         if tables:
@@ -405,18 +462,8 @@ class TemplateParser:
         if charts:
             return "content", "chart", f"на макете диаграмма ({charts})"
 
-        # 2. семантическая роль из имени
-        named = self._named_role(name, master_name)
-
-        # 3. структура
-        if not titles and content_boxes == 0 and pics == 0:
-            return "content", "blank", "пустой/декоративный макет без контентных рамок"
-        if not titles:
-            if content_boxes >= 3:
-                return "content", "multi_column", f"нет заголовка, блоков {content_boxes}"
-            return ("content", "image" if pics else "bullets",
-                    f"нет заголовка, блоков {content_boxes}, картинок {pics}")
-
+        # 2. семантическая роль из имени: она сильнее структуры, когда макет
+        #    пуст (в китайских шаблонах рамки живут на образце, а не на макете)
         if named == "final":
             return "final", "blank" if content_boxes == 0 else "bullets", "имя: финальный слайд"
         if named == "agenda":
@@ -438,12 +485,25 @@ class TemplateParser:
             if pics and content_boxes == 0:
                 return "content", "image", "имя: контентный слайд с картинкой"
             if pics:
-                return "content", "image_text", "имя: контентный слайд с картинкой и текстом"
-            if content_boxes >= 4:
-                return "content", "multi_column", f"имя: контентный, блоков {content_boxes}"
-            return "content", "bullets", f"имя: контентный слайд, блоков {content_boxes}"
+                return ("content", "image_text",
+                        f"имя: контентный слайд с картинкой и текстом{body_hint}")
+            if content_boxes >= 2:
+                return ("content", "multi_column",
+                        f"имя: контентный, блоков {content_boxes}{body_hint}")
+            return ("content", "bullets",
+                    f"имя: контентный слайд, блоков {content_boxes}{body_hint}")
 
-        if subs >= 1 and texts == 0 and bodies <= 1:
+        # 3. структура
+        if not titles and content_boxes == 0 and pics == 0:
+            return "content", "blank", "пустой/декоративный макет без контентных рамок"
+        if not titles:
+            if content_boxes >= 2:
+                return ("content", "multi_column",
+                        f"нет заголовка, блоков {content_boxes}{body_hint}")
+            return ("content", "image" if pics else "bullets",
+                    f"нет заголовка, блоков {content_boxes}, картинок {pics}{body_hint}")
+
+        if subs >= 1 and content_boxes == 0:
             # подзаголовок — конвенция обложек: он есть у титульного макета и
             # почти никогда у контентного (там сразу тело с тезисами)
             return ("title", "bullets" if bodies else "blank",
@@ -461,12 +521,15 @@ class TemplateParser:
         if pics and content_boxes == 0:
             return "content", "image", "заголовок + картинка без текста"
         if pics and content_boxes:
-            return "content", "image_text", f"заголовок + картинка + {content_boxes} блок(ов)"
-        if content_boxes >= 4:
-            return "content", "multi_column", f"{content_boxes} блоков на макете"
+            return ("content", "image_text",
+                    f"заголовок + картинка + {content_boxes} блок(ов){body_hint}")
+        if content_boxes >= 2:
+            return ("content", "multi_column",
+                    f"{content_boxes} блоков на макете{body_hint}")
         if subs and bodies:
             return "content", "bullets", "заголовок + подзаголовок + текст"
-        return "content", "bullets", f"заголовок + {content_boxes} текстовый блок(ов)"
+        return ("content", "bullets",
+                f"заголовок + {content_boxes} текстовый блок(ов){body_hint}")
 
     # ---------------------------------------------------------------- main flow
     def parse(self) -> TemplateProfile:
@@ -579,7 +642,12 @@ class TemplateParser:
                 title_ph = next((p.to_dict() for p in phs if p.is_title), None)
                 body = None
                 columns = []
+                slide_w = Emu(self._prs.slide_width).inches
+                slide_h = Emu(self._prs.slide_height).inches
+                # тело-подзаголовки (Slidesgo и др.) — тоже реальная геометрия
+                # контентной области, иначе рендер возьмёт сетку профиля
                 body_candidates = [p for p in phs if p.type in ("body", "object")]
+                body_candidates += body_like_subtitles(phs, slide_w, slide_h)
                 if body_candidates:
                     largest = max(body_candidates, key=lambda p: p.w * p.h)
                     body = {"x": largest.x, "y": largest.y, "w": largest.w, "h": largest.h}
@@ -593,8 +661,6 @@ class TemplateParser:
                                 col_boxes.append({"x": p.x, "y": p.y, "w": p.w, "h": p.h})
                             prev = p
                         columns = sorted(col_boxes, key=lambda c: c["x"])
-                slide_w = Emu(self._prs.slide_width).inches
-                slide_h = Emu(self._prs.slide_height).inches
                 shapes = self._layout_shape_kinds(layout, slide_w, slide_h)
                 role, kind, reason = self._classify_layout(
                     layout.name, layout.slide_master.name, phs, shapes, slide_w, slide_h)

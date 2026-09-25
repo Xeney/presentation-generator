@@ -35,9 +35,32 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--slides", default="0,1,2,3,4")
     parser.add_argument("--offline", action="store_true",
                         help="офлайн-планировщик (без обращения к модели)")
+    parser.add_argument("--pptx", type=Path, default=None,
+                        help="готовый PPTX: только PNG, без планирования и аудита")
     parser.add_argument("--out", type=Path, default=ROOT / "data" / "inspect")
     parser.add_argument("--dpi", type=int, default=110)
     args = parser.parse_args(argv)
+
+    indexes = [int(x) for x in args.slides.split(",") if x.strip().isdigit()]
+
+    if args.pptx is not None:
+        from app.render.pdf import pptx_to_pngs
+
+        if not args.pptx.exists():
+            print(f"файл не найден: {args.pptx}")
+            return 1
+        args.out.mkdir(parents=True, exist_ok=True)
+        pngs = pptx_to_pngs(args.pptx.read_bytes(), dpi=args.dpi)
+        for index in indexes:
+            if 0 <= index < len(pngs):
+                path = args.out / f"{args.pptx.stem}_s{index + 1}.png"
+                path.write_bytes(pngs[index])
+                try:
+                    shown = path.resolve().relative_to(ROOT)
+                except ValueError:
+                    shown = path
+                print("  " + str(shown))
+        return 0
 
     if args.offline:
         import os
@@ -101,7 +124,6 @@ def main(argv: list[str]) -> int:
     deck_path.write_bytes(pptx)
     print(f"PPTX: {deck_path.relative_to(ROOT)}")
 
-    indexes = [int(x) for x in args.slides.split(",") if x.strip().isdigit()]
     pngs = pptx_to_pngs(pptx, dpi=args.dpi)
     saved = []
     for index in indexes:
