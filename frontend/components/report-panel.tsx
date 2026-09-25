@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, Download, FileCode2, FileText, Presentation } from "lucide-react";
+import { AlertTriangle, FileCode2, FileText, Presentation } from "lucide-react";
+import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function ReportPanel({
   summary,
   health,
   error,
+  onProviderChange,
 }: {
   jobId: string | null;
   variant: VariantName;
@@ -34,7 +36,25 @@ export function ReportPanel({
   summary: JobSummary | null;
   health: Health | null;
   error: string;
+  onProviderChange: (llm: string, vlm: string) => Promise<void>;
 }) {
+  const [llmProvider, setLlmProvider] = React.useState("aitunnel");
+  const [vlmProvider, setVlmProvider] = React.useState("aitunnel");
+  const [switching, setSwitching] = React.useState(false);
+
+  React.useEffect(() => {
+    if (health?.llm.provider) setLlmProvider(health.llm.provider);
+    if (health?.vlm.provider) setVlmProvider(health.vlm.provider);
+  }, [health]);
+
+  const applyProvider = async () => {
+    setSwitching(true);
+    try {
+      await onProviderChange(llmProvider, vlmProvider);
+    } finally {
+      setSwitching(false);
+    }
+  };
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -123,19 +143,49 @@ export function ReportPanel({
         )}
 
         {health && (
-          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3 text-muted-foreground">
-            <span
-              className={cn(
-                "inline-block h-2 w-2 rounded-full",
-                health.llm.available ? "bg-[hsl(var(--success))]" : "bg-[hsl(var(--warning))]",
-              )}
-            />
-            {health.llm.available ? (
-              <span>Ollama: {health.llm.model}</span>
-            ) : (
-              <span>Ollama недоступна — работает офлайн-планировщик</span>
-            )}
-            <span>· VLM {health.vlm.enabled ? health.vlm.model : "выключен"}</span>
+          <div className="space-y-2 border-t border-border pt-3 text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  "inline-block h-2 w-2 rounded-full",
+                  health.llm.available
+                    ? "bg-[hsl(var(--success))]"
+                    : "bg-[hsl(var(--warning))]",
+                )}
+              />
+              <span>
+                планировщик: {health.llm.label ?? `${health.llm.provider}/${health.llm.model}`}
+              </span>
+              <span>· VLM {health.vlm.label ?? health.vlm.model}</span>
+            </div>
+            {/* план Б на демо: сменить провайдера без перезапуска сервиса */}
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={llmProvider}
+                onChange={(event) => setLlmProvider(event.target.value)}
+                className="h-8 rounded-md border border-input bg-background/60 px-2 text-xs"
+                title="провайдер планировщика"
+              >
+                <option value="aitunnel">aitunnel</option>
+                <option value="ollama">ollama</option>
+                <option value="openai_compat">openai_compat</option>
+                <option value="offline">offline (без моделей)</option>
+              </select>
+              <select
+                value={vlmProvider}
+                onChange={(event) => setVlmProvider(event.target.value)}
+                className="h-8 rounded-md border border-input bg-background/60 px-2 text-xs"
+                title="провайдер VLM-аудита"
+              >
+                <option value="aitunnel">vlm: aitunnel</option>
+                <option value="ollama">vlm: ollama</option>
+                <option value="openai_compat">vlm: openai_compat</option>
+                <option value="off">vlm: off</option>
+              </select>
+              <Button size="sm" variant="outline" onClick={applyProvider} disabled={switching}>
+                {switching ? "переключаю…" : "применить"}
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

@@ -159,8 +159,21 @@ export type JobInfo = {
 export type Health = {
   status: string;
   variants: VariantName[];
-  llm: { available: boolean; disabled: boolean; model: string; models: string[] };
-  vlm: { enabled: boolean; model: string };
+  llm: {
+    available: boolean;
+    disabled: boolean;
+    provider: string;
+    model: string;
+    label?: string;
+    models: string[];
+  };
+  vlm: {
+    enabled: boolean;
+    provider: string;
+    model: string;
+    available?: boolean;
+    label?: string;
+  };
   content_formats: string[];
 };
 

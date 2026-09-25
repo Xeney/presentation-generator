@@ -24,6 +24,8 @@ os.environ.setdefault("LLM_PROVIDER", "ollama")
 # VLM-провайдер тоже не берём из локального .env: тесты должны быть одинаковыми
 # на машине разработчика и в CI
 os.environ.setdefault("VLM_PROVIDER", "ollama")
+# и общий выключатель моделей: в CI он может стоять, тестам провайдеров нужен false
+os.environ.setdefault("DISABLE_LLM", "false")
 
 ROOT = Path(__file__).resolve().parents[2]
 BACKEND = ROOT / "backend"

@@ -47,6 +47,7 @@ def compat(monkeypatch):
     monkeypatch.setenv("OPENAI_COMPAT_API_KEY", SECRET)
     monkeypatch.setenv("OPENAI_COMPAT_MODEL", "test-model")
     monkeypatch.setenv("OPENAI_COMPAT_VLM_MODEL", "")
+    monkeypatch.setenv("DISABLE_LLM", "false")
     get_settings.cache_clear()
 
     calls: list[dict] = []
@@ -322,6 +323,7 @@ def test_aitunnel_missing_key_is_explained(monkeypatch):
     """Без ключа — понятная ошибка и мягкий откат на Ollama."""
     monkeypatch.setenv("LLM_PROVIDER", "aitunnel")
     monkeypatch.setenv("AITUNNEL_API_KEY", "")
+    monkeypatch.setenv("DISABLE_LLM", "false")
     get_settings.cache_clear()
     try:
         from app.planner.llm import aitunnel_client, get_llm_client

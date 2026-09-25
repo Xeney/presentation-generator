@@ -36,9 +36,28 @@ export default function Page() {
   const [fixReport, setFixReport] = React.useState<FixReport | null>(null);
   const [slideIndex, setSlideIndex] = React.useState(0);
 
-  React.useEffect(() => {
-    api.health().then(setHealth).catch(() => setHealth(null));
+  const refreshHealth = React.useCallback(async () => {
+    try {
+      setHealth(await api.health());
+    } catch {
+      setHealth(null);
+    }
   }, []);
+
+  React.useEffect(() => {
+    refreshHealth();
+  }, [refreshHealth]);
+
+  /** План Б на демо: смена провайдера без перезапуска сервиса. */
+  const switchProvider = async (llm: string, vlm: string) => {
+    setError("");
+    try {
+      await api.switchProvider({ llm_provider: llm, vlm_provider: vlm });
+      await refreshHealth();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : String(requestError));
+    }
+  };
 
   /* ---------------------------------------------------- опрос задания */
   React.useEffect(() => {
@@ -147,6 +166,7 @@ export default function Page() {
           summary={summary}
           health={health}
           error={error}
+          onProviderChange={switchProvider}
         />
       </aside>
 

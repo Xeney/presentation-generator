@@ -34,6 +34,19 @@ async function parse<T>(response: Response): Promise<T> {
 export const api = {
   health: () => fetch(`${API_URL}/api/health`).then(parse<Health>),
 
+  switchProvider: (body: { llm_provider?: string; vlm_provider?: string }) =>
+    fetch(`${API_URL}/api/provider`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then(
+      parse<{
+        applied: Record<string, string>;
+        llm: { provider: string; model: string; label: string; available: boolean };
+        vlm: { provider: string; model: string; label: string; available: boolean };
+      }>,
+    ),
+
   importCorpus: (file: File) => {
     const body = new FormData();
     body.append("file", file);

@@ -16,6 +16,7 @@ import threading
 import time
 import uuid
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -178,6 +179,73 @@ async def content_import(file: UploadFile = File(...)):
         for s in corpus.non_empty_slides()[:12]
     ]
     return payload
+
+
+class ProviderRequest(BaseModel):
+    """Переключение провайдера на лету: план Б на живом демо.
+
+    `llm_provider`: aitunnel | openai_compat | ollama | offline (последний —
+    принудительный офлайн-планировщик без обращения к моделям).
+    `vlm_provider`: aitunnel | openai_compat | ollama | off.
+    """
+
+    llm_provider: Optional[str] = None
+    vlm_provider: Optional[str] = None
+
+
+LLM_PROVIDERS = {"aitunnel", "openai_compat", "ollama", "offline"}
+VLM_PROVIDERS = {"aitunnel", "openai_compat", "ollama", "off"}
+
+
+@app.post("/api/provider")
+def switch_provider(request: ProviderRequest):
+    """Меняет провайдера без перезапуска сервиса.
+
+    Нужно на защите: если внешний шлюз отвалился, демо переключается на
+    офлайн-планировщик одной кнопкой, и генерация продолжает работать.
+    """
+    from ..planner.llm import get_llm_client, get_vlm_client
+
+    if request.llm_provider is None and request.vlm_provider is None:
+        raise HTTPException(422, "укажите llm_provider и/или vlm_provider")
+    if request.llm_provider and request.llm_provider not in LLM_PROVIDERS:
+        raise HTTPException(422, f"llm_provider: ожидается одно из {sorted(LLM_PROVIDERS)}")
+    if request.vlm_provider and request.vlm_provider not in VLM_PROVIDERS:
+        raise HTTPException(422, f"vlm_provider: ожидается одно из {sorted(VLM_PROVIDERS)}")
+
+    applied: dict = {}
+    if request.llm_provider:
+        if request.llm_provider == "offline":
+            settings.disable_llm = True
+        else:
+            settings.llm_provider = request.llm_provider
+            settings.disable_llm = False
+        applied["llm_provider"] = settings.active_llm_provider
+        applied["llm_model"] = settings.active_llm_model
+    if request.vlm_provider:
+        settings.vlm_provider = request.vlm_provider
+        applied["vlm_provider"] = settings.active_vlm_provider
+        applied["vlm_model"] = settings.active_vlm_model
+
+    client = get_llm_client()
+    vlm_client = get_vlm_client()
+    return {
+        "applied": applied,
+        "llm": {
+            "provider": settings.active_llm_provider,
+            "model": settings.active_llm_model,
+            "label": settings.planner_label,
+            "available": False if settings.disable_llm else client.health(),
+            "disabled": settings.disable_llm,
+        },
+        "vlm": {
+            "provider": settings.active_vlm_provider,
+            "model": settings.active_vlm_model,
+            "label": settings.vlm_label,
+            "available": bool(vlm_client) and not settings.disable_llm
+            and vlm_client.health(),
+        },
+    }
 
 
 @app.get("/api/content")

@@ -143,6 +143,55 @@ def test_generate_validation(client, synthetic_template):
     assert resp.status_code == 404
 
 
+def test_provider_switch_is_instant(client):
+    """План Б на демо: смена провайдера без перезапуска сервиса."""
+    from app.config import get_settings
+
+    original = (get_settings().llm_provider, get_settings().vlm_provider)
+    try:
+        response = client.post("/api/provider", json={"llm_provider": "offline",
+                                                      "vlm_provider": "off"})
+        assert response.status_code == 200, response.text
+        body = response.json()
+        # ярлык честный: при выключенных моделях провайдер называется offline
+        assert body["applied"]["llm_provider"] == "offline"
+        assert body["llm"]["disabled"] is True
+        assert body["vlm"]["provider"] == "off"
+
+        # офлайн-планировщик работает сразу: колода собирается без моделей
+        started = client.post(
+            "/api/generate",
+            files={"template": ("tpl.pptx", _minimal_template(),
+                                "application/octet-stream")},
+            data={"brief": BRIEF})
+        assert started.status_code == 200
+        state = _wait(client, started.json()["job_id"])
+        assert state["status"] == "done", state
+        assert state["summary"]["used_llm"] is False
+
+        # возвращаем провайдера обратно
+        back = client.post("/api/provider", json={"llm_provider": "aitunnel",
+                                                  "vlm_provider": "aitunnel"})
+        assert back.json()["applied"]["llm_provider"] == "aitunnel"
+    finally:
+        settings = get_settings()
+        settings.llm_provider, settings.vlm_provider = original
+        settings.disable_llm = False
+
+
+def test_provider_switch_validates_input(client):
+    assert client.post("/api/provider", json={}).status_code == 422
+    assert client.post("/api/provider",
+                       json={"llm_provider": "нет-такого"}).status_code == 422
+
+
+def _minimal_template() -> bytes:
+    """Синтетический шаблон для тестов переключения (не зависит от файлов VK)."""
+    from tools.make_fixtures import FIXTURES, build_template
+
+    return build_template(**FIXTURES["synthetic_16x9"])
+
+
 def test_fix_endpoint_requires_selection(client, job):
     assert client.post(f"/api/jobs/{job['id']}/fix",
                        json={"issue_ids": [], "variant": "compact"}).status_code == 422

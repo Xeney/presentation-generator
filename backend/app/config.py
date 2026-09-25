@@ -98,7 +98,9 @@ class Settings(BaseSettings):
 
     @property
     def active_llm_provider(self) -> str:
-        """Фактический провайдер планировщика: ollama | openai_compat | aitunnel."""
+        """Фактический провайдер планировщика: ollama | openai_compat | aitunnel | offline."""
+        if self.disable_llm:
+            return "offline"
         if self.llm_provider == "aitunnel":
             return "aitunnel" if self.aitunnel_api_key else "ollama"
         if self.llm_provider == "openai_compat" and self.openai_compat_base_url:
@@ -108,6 +110,8 @@ class Settings(BaseSettings):
     @property
     def active_vlm_provider(self) -> str:
         """Провайдер VLM-аудита: пусто — как у LLM, `off` — стадия выключена."""
+        if self.disable_llm:
+            return "off"
         requested = (self.vlm_provider or self.llm_provider).strip().lower()
         if requested == "off":
             return "off"
@@ -155,7 +159,9 @@ class Settings(BaseSettings):
 
     @property
     def planner_label(self) -> str:
-        """Строка для отчёта задания: «провайдер/модель»."""
+        """Строка для отчёта задания: «провайдер/модель» или «offline»."""
+        if self.active_llm_provider == "offline":
+            return "offline"
         return f"{self.active_llm_provider}/{self.active_llm_model}"
 
     @property
