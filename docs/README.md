@@ -137,6 +137,10 @@ python tools/import_corpus.py data/templates/content_pack.pptx --text
 | `VLM_AUDIT_ALL_VARIANTS` | `false` | `true` — VLM по всем трём вариантам, а не только по одному |
 | `VLM_AUDIT_BUDGET_S` | `180` | бюджет стадии VLM: непроверенные слайды честно помечаются `skipped` |
 | `VLM_AUDIT_WORKERS` | `3` | параллельные запросы VLM |
+| `IMAGE_PROVIDER` | `off` | генерация иллюстраций для `kind=image`: `off` / `aitunnel` / `openai_compat` (ADR-028) |
+| `IMAGE_MODEL` | `flux.2-klein-4b` | модель генерации (FLUX.2 [klein] 4B, Apache 2.0) |
+| `IMAGE_SIZE` | `1280x720` | размер генерируемой картинки (пропорции сохраняются) |
+| `IMAGE_TIMEOUT_S` / `IMAGE_MAX_PER_DECK` | `60` / `4` | таймаут одной картинки и бюджет стадии |
 | `GROUNDING_ENABLED` | `true` | проверка опоры на контент-пакет (числа и смысл) |
 | `GROUNDING_OFF_SOURCE_THRESHOLD` | `0.45` | порог косинусной близости слайда к корпусу |
 | `GROUNDING_DUPLICATE_THRESHOLD` | `0.92` | порог семантического дубля слайдов |

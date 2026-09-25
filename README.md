@@ -75,7 +75,7 @@ docker compose up --build     # первая сборка 4–9 мин, моде
 | Веб-интерфейс на React/Next + Tailwind + shadcn | сделано: Tailwind с токенами shadcn/ui и собственные примитивы | ADR-018, `frontend/` |
 | Docker Compose, воспроизводимый запуск | сделано: ollama + backend (с LibreOffice) + frontend | `docker-compose.yml` |
 | Время генерации ≤ 5 минут | сделано: три варианта за 1.7–5.4 с без моделей; замеры в ADR-012 | `scripts/e2e.sh` |
-| Text-to-image (задача со звёздочкой) | отложено с обоснованием: слот `kind=image` и нативная вставка готовы, источник — контент-пакет | ADR-011, `docs/MODELS.md` §4 |
+| Text-to-image (задача со звёздочкой) | сделано: `kind=image` с `image_prompt` → FLUX.2 [klein] 4B (Apache 2.0) через `/images/generations`, 3.6 с на картинку, нативная вставка с сохранением пропорций; fallback — картинка из контент-пакета → слот шаблона | ADR-028, `backend/app/imagegen.py`, `docs/evidence/imagegen/` |
 
 ## Метрики
 

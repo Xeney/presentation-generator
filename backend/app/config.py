@@ -45,6 +45,22 @@ class Settings(BaseSettings):
     # колоду (например, qwen3.5-27b — тоже открытые веса, ≤ 35B)
     aitunnel_fallback_model: str = "qwen3.5-27b"
 
+    # --- Генерация иллюстраций (kind=image с image_prompt) ---
+    # off            — стадия выключена (по умолчанию): слот картинки остаётся
+    #                  плейсхолдером шаблона;
+    # aitunnel       — /images/generations шлюза AITUNNEL (ключ AITUNNEL_API_KEY);
+    # openai_compat  — любой другой OpenAI-совместимый эндпоинт картинок.
+    # Модель по умолчанию — FLUX.2 [klein] 4B: Apache 2.0, открытые веса
+    # (проверено по карточке black-forest-labs/FLUX.2-klein-4B).
+    image_provider: str = "off"
+    image_model: str = "flux.2-klein-4b"
+    image_base_url: str = ""
+    image_api_key: str = ""
+    image_size: str = "1280x720"
+    image_timeout_s: int = 60
+    # бюджет стадии: больше четырёх иллюстраций на колоду не генерируем
+    image_max_per_deck: int = 4
+
     # DEMO_MODE=true — без тихого отката: если модель недоступна, задание
     # завершается понятной ошибкой, а не офлайн-колодой (для живого демо).
     demo_mode: bool = False
@@ -133,6 +149,30 @@ class Settings(BaseSettings):
         if requested == "openai_compat" and self.openai_compat_base_url:
             return "openai_compat"
         return "ollama"
+
+    @property
+    def active_image_provider(self) -> str:
+        """Провайдер генерации иллюстраций: off | aitunnel | openai_compat."""
+        requested = (self.image_provider or "off").strip().lower()
+        if requested in ("", "off", "none"):
+            return "off"
+        if requested == "aitunnel":
+            return "aitunnel" if self.aitunnel_api_key else "off"
+        if requested == "openai_compat":
+            return "openai_compat" if self.image_base_url else "off"
+        return "off"
+
+    @property
+    def active_image_base_url(self) -> str:
+        if self.active_image_provider == "aitunnel":
+            return self.aitunnel_base_url
+        return self.image_base_url
+
+    @property
+    def active_image_api_key(self) -> str:
+        if self.active_image_provider == "aitunnel":
+            return self.aitunnel_api_key
+        return self.image_api_key
 
     @property
     def active_llm_model(self) -> str:

@@ -15,6 +15,7 @@ from .audit.vlm import VlmAudit, violations_to_issues
 from .config import get_settings
 from .content.corpus import ContentCorpus
 from .export.html import deck_to_html
+from .imagegen import generate_images_for_deck
 from .layout.engine import DesignContext
 from .models.deck import Deck
 from .planner.llm import get_llm_client
@@ -117,6 +118,13 @@ def full_generate(brief: str, source: str, purpose: str,
     deck = result.deck
 
     images = corpus.images if corpus is not None else None
+    # иллюстрации: если у блока kind=image есть промпт, а картинки в контент-пакете
+    # нет — генерируем (IMAGE_PROVIDER=off по умолчанию: слот остаётся заглушкой)
+    t0 = time.perf_counter()
+    images, imagegen_report = generate_images_for_deck(deck, images)
+    if imagegen_report:
+        stages["imagegen_s"] = round(time.perf_counter() - t0, 2)
+
     t0 = time.perf_counter()
     artifacts = render_variants(deck, profile, template_bytes, images=images)
     stages["render_s"] = round(time.perf_counter() - t0, 2)
@@ -164,6 +172,7 @@ def full_generate(brief: str, source: str, purpose: str,
         "vlm": vlm_result,
         "vlm_by_variant": vlm_by_variant,
         "grounding": grounding,
+        "imagegen": imagegen_report,
         "stages": stages,
         "html": html_export(deck, profile),
     }
