@@ -292,7 +292,7 @@ def test_fallback_model_takes_over_when_primary_fails(aitunnel, monkeypatch):
     assert result.model == "qwen3.5-27b"
     # три попытки основной моделью + одна запасной
     assert result.attempts == 4
-    assert any(call["payload"].get("model") == "qwen3.5-27b" for call in calls)
+    assert any(call.get("payload", {}).get("model") == "qwen3.5-27b" for call in calls)
     get_settings.cache_clear()
 
 
