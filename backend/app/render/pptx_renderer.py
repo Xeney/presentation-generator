@@ -369,12 +369,18 @@ class Renderer:
                                         headline_bold=True)
                 return
         tb = slide.shapes.add_textbox(_in(rect.x), _in(rect.y), _in(rect.w), _in(rect.h))
+        tb.name = "TitleBox"  # аудит отличает заголовок от контентных блоков
         tf = tb.text_frame
         tf.word_wrap = True
         p = _add_para(tf, sl.heading, first=True)
         r = p.add_run()
         r.text = sl.heading
-        self._set_run_font(r, self._headline_font(), size, True, color)
+        # в макетах без рамки заголовка (шаблон scholar) заголовок рисуется
+        # свободной рамкой: кегль тоже подбираем под неё, иначе он обрезается
+        fitted = self._fit_size(sl.heading, max(0.4, rect.w - 0.10),
+                                max(0.2, rect.h * 0.95), default=size,
+                                kind="title", min_size=10.0)
+        self._set_run_font(r, self._headline_font(), fitted, True, color)
         if sl.subheading and sl.slide_type == SlideType.SECTION:
             sub = slide.shapes.add_textbox(_in(rect.x), _in(rect.y + rect.h * 0.9),
                                            _in(rect.w), _in(0.5))

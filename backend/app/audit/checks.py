@@ -89,12 +89,16 @@ class Audit:
         h = float(size.get("h_in") or 7.5)
         lefts, tops, rights, bottoms = [], [], [], []
         for layout in self.layouts:
-            body = layout.get("body") or {}
-            if body.get("w"):
-                lefts.append(float(body["x"]))
-                tops.append(float(body["y"]))
-                rights.append(w - (float(body["x"]) + float(body["w"])))
-                bottoms.append(h - (float(body["y"]) + float(body["h"])))
+            # и тело, и рамка заголовка: вертикальный заголовок шаблона scholar
+            # стоит у самого края, и проверка полей не должна ругать вёрстку за
+            # то, что делает сам макет
+            boxes = [layout.get("body") or {}, layout.get("title_ph") or {}]
+            for box in boxes:
+                if box.get("w"):
+                    lefts.append(float(box["x"]))
+                    tops.append(float(box["y"]))
+                    rights.append(w - (float(box["x"]) + float(box["w"])))
+                    bottoms.append(h - (float(box["y"]) + float(box["h"])))
         grid = self.grid or {}
         if grid.get("body_w"):
             lefts.append(float(grid.get("body_x", 0.5)))
@@ -674,6 +678,10 @@ class Audit:
         for shape in self._text_shapes(slide):
             if shape.left is None or shape.width is None:
                 continue
+            # заголовок стоит там, где его ставит вёрстка макета (обычно выше
+            # контентной области) — проверка полей относится к контенту
+            if self._is_title_shape(shape):
+                continue
             if (shape.left < left - tol or (shape.top or 0) < top - tol
                     or shape.left + shape.width > right + tol
                     or (shape.top or 0) + (shape.height or 0) > bottom + tol):
@@ -860,6 +868,10 @@ class Audit:
 
     @staticmethod
     def _is_title_shape(shape) -> bool:
+        # макеты без рамки заголовка (шаблон scholar): вёрстка рисует заголовок
+        # свободной рамкой с именем TitleBox — она тоже заголовок, а не контент
+        if (shape.name or "").startswith("TitleBox"):
+            return True
         try:
             if not shape.is_placeholder:
                 return False
