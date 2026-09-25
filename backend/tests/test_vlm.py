@@ -186,6 +186,37 @@ class _BudgetSettings:
     vlm_label = "fake-vlm"
 
 
+def test_stage_stops_when_model_never_answers(deck, monkeypatch):
+    """Ни один слайд не ответил — стадия останавливается, а не ждёт все слайды.
+
+    На CPU (или при недоступной модели) это экономит минуты: остальные слайды
+    честно помечаются «не проверено».
+    """
+    import time
+
+    from app.audit import vlm as vlm_module
+
+    class _DeadLlm(_FakeLlm):
+        def generate_text(self, prompt, system=None, **kwargs):  # noqa: D102
+            time.sleep(kwargs.get("timeout_s") or 30)
+            raise TimeoutError("модель не ответила")
+
+    monkeypatch.setattr("app.audit.vlm.pptx_to_pngs", _fake_pngs(9))
+    monkeypatch.setattr(vlm_module, "get_settings", lambda: _BudgetSettings())
+    monkeypatch.setattr(vlm_module, "MIN_STAGE_BUDGET_S", 0.2)
+    monkeypatch.setattr(vlm_module, "MIN_REQUEST_TIMEOUT_S", 0.1)
+    audit = VlmAudit(llm=_DeadLlm(), profile={})
+    started = time.perf_counter()
+    result = audit.audit(b"PK", deck=deck)
+    elapsed = time.perf_counter() - started
+
+    assert result["available"] is False
+    assert "не ответила" in result["reason"]
+    # 9 слайдов, 2 воркера: после двух отказов стадия останавливается,
+    # а не ждёт ещё семь слайдов
+    assert elapsed < 2, f"стадия ждала лишние слайды: {elapsed:.1f} c"
+
+
 def test_unknown_criteria_numbers_are_ignored(deck, monkeypatch):
     """Модель может вернуть мусорные номера — они не должны ломать аудит."""
     monkeypatch.setattr("app.audit.vlm.pptx_to_pngs", _fake_pngs(3))

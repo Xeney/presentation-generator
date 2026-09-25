@@ -152,6 +152,8 @@ class VlmAudit:
         # Слайдов больше, чем воркеров: задачи, начавшиеся после дедлайна,
         # получают остаток бюджета (минимум 15 с) и быстро отваливаются по
         # таймауту, поэтому стадия укладывается в бюджет + один запрос.
+        done = 0
+        failed = 0
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futures = {pool.submit(ask, index): index for index in range(len(images))}
             for future in as_completed(futures):
@@ -160,9 +162,22 @@ class VlmAudit:
                     future.result()
                 except Exception as exc:  # noqa: BLE001 — один слайд не рушит стадию
                     verdicts[index] = {"error": str(exc)[:200]}
+                done += 1
+                if verdicts[index].get("error"):
+                    failed += 1
                 if time.perf_counter() > deadline and not verdicts[index]:
                     verdicts[index] = {"skipped": True,
                                        "error": "не проверено: исчерпан бюджет стадии"}
+                if failed >= workers and failed == done:
+                    # первые же запросы (по числу воркеров) не получили ответа:
+                    # модель не отвечает — ждать остальные слайды бессмысленно,
+                    # на CPU это экономит минуты
+                    for other in futures.values():
+                        if not verdicts[other]:
+                            verdicts[other] = {
+                                "skipped": True,
+                                "error": "не проверено: модель не отвечает"}
+                    break
 
         slides = []
         errors = 0
