@@ -156,6 +156,126 @@ def _is_text_block(b: Block) -> bool:
     return b.kind in ("bullets", "text", "quote", "steps", "columns", "image")
 
 
+# блоки, у которых нет собственного фона: цвет их текста выбирается по декору
+# макета, поэтому такой слайд нельзя верстать поверх крупной цветной панели
+TEXT_RISK_KINDS = {"bullets", "text", "quote", "numbered"}
+
+
+def slide_needs_uniform_background(slide: Optional[Slide]) -> bool:
+    """Нужен ли слайду однородный фон под текстом (нет своей подложки у блоков)."""
+    if slide is None:
+        return True
+    kinds = {b.kind for b in slide.blocks}
+    return bool(kinds & TEXT_RISK_KINDS) or not kinds
+
+
+def avoid_title_rect(rect: Rect, layout: dict) -> Rect:
+    """Сдвигает область контента ниже заголовка, если она на него заходит.
+
+    На витринных макетах (титул, раздел, финал) тело макета нередко занимает
+    весь слайд вместе с заголовком — без этого правила блоки накрывали бы
+    заголовок, что аудит справедливо отмечает как наложение.
+    """
+    title = layout.get("title_ph") or {}
+    if not title:
+        return rect
+    title_top = float(title.get("y", 0.0))
+    title_bottom = title_top + float(title.get("h", 0.0))
+    if rect.y < title_bottom and rect.bottom > title_top:
+        below_h = rect.bottom - (title_bottom + 0.08)
+        if below_h >= 0.6:
+            return Rect(rect.x, title_bottom + 0.08, rect.w, below_h)
+        # на макетах вроде «Section Header» заголовок стоит внизу —
+        # тогда контент логично разместить над ним
+        above_h = title_top - 0.08 - rect.y
+        if above_h >= 0.6:
+            return Rect(rect.x, rect.y, rect.w, above_h)
+    return rect
+
+
+def avoid_decor_panels(rect: Rect, layout: dict, slide_w: float, slide_h: float,
+                       min_w: float = 2.4, min_h: float = 1.4,
+                       min_cover: float = 0.25) -> Rect:
+    """Убирает из контентной области крупные цветные панели декора макета.
+
+    Панель (тёмная половина слайда и т.п.) — не фон, а элемент дизайна: текст
+    без собственной подложки, набранный через её границу, наполовину невидим
+    (белое на белом, тёмное на тёмном) — на скриншотах это выглядит как обрывки
+    текста. Если прямоугольник заметно пересекает панель, оставляем наибольшую
+    свободную подобласть: вариант «текст в левой половине» честнее обрезки.
+    """
+    slide_area = max(1e-6, slide_w * slide_h)
+    for item in layout.get("decor") or []:
+        if not item.get("fill"):
+            continue
+        x = float(item.get("x", 0.0)); y = float(item.get("y", 0.0))
+        w = float(item.get("w", 0.0)); h = float(item.get("h", 0.0))
+        if w <= 0 or h <= 0 or w * h < 0.15 * slide_area:
+            continue
+        if w >= 0.92 * slide_w and h >= 0.92 * slide_h:
+            continue  # фон всего слайда, а не панель
+        ix, iy = max(rect.x, x), max(rect.y, y)
+        ix2, iy2 = min(rect.right, x + w), min(rect.bottom, y + h)
+        if ix2 <= ix or iy2 <= iy:
+            continue
+        if (ix2 - ix) * (iy2 - iy) < min_cover * rect.w * rect.h:
+            continue
+        candidates = []
+        if x - rect.x >= min_w:
+            candidates.append(Rect(rect.x, rect.y, x - rect.x, rect.h))
+        if rect.right - (x + w) >= min_w:
+            candidates.append(Rect(x + w, rect.y, rect.right - (x + w), rect.h))
+        if y - rect.y >= min_h:
+            candidates.append(Rect(rect.x, rect.y, rect.w, y - rect.y))
+        if rect.bottom - (y + h) >= min_h:
+            candidates.append(Rect(rect.x, y + h, rect.w, rect.bottom - (y + h)))
+        if candidates:
+            rect = max(candidates, key=lambda r: r.w * r.h)
+    return rect
+
+
+def choose_canvas(profile: dict, layout: dict, *,
+                  uniform_background: bool = True) -> Rect:
+    """Контентная область слайда ровно так, как её видят и вёрстка, и аудит.
+
+    Тело макета берётся, только если оно достаточно велико; иначе используется
+    сетка профиля. Для слайдов с текстом без собственной подложки из области
+    вычитаются крупные цветные панели декора (см. `avoid_decor_panels`).
+    """
+    size = profile.get("slide_size") or {}
+    slide_w = float(size.get("w_in", 13.333))
+    slide_h = float(size.get("h_in", 7.5))
+    body = layout.get("body") or {}
+    grid = profile.get("grid") or {}
+    if body.get("w", 0) >= 0.45 * slide_w and body.get("h", 0) >= 0.3 * slide_h:
+        rect = Rect(body["x"], body["y"], body["w"], body["h"])
+    else:
+        rect = Rect(grid.get("body_x", 0.5), grid.get("body_y", 1.0),
+                    grid.get("body_w", slide_w - 1.0),
+                    grid.get("body_h", slide_h - 1.5))
+    rect = avoid_title_rect(rect, layout)
+    if uniform_background:
+        rect = avoid_decor_panels(rect, layout, slide_w, slide_h)
+    return rect
+
+
+def body_area_bonus(profile: dict, layout: dict) -> float:
+    """Бонус к оценке макета за площадь его контентной области.
+
+    Среди макетов одной роли и композиции крупное тело лучше мелкого: на
+    «Заголовок в 2 строки + объект» (половина слайда под картинку) текст при
+    полной ширине заходит на цветную панель и теряется, а на «Заголовок + текст»
+    та же колода верстается целиком. Бонус нормирован площадью слайда и ограничен
+    сверху, чтобы не перевешивать содержательные критерии роли и типа.
+    """
+    size = profile.get("slide_size") or {}
+    slide_area = float(size.get("w_in", 13.333)) * float(size.get("h_in", 7.5))
+    body = layout.get("body") or {}
+    if not body.get("w") or not body.get("h") or slide_area <= 0:
+        return 0.0
+    return min(0.25, 0.25 * float(body["w"]) * float(body["h"]) / slide_area)
+
+
 def _block_min_h(b: Block, dc: DesignContext, w_in: float) -> float:
     """Минимальная высота блока при ширине w_in по его содержимому."""
     gap = 0.16
@@ -268,22 +388,24 @@ class LayoutEngine:
 
     # ------------------------------------------------------ фоновые/витринные
     def _compose_featured(self, slide: Slide, canvas: Rect, blocks: list[Block]) -> list[dict]:
-        """Титул/раздел/оглавление/финал: автоконтент только если блоков нет."""
+        """Титул/раздел/оглавление/финал: автоконтент только если блоков нет.
+
+        Блоки витринного слайда раскладываются штатным композитором варианта:
+        раньше они получали один и тот же прямоугольник и накладывались друг на
+        друга (два абзаца печатались поверх одного места).
+        """
+        if blocks:
+            return self.part(self, slide, blocks[:2], canvas)
         items = []
         if slide.slide_type == SlideType.TITLE:
-            if not blocks:
-                sub = slide.subheading or ""
-                items.append(self._item("paragraph", canvas.to_dict(),
-                                        {"text": sub, "is_sub": True},
-                                        slide_type=str(slide.slide_type.value)))
+            sub = slide.subheading or ""
+            items.append(self._item("paragraph", canvas.to_dict(),
+                                    {"text": sub, "is_sub": True},
+                                    slide_type=str(slide.slide_type.value)))
         elif slide.slide_type == SlideType.FINAL:
-            if not blocks:
-                items.append(self._item("paragraph", canvas.to_dict(),
-                                        {"text": "Спасибо за внимание", "is_sub": False},
-                                        slide_type="final"))
-        use = canvas.to_dict()
-        for b in blocks[:2]:
-            items.append(self._widget_item(b, use, canvas))
+            items.append(self._item("paragraph", canvas.to_dict(),
+                                    {"text": "Спасибо за внимание", "is_sub": False},
+                                    slide_type="final"))
         return items
 
     def _widget_item(self, b: Block, rect: dict, canvas: Rect, *, card: bool = False) -> dict:

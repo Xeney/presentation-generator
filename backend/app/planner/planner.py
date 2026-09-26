@@ -38,9 +38,12 @@ class PlanningResult:
 
     @property
     def label(self) -> str:
-        """Строка для отчёта задания: «aitunnel/qwen3.5-9b» или «offline». """
+        """Строка для отчёта задания: «aitunnel/qwen3.5-9b», «внешний/…» или «offline»."""
         if not self.used_llm:
             return "offline-fallback"
+        if self.provider == "runtime":
+            # провайдер, подключённый через интерфейс: не показываем адрес/ключ
+            return f"внешний/{self.model}" if self.model else "внешний"
         return f"{self.provider}/{self.model}" if self.model else self.provider
 
     def to_dict(self) -> dict:
@@ -89,19 +92,30 @@ class Planner:
         return "$defs" in data or ("properties" in data and "slides" not in data)
 
     def _render_user(self, brief: str, source: str, purpose: str, profile: dict,
-                     corpus=None) -> str:
-        return self._load_prompt("user.md").format(
+                     corpus=None, deck_size: int | None = None,
+                     language: str = "ru") -> str:
+        prompt = self._load_prompt("user.md").format(
             brief=brief, source=source or "—", purpose=purpose,
             profile=_profile_summary(profile), schema=self._schema(),
-            deck_size=self.settings.max_slides,
+            deck_size=deck_size or self.settings.max_slides,
             corpus_images=(corpus.image_prompt_block() if corpus is not None
                            else "изображений нет"),
         )
+        if language == "en":
+            prompt += ("\n\nЯзык колоды: английский. Все заголовки, пункты и "
+                       "подписи — на английском; поле language = \"en\".")
+        return prompt
 
     def plan(self, brief: str, source: str = "", purpose: str = "project",
-             profile: dict | None = None, corpus=None) -> PlanningResult:
+             profile: dict | None = None, corpus=None,
+             max_slides: int | None = None,
+             language: str = "ru") -> PlanningResult:
         profile = profile or {}
         brief = (brief or "").strip()
+        language = language if language in ("ru", "en") else "ru"
+        # границы схемы Deck: 3..15 слайдов; значение из интерфейса не должно
+        # выводить колоду за них
+        limit = min(15, max(3, int(max_slides))) if max_slides else self.settings.max_slides
         label = self.settings.planner_label
         last_error = ""
 
@@ -114,13 +128,14 @@ class Planner:
             return PlanningResult(self.fallback.plan(brief, source, purpose, corpus=corpus),
                                   used_llm=False, attempts=0)
 
-        user = self._render_user(brief, source, purpose, profile, corpus)
+        user = self._render_user(brief, source, purpose, profile, corpus,
+                                 deck_size=limit, language=language)
         system = self._load_prompt("system.md")
         model = self.settings.active_llm_model
         attempts = 0
         for attempt in range(1, self.settings.planner_llm_max_retries + 1):
             attempts = attempt
-            deck, fixes, error, fatal = self._attempt(user, system, model)
+            deck, fixes, error, fatal = self._attempt(user, system, model, limit)
             if deck is not None:
                 log.info("LLM-планировщик %s: колода из %s слайдов (попытка %s)",
                          label, len(deck.slides), attempt)
@@ -140,7 +155,7 @@ class Planner:
         fallback_model = self.settings.fallback_llm_model
         if fallback_model and not self.settings.demo_mode:
             log.info("пробуем запасную модель %s", fallback_model)
-            deck, fixes, error, _ = self._attempt(user, system, fallback_model)
+            deck, fixes, error, _ = self._attempt(user, system, fallback_model, limit)
             if deck is not None:
                 return PlanningResult(deck, used_llm=True, attempts=attempts + 1,
                                       provider=self.settings.active_llm_provider,
@@ -155,7 +170,8 @@ class Planner:
         return PlanningResult(self.fallback.plan(brief, source, purpose, corpus=corpus),
                               used_llm=False, attempts=attempts)
 
-    def _attempt(self, user: str, system: str, model: str
+    def _attempt(self, user: str, system: str, model: str,
+                 max_slides: int | None = None
                  ) -> tuple[Optional[Deck], list[str], str, bool]:
         """Одна попытка получить колоду: запрос → нормализация → валидация.
 
@@ -170,7 +186,8 @@ class Planner:
         if data is None or self._looks_like_schema(data):
             return None, [], ("модель вернула схему вместо данных" if data
                               else "ответ модели не является JSON"), False
-        data, fixes = normalize_or_report(data, max_slides=self.settings.max_slides)
+        data, fixes = normalize_or_report(
+            data, max_slides=max_slides or self.settings.max_slides)
         if fixes:
             log.info("LLM-планировщик: нормализация колоды — %s", describe(fixes))
         try:

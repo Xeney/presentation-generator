@@ -142,6 +142,55 @@ def test_duplicate_items_are_collapsed():
     assert any("дубликаты пунктов" in fix for fix in fixes)
 
 
+def test_factoid_duplicates_collapsed():
+    """«24/24» и «24/24 чистых комбинаций» — одно и то же значение.
+
+    Живой дефект: модель положила метрику в два блока, и на слайде дважды
+    печатались «24/24» и «5 мин бюджет задания».
+    """
+    data = _deck(slides=[
+        {"slide_type": "title", "heading": "Титул презентации"},
+        {"slide_type": "content", "heading": "Результаты тестирования",
+         "blocks": [
+             {"kind": "factoids", "factoids": [
+                 {"value": "180", "label": "автоматических тестов"},
+                 {"value": "24/24", "label": "чистых комбинаций"},
+                 {"value": "5 мин", "label": "бюджет задания"},
+             ]},
+             {"kind": "factoids", "factoids": [
+                 {"value": "24/24 чистых комбинаций", "label": "проверено"},
+                 {"value": "5 мин бюджет задания", "label": "лимит времени"},
+                 {"value": "34–76 сек", "label": "время генерации"},
+             ]},
+         ]},
+        {"slide_type": "final", "heading": "Финал презентации"},
+    ])
+    data, fixes = normalize_deck(data)
+    blocks = data["slides"][1]["blocks"]
+    values = [fact["value"] for block in blocks for fact in block["factoids"]]
+    assert values == ["180", "24/24", "5 мин", "34–76 сек"], values
+    assert len(blocks) == 2, "второй блок сохраняется с уникальными значениями"
+    assert any("фактоиды" in fix for fix in fixes)
+    assert Deck.model_validate(data)
+
+
+def test_factoid_duplicate_block_is_dropped():
+    """Блок-дубликат целиком повторяет фактоиды — он удаляется, а не пустеет."""
+    data = _deck(slides=[
+        {"slide_type": "title", "heading": "Титул презентации"},
+        {"slide_type": "content", "heading": "Метрики",
+         "blocks": [
+             {"kind": "factoids", "factoids": [{"value": "40%", "label": "быстрее"}]},
+             {"kind": "factoids", "factoids": [{"value": "40 %", "label": "ускорение"}]},
+         ]},
+        {"slide_type": "final", "heading": "Финал презентации"},
+    ])
+    data, fixes = normalize_deck(data)
+    blocks = data["slides"][1]["blocks"]
+    assert len(blocks) == 1 and len(blocks[0]["factoids"]) == 1
+    assert Deck.model_validate(data)
+
+
 def test_long_text_becomes_bullets():
     long_text = ("Платформа сократила время отчётов на 40%. "
                  "Автоматизированы 12 рутинных задач. Охват вырос до 5 подразделений. "

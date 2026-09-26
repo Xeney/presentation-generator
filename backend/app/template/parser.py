@@ -18,6 +18,7 @@ from zipfile import ZipFile
 from PIL import Image
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
+from pptx.oxml.ns import qn
 from pptx.util import Emu
 
 from .profile import (
@@ -666,6 +667,7 @@ class TemplateParser:
                     layout.name, layout.slide_master.name, phs, shapes, slide_w, slide_h)
                 branding = self._layout_branding(layout, slide_w, slide_h)
                 decor = self._layout_decor(layout, layout.slide_master, slide_w, slide_h)
+                background = self._background_color(layout, layout.slide_master)
                 profs.append(LayoutProfile(
                     id=f"L{idx}",
                     master_id=f"M{self._master_index(layout.slide_master)}",
@@ -681,6 +683,7 @@ class TemplateParser:
                     columns=columns,
                     branding=branding,
                     decor=decor,
+                    background=background,
                     has_logo=any(item["type"] == "logo" for item in branding),
                     style_sample=self._layout_style_sample(layout, by_layout.get(id(layout), [])),
                 ))
@@ -753,11 +756,17 @@ class TemplateParser:
         занимал почти 30 секунд.
         """
         try:
+            return self._blob_color(shape.image.blob)
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _blob_color(self, blob: bytes) -> Optional[str]:
+        """Доминирующий цвет картинки по непрозрачным пикселям (с кэшем по хэшу)."""
+        try:
             from hashlib import sha1
 
             from ..render.images import dominant_color
 
-            blob = shape.image.blob
             key = sha1(blob).hexdigest()
             if key in self._picture_colors:
                 return self._picture_colors[key]
@@ -780,6 +789,43 @@ class TemplateParser:
             return color
         except Exception:  # noqa: BLE001
             return None
+
+    def _background_color(self, layout, master) -> Optional[str]:
+        """Фактический фон макета: сначала p:bg макета, затем мастера.
+
+        Google-Slides-экспорт задаёт фон не фигурой, а свойством `p:bg`
+        (у VK WorkSpace это `#000000` на каждом макете). Без чтения `p:bg`
+        рендер и аудит считали фоном светлую палитру темы и выбирали тёмный
+        текст на чёрном слайде.
+        """
+        for part in (layout, master):
+            try:
+                color = self._bg_element_color(part._element, part.part)
+            except Exception:  # noqa: BLE001
+                continue
+            if color:
+                return color
+        return None
+
+    def _bg_element_color(self, element, part) -> Optional[str]:
+        """Цвет из p:bg: solidFill (srgb/scheme) или доминирующий цвет картинки."""
+        for bg in element.iter(qn("p:bg")):
+            for srgb in bg.iter(qn("a:srgbClr")):
+                return "#" + (srgb.get("val") or "").upper()
+            for scheme in bg.iter(qn("a:schemeClr")):
+                resolved = self._resolve_scheme_name("scheme:" + (scheme.get("val") or ""))
+                if resolved:
+                    return resolved
+            for blip in bg.iter(qn("a:blip")):
+                rid = blip.get(qn("r:embed"))
+                if not rid:
+                    continue
+                try:
+                    blob = part.rels[rid].target_part.blob
+                except Exception:  # noqa: BLE001
+                    return None
+                return self._blob_color(blob)
+        return None
 
     def _resolve_scheme_name(self, value: str) -> Optional[str]:
         """«scheme:accent1» → HEX из темы (тема читается первой)."""

@@ -17,6 +17,7 @@ from pptx.enum.dml import MSO_FILL_TYPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
 
 from ..content.corpus import looks_like_placeholder
+from ..layout.engine import choose_canvas, slide_needs_uniform_background
 from ..models.deck import Deck, SlideType
 from ..render.images import hex_to_rgb
 from ..render.pptx_renderer import IMAGE_SLOT_NAME
@@ -143,8 +144,11 @@ class Audit:
             self._check_tokens(slide, si, issues)
             self._check_font_sizes(slide, si, issues)
             self._check_fill_colors(slide, si, issues, geo)
-            # 5. контраст
+            # 5. контраст: фактический фон (заливка фигуры → декор → p:bg макета)
             self._check_contrast(slide, si, issues)
+            self._check_text_invisible(slide, si, issues)
+            self._check_text_over_decor(slide, si, issues)
+            self._check_empty_text_frames(slide, si, issues)
             # 6. плотность контента
             self._check_density(slide, si, issues)
             # 6b. объекты: таблицы, диаграммы, подписи, слоты изображений
@@ -490,25 +494,89 @@ class Audit:
                 best_fill, best_ratio = fill, ratio
         return best_fill if best_ratio >= 0.35 else None
 
+    def _layout_bg(self, slide) -> Optional[str]:
+        """Фактический фон макета из p:bg (ADR-034), иначе None."""
+        layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
+        return layout.get("background")
+
+    def _effective_bg(self, slide, shape) -> str:
+        """Фон под текстом ровно так же, как его выбирает рендер.
+
+        Приоритет: заливка самой фигуры → декор макета под рамкой → фон p:bg
+        макета → самая светлая палитра. Единый алгоритм для рендера и аудита —
+        иначе проверка контраста молчит на тёмных шаблонах.
+        """
+        return (self._shape_fill(shape)
+                or self._decor_fill_at(slide, shape)
+                or self._layout_bg(slide)
+                or self.bg_color)
+
     def _check_contrast(self, slide, si, issues):
-        slide_bg = self._shape_bg(slide)
         for it in self._scan_runs(slide):
             col = it["color"]
             size = it["size"]
             if not col or not size:
                 continue
-            bg = (self._shape_fill(it["shape"])
-                  or self._decor_fill_at(slide, it["shape"])
-                  or slide_bg)
+            bg = self._effective_bg(slide, it["shape"])
             large = size >= 18 or (size >= 14 and it["bold"])
             threshold = 3.0 if large else 4.5
             r, g, b = hex_to_rgb(col)
-            if _contrast(r, g, b, *_hex(bg)) < threshold:
+            ratio = _contrast(r, g, b, *_hex(bg))
+            # совсем невидимый текст (< 3:1) — отдельный код text_invisible;
+            # contrast_too_low ловит «читается, но ниже нормы WCAG»
+            if 3.0 <= ratio < threshold:
                 req = f"{threshold:.1f}:1 (WCAG)"
                 issues.append(Issue.at(
                     "contrast_too_low", "error", si,
                     f"контраст текста «#{col}» ниже {req}",
                     self._shape_bbox(it["shape"], slide)))
+
+    def _check_text_invisible(self, slide, si, issues, floor: float = 3.0):
+        """Текст и фон одного цвета: контраст ниже абсолютного порога 3:1.
+
+        `contrast_too_low` использует полный порог WCAG (4.5:1 для мелкого),
+        а эта проверка ловит именно «невидимый» текст — случай, когда цвет
+        выбирался по палитре темы, а не по фактическому фону панели.
+        """
+        for it in self._scan_runs(slide):
+            col = it["color"]
+            if not col:
+                continue
+            bg = self._effective_bg(slide, it["shape"])
+            r, g, b = hex_to_rgb(col)
+            if _contrast(r, g, b, *_hex(bg)) < floor:
+                issues.append(Issue.at(
+                    "text_invisible", "error", si,
+                    f"текст «{it['ptext'][:40]}» цвета «#{col}» не виден "
+                    f"на фоне «{bg}» (контраст < {floor:.1f}:1)",
+                    self._shape_bbox(it["shape"], slide)))
+
+    def _check_empty_text_frames(self, slide, si, issues):
+        """Пустая текстовая рамка рендера: текст потерялся при вёрстке.
+
+        Проверяются только свободные текстовые рамки (не декор и не
+        плейсхолдеры шаблона): таблицы, карточки-автофигуры и слоты картинок
+        создаются без текста осознанно.
+        """
+        for sh in slide.shapes:
+            try:
+                if not sh.has_text_frame or sh.width is None or sh.height is None:
+                    continue
+                if shape_type_int(sh) != MSO_SHAPE_TYPE.TEXT_BOX.value:
+                    continue
+                if (sh.text_frame.text or "").strip():
+                    continue
+                area = (sh.width or 0) * (sh.height or 0)
+                if area < 0.2 * 914400 * 914400:
+                    continue
+                if (sh.name or "").startswith(("TitleBox", IMAGE_SLOT_NAME)):
+                    continue
+                issues.append(Issue.at(
+                    "empty_text_frame", "warning", si,
+                    f"пустая текстовая рамка «{sh.name}»: текст потерялся",
+                    self._shape_bbox(sh, slide)))
+            except Exception:  # noqa: BLE001
+                continue
 
     @staticmethod
     def _shape_fill(sh):
@@ -519,6 +587,84 @@ class Audit:
         except Exception:
             pass
         return None
+
+    def _check_text_over_decor(self, slide, si, issues, min_cover: float = 0.12):
+        """Текст не должен пересекать границу цветной панели декора.
+
+        `_check_contrast` сравнивает буквы с доминирующим фоном под рамкой, но
+        если рамка заходит на панель декора, часть текста ложится на другой фон.
+        Белое на белом (или тёмное на тёмном) выглядит как обрывки текста —
+        именно так терялись слайды на VK Education, при нулевых ошибках аудита.
+        """
+        layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
+        decor = layout.get("decor") or []
+        # остаток рамки лежит на фоне слайда: сперва p:bg макета (честный фон
+        # тёмных шаблонов), затем крупнейшая заливка слайда
+        slide_bg = str(self._layout_bg(slide) or self._shape_bg(slide)).upper()
+        for it in self._scan_runs(slide):
+            shape = it["shape"]
+            if shape.left is None or shape.width is None or shape.height is None:
+                continue
+            col, size = it["color"], it["size"]
+            if not col or not size:
+                continue
+            large = size >= 18 or (size >= 14 and it["bold"])
+            threshold = 3.0 if large else 4.5
+            r, g, b = hex_to_rgb(col)
+            own_fill = self._shape_fill(shape)
+            if own_fill:
+                # у фигуры своя непрозрачная заливка: декор под ней не виден
+                regions = {str(own_fill).upper(): 1.0}
+            elif not decor:
+                continue
+            else:
+                x, y = shape.left / 914400, (shape.top or 0) / 914400
+                w, h = shape.width / 914400, shape.height / 914400
+                area = w * h
+                if area <= 0:
+                    continue
+                regions = {}
+                covered = 0.0
+                for item in decor:
+                    fill = item.get("fill")
+                    if not fill:
+                        continue
+                    left = max(x, float(item.get("x", 0.0)))
+                    top = max(y, float(item.get("y", 0.0)))
+                    right = min(x + w, float(item.get("x", 0.0)) + float(item.get("w", 0.0)))
+                    bottom = min(y + h, float(item.get("y", 0.0)) + float(item.get("h", 0.0)))
+                    if right <= left or bottom <= top:
+                        continue
+                    ratio = (right - left) * (bottom - top) / area
+                    key = str(fill).upper()
+                    regions[key] = regions.get(key, 0.0) + ratio
+                    covered += ratio
+                # остаток рамки лежит на фоне слайда: там текст тоже обязан читаться.
+                # Если в макете есть декор-картинки (полноэкранный фон), профиль
+                # знает лишь средний цвет — остаток считаем тем же фоном, что и
+                # доминирующий декор, иначе тёмные шаблоны дают ложное «белое на белом»
+                remainder = max(0.0, 1.0 - min(1.0, covered))
+                if remainder > 0:
+                    rest_bg = slide_bg
+                    if any(item.get("is_picture") for item in decor) and regions:
+                        rest_bg = max(regions, key=regions.get)
+                    regions[rest_bg] = regions.get(rest_bg, 0.0) + remainder
+            # сначала проверяем доминирующий фон: если текст не читается уже на
+            # нём, это обычный низкий контраст (contrast_too_low/text_invisible),
+            # а не «край панели»
+            dominant = max(regions, key=regions.get) if regions else ""
+            if dominant and _contrast(r, g, b, *_hex(dominant)) < threshold:
+                continue
+            for key, ratio in regions.items():
+                if ratio < min_cover:
+                    continue
+                if _contrast(r, g, b, *_hex(key)) < threshold:
+                    issues.append(Issue.at(
+                        "text_on_decor_edge", "warning", si,
+                        f"часть текста «{it['ptext'][:40]}» лежит на фоне "
+                        f"«{key}», где он не читается",
+                        self._shape_bbox(shape, slide)))
+                    break
 
     def _shape_bg(self, slide) -> str:
         fill_colors = []
@@ -646,25 +792,24 @@ class Audit:
                 "layout_not_from_template", "error", si,
                 f"слайд собран на макете «{name}», которого нет в шаблоне"))
 
-    def _content_area(self, slide) -> tuple[float, float, float, float] | None:
+    def _content_area(self, slide, si: int = -1) -> tuple[float, float, float, float] | None:
         """Контентная область слайда ровно так, как её выбирает вёрстка.
 
-        Логика совпадает с `Renderer._canvas`: тело макета берётся, только если
-        оно достаточно велико, иначе используется сетка профиля. Иначе аудит
-        сравнивал бы заполненность с «визиточной» рамкой, которую вёрстка
-        осознанно не использует.
+        Логика совпадает с `Renderer._canvas` (`layout.engine.choose_canvas`):
+        тело макета берётся, только если оно достаточно велико, иначе
+        используется сетка профиля; текст без собственной подложки не заходит на
+        крупные панели декора. Иначе аудит сравнивал бы заполненность с
+        «визиточной» рамкой, которую вёрстка осознанно не использует.
         """
         layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
-        body = layout.get("body") or {}
-        slide_w = self.W / 914400 if self.W else 13.333
-        slide_h = self.H / 914400 if self.H else 7.5
-        if (body.get("w", 0) >= 0.45 * slide_w and body.get("h", 0) >= 0.3 * slide_h):
-            return (float(body["x"]), float(body["y"]),
-                    float(body["w"]), float(body["h"]))
-        if self.grid.get("body_w"):
-            return (float(self.grid.get("body_x", 0.5)), float(self.grid.get("body_y", 1.0)),
-                    float(self.grid["body_w"]), float(self.grid.get("body_h", 5.0)))
-        return None
+        if not layout:
+            return None
+        model = None
+        if self._deck is not None and 0 <= si < len(self._deck.slides):
+            model = self._deck.slides[si]
+        rect = choose_canvas(self.profile, layout,
+                             uniform_background=slide_needs_uniform_background(model))
+        return (rect.x, rect.y, rect.w, rect.h)
 
     def _check_content_area(self, slide, si, issues, geo, tolerance_in: float = 0.08):
         """Контент не должен заходить в поля у краёв слайда.
@@ -810,7 +955,7 @@ class Audit:
             kinds = {b.kind for b in model.blocks}
             if kinds and kinds <= {"factoids", "quote"}:
                 return
-        area = self._content_area(slide)
+        area = self._content_area(slide, si)
         area_emu = ((area[2] * 914400) * (area[3] * 914400)) if area else (self.W * self.H)
         if area_emu <= 0:
             return

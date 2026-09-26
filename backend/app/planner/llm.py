@@ -152,7 +152,8 @@ class OpenAICompatClient:
     def __init__(self, base_url: Optional[str] = None, api_key: Optional[str] = None,
                  timeout_s: Optional[int] = None, max_retries: int = 0,
                  provider_name: str = "шлюз", key_env: str = "OPENAI_COMPAT_API_KEY",
-                 retry_backoff_s: float = 1.5, extra_payload: Optional[dict] = None):
+                 retry_backoff_s: float = 1.5, extra_payload: Optional[dict] = None,
+                 mask_key: bool = True):
         s = get_settings()
         self.provider_name = provider_name
         self.key_env = key_env
@@ -161,6 +162,8 @@ class OpenAICompatClient:
         self.timeout = httpx.Timeout(timeout_s or s.llm_timeout_s)
         self.max_retries = max(0, int(max_retries))
         self.retry_backoff_s = retry_backoff_s
+        # ключ, введённый в интерфейсе, не показываем даже частично (ADR-031)
+        self.show_key_head = bool(mask_key)
         # дополнительные поля запроса (например, отключение thinking у Qwen3.5)
         self.extra_payload = dict(extra_payload or {})
 
@@ -169,6 +172,8 @@ class OpenAICompatClient:
         """Маска ключа для логов: первые 8 символов, дальше — звёздочки."""
         if not self.api_key:
             return "(нет ключа)"
+        if not self.show_key_head:
+            return "(ключ из интерфейса, значение скрыто)"
         head = self.api_key[:8]
         return f"{head}…({len(self.api_key)} символов)"
 
@@ -394,13 +399,35 @@ def aitunnel_client(vlm: bool = False) -> OpenAICompatClient:
     )
 
 
+def runtime_client(vlm: bool = False) -> OpenAICompatClient:
+    """Клиент внешнего сервиса, подключённого через интерфейс (ADR-031).
+
+    Ключ хранится только в памяти процесса (`app.runtime_provider`), в лог
+    попадает строка «значение скрыто», в ответах API — только маска.
+    """
+    from ..runtime_provider import RUNTIME
+
+    return OpenAICompatClient(
+        base_url=RUNTIME.base_url,
+        api_key=RUNTIME.api_key,
+        timeout_s=get_settings().llm_timeout_s,
+        max_retries=1,
+        provider_name="внешний сервис",
+        key_env="API-ключ из интерфейса",
+        extra_payload={"reasoning_effort": "none", "max_tokens": get_settings().aitunnel_max_tokens},
+        mask_key=False,
+    )
+
+
 def get_llm_client():
-    """Клиент планировщика по конфигурации: aitunnel | openai_compat | ollama."""
+    """Клиент планировщика: runtime (ключ из UI) | aitunnel | openai_compat | ollama."""
     settings = get_settings()
+    provider = settings.active_llm_provider
+    if provider == "runtime":
+        return runtime_client()
     if settings.llm_provider == "aitunnel" and not settings.aitunnel_api_key:
         log.warning("LLM_PROVIDER=aitunnel, но AITUNNEL_API_KEY пуст — использую "
                     "локальную Ollama (ключ хранится только в .env)")
-    provider = settings.active_llm_provider
     if provider == "aitunnel":
         return aitunnel_client()
     if provider == "openai_compat":
@@ -415,6 +442,8 @@ def get_vlm_client():
     if provider == "off":
         log.info("VLM-аудит выключен (VLM_PROVIDER=off)")
         return None
+    if provider == "runtime":
+        return runtime_client(vlm=True)
     if settings.vlm_provider.strip().lower() == "aitunnel" and not settings.aitunnel_api_key:
         log.warning("VLM_PROVIDER=aitunnel, но AITUNNEL_API_KEY пуст — использую "
                     "локальную Ollama")

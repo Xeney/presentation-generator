@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Цифровой дизайнер презентаций",
+  title: "Генератор презентаций",
   description:
-    "Сервис генерации презентаций по текстовому брифу на произвольном PPTX-шаблоне: " +
-    "три варианта вёрстки, аудит и экспорт в PPTX, PDF и HTML.",
+    "Загрузите шаблон и опишите презентацию — получите три готовых варианта " +
+    "в PPTX и PDF.",
 };
 
 /**
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" className="dark">
+    <html lang="ru">
       <body className="font-sans">{children}</body>
     </html>
   );

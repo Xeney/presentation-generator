@@ -47,9 +47,12 @@ def build_profile(template_bytes: bytes, template_name: str = "template.pptx") -
 
 def plan_deck(brief: str, source: str, purpose: str, profile: dict,
               planner: Planner | None = None,
-              corpus: ContentCorpus | None = None) -> PlanningResult:
+              corpus: ContentCorpus | None = None,
+              max_slides: int | None = None,
+              language: str = "ru") -> PlanningResult:
     planner = planner or Planner()
-    return planner.plan(brief, source, purpose, profile, corpus=corpus)
+    return planner.plan(brief, source, purpose, profile, corpus=corpus,
+                        max_slides=max_slides, language=language)
 
 
 def render_variants(deck: Deck, profile: dict, template_bytes: bytes,
@@ -66,6 +69,50 @@ def render_variants(deck: Deck, profile: dict, template_bytes: bytes,
 
 def audit_variant(deck: Deck, artifact: VariantArtifact, profile: dict) -> dict:
     return Audit(profile).audit(deck, artifact.pptx)
+
+
+def auto_fix_variants(deck: Deck, profile: dict, template_bytes: bytes,
+                      artifacts: list[VariantArtifact],
+                      images: dict | None = None,
+                      engine=None, max_passes: int = 2
+                      ) -> tuple[Deck, list[VariantArtifact], list[dict], list[dict]]:
+    """Авто-фиксы детерминированных проблем без подтверждения (ADR-032).
+
+    Исправляются только те проблемы, для которых у FixEngine есть детермини-
+    рованное преобразование контента; VLM- и grounding-замечания не трогаются.
+    После правок все три варианта пере-рендериваются и пере-аудитируются, чтобы
+    пользователь видел результат уже с применёнными фиксами.
+
+    Возвращает (колода, артефакты, применённые, пропущенные).
+    """
+    from .audit.fixes import FixEngine
+
+    # базовый движок нужен только для списка поддерживаемых кодов
+    fixer = engine or FixEngine(profile)
+    applied: list[dict] = []
+    skipped: list[dict] = []
+    for _ in range(max(0, max_passes)):
+        issues: list[dict] = []
+        seen: set[tuple] = set()
+        for artifact in artifacts:
+            for issue in artifact.audit.get("issues", []):
+                key = (issue.get("code"), issue.get("slide"))
+                # одна и та же детерминированная проблема есть во всех вариантах
+                if key in seen or issue.get("code") not in fixer.handlers:
+                    continue
+                seen.add(key)
+                issues.append(issue)
+        if not issues:
+            break
+        deck, outcomes = fixer.apply(deck, issues, None)
+        applied += [o for o in outcomes if o["status"] == "applied"]
+        skipped += [o for o in outcomes if o["status"] == "skipped"]
+        if not any(o["status"] == "applied" for o in outcomes):
+            break
+        artifacts = render_variants(deck, profile, template_bytes, images=images)
+        for artifact in artifacts:
+            artifact.audit = audit_variant(deck, artifact, profile)
+    return deck, artifacts, applied, skipped
 
 
 def audit_vlm(pptx_bytes: bytes, profile: dict, deck: Deck | None = None,
@@ -95,7 +142,9 @@ def full_generate(brief: str, source: str, purpose: str,
                   template_bytes: bytes, template_name: str,
                   planner: Planner | None = None,
                   corpus: ContentCorpus | None = None,
-                  vlm: bool = True) -> dict:
+                  vlm: bool = True, auto_fix: bool = True,
+                  max_slides: int | None = None,
+                  language: str = "ru") -> dict:
     """Полный прогон: профиль → колода → варианты → аудиты → экспорт.
 
     `corpus` — импортированный контент-пакет: его текст уходит планировщику как
@@ -113,7 +162,8 @@ def full_generate(brief: str, source: str, purpose: str,
         source_text = corpus_text + (f"\n\n{source}" if source.strip() else "")
 
     t0 = time.perf_counter()
-    result = plan_deck(brief, source_text, purpose, profile, planner=planner, corpus=corpus)
+    result = plan_deck(brief, source_text, purpose, profile, planner=planner,
+                       corpus=corpus, max_slides=max_slides, language=language)
     stages["plan_s"] = round(time.perf_counter() - t0, 2)
     deck = result.deck
 
@@ -157,6 +207,27 @@ def full_generate(brief: str, source: str, purpose: str,
         vlm_result = vlm_by_variant.get(artifacts[0].variant, vlm_result)
         stages["vlm_s"] = round(time.perf_counter() - t0, 2)
 
+    # авто-фиксы детерминированных проблем — без подтверждения (ADR-032):
+    # пользователь получает уже исправленный результат, VLM- и grounding-замечания
+    # пересчитываются/переносятся, чтобы отчёт остался полным
+    auto_report: dict = {"applied": [], "skipped": []}
+    if auto_fix and artifacts:
+        t0 = time.perf_counter()
+        deck, artifacts, applied, skipped = auto_fix_variants(
+            deck, profile, template_bytes, artifacts, images=images)
+        if applied:
+            grounding = ground_deck(deck, corpus, brief=brief)
+            for artifact in artifacts:
+                verdict = vlm_by_variant.get(artifact.variant)
+                if verdict:
+                    merge_issues(artifact.audit,
+                                 [dict(issue) for issue in violations_to_issues(verdict)])
+                merge_issues(artifact.audit,
+                             [dict(issue) for issue in grounding.get("issues", [])])
+        auto_report = {"applied": applied, "skipped": skipped}
+        if applied or skipped:
+            stages["autofix_s"] = round(time.perf_counter() - t0, 2)
+
     stages["total_s"] = round(sum(stages.values()), 2)
 
     return {
@@ -173,6 +244,7 @@ def full_generate(brief: str, source: str, purpose: str,
         "vlm_by_variant": vlm_by_variant,
         "grounding": grounding,
         "imagegen": imagegen_report,
+        "auto_fixes": auto_report,
         "stages": stages,
         "html": html_export(deck, profile),
     }

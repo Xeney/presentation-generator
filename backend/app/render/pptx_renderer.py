@@ -18,12 +18,14 @@ from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
-from pptx.enum.shapes import MSO_SHAPE, PP_PLACEHOLDER
+from pptx.enum.shapes import MSO_SHAPE, MSO_SHAPE_TYPE, PP_PLACEHOLDER
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
-from ..layout.engine import DesignContext, LayoutEngine
+from ..layout.engine import (DesignContext, LayoutEngine, avoid_title_rect,
+                             body_area_bonus, choose_canvas,
+                             slide_needs_uniform_background)
 from ..layout.geometry import Rect
 from ..models.deck import Block, Chart, ChartType, Slide, SlideType
 from .images import hex_to_rgb
@@ -170,47 +172,27 @@ class Renderer:
             score = float(l.get("score", 0.0))
             if want_kind and l.get("kind") == want_kind:
                 score += 0.3
+            # площадь контентной области: среди равных по роли и типу макетов
+            # выбирается тот, где контент реально помещается (см. body_area_bonus)
+            score += body_area_bonus(self.profile, l)
             return score
 
         return max(cands, key=key)
 
-    def _canvas(self, layout: dict) -> Rect:
-        """Контентная область слайда: тело макета, иначе сетка из профиля."""
-        slide_w = self.profile["slide_size"]["w_in"]
-        slide_h = self.profile["slide_size"]["h_in"]
-        body = layout.get("body") or {}
-        grid = self.profile.get("grid") or {}
-        if body.get("w", 0) >= 0.45 * slide_w and body.get("h", 0) >= 0.3 * slide_h:
-            rect = Rect(body["x"], body["y"], body["w"], body["h"])
-        else:
-            rect = Rect(grid.get("body_x", 0.5), grid.get("body_y", 1.0),
-                        grid.get("body_w", slide_w - 1.0),
-                        grid.get("body_h", slide_h - 1.5))
-        return self._avoid_title(rect, layout)
+    def _canvas(self, layout: dict, slide: Optional[Slide] = None) -> Rect:
+        """Контентная область слайда: тело макета, иначе сетка из профиля.
+
+        Общая точка с аудитом (`layout.engine.choose_canvas`): область для
+        текстовых слайдов не заходит на крупные цветные панели декора, иначе
+        часть текста становится невидимой (белое на белом).
+        """
+        return choose_canvas(self.profile, layout,
+                             uniform_background=slide_needs_uniform_background(slide))
 
     @staticmethod
     def _avoid_title(rect: Rect, layout: dict) -> Rect:
-        """Сдвигает область контента ниже заголовка, если она на него заходит.
-
-        На витринных макетах (титул, раздел, финал) тело макета нередко занимает
-        весь слайд вместе с заголовком — без этого правила блоки накрывали бы
-        заголовок, что аудит справедливо отмечает как наложение.
-        """
-        title = layout.get("title_ph") or {}
-        if not title:
-            return rect
-        title_top = float(title.get("y", 0.0))
-        title_bottom = title_top + float(title.get("h", 0.0))
-        if rect.y < title_bottom and rect.bottom > title_top:
-            below_h = rect.bottom - (title_bottom + 0.08)
-            if below_h >= 0.6:
-                return Rect(rect.x, title_bottom + 0.08, rect.w, below_h)
-            # на макетах вроде «Section Header» заголовок стоит внизу —
-            # тогда контент логично разместить над ним
-            above_h = title_top - 0.08 - rect.y
-            if above_h >= 0.6:
-                return Rect(rect.x, rect.y, rect.w, above_h)
-        return rect
+        """Совместимая обёртка: см. `layout.engine.avoid_title_rect`."""
+        return avoid_title_rect(rect, layout)
 
     # -------------------------------------------------------------------- render
     def build_plan(self, deck: Deck, dc: DesignContext) -> dict[int, list[dict]]:
@@ -223,7 +205,7 @@ class Renderer:
         for i, slide in enumerate(deck.slides):
             layout = self._pick_layout(slide.slide_type, slide)
             engine = LayoutEngine(dc, variant=self.variant)
-            plan[i] = engine.compose(slide, self._canvas(layout))
+            plan[i] = engine.compose(slide, self._canvas(layout, slide))
         return plan
 
     def render_deck(self, deck: Deck, dc: DesignContext) -> bytes:
@@ -240,6 +222,10 @@ class Renderer:
         except Exception as exc:  # noqa: BLE001 — любая ошибка разбора = невалидный шаблон
             raise RenderError(f"шаблон не открывается как PPTX: {exc}") from exc
 
+        # шумовые фоновые картинки макетов («0 / 0 / 0» на VK WorkSpace)
+        # удаляются из копии файла: это декор, а не содержание колоды
+        self._strip_dark_bg_pictures(prs)
+
         # исходные слайды-образцы шаблона удаляются вместе с частями пакета,
         # иначе они остаются в файле мусором и конфликтуют по именам с новыми
         self._drop_original_slides(prs)
@@ -255,6 +241,84 @@ class Renderer:
         buf = io.BytesIO()
         prs.save(buf)
         return buf.getvalue()
+
+    def _strip_dark_bg_pictures(self, prs: Presentation) -> None:
+        """Убирает крупные почти чёрные картинки макетов (фоновый шум).
+
+        Google-Slides-экспорт кладёт фон картинкой: у VK WorkSpace это четыре
+        почти чёрных полотна со светлыми штрихами «0 / 0 / 0», причём три из
+        них сдвинуты за пределы слайда, а четвёртое шире слайда. Смысловой
+        нагрузки они не несут и выглядят как мусор в готовой колоде.
+
+        Удаляем только большие (≥ 25 % площади слайда), тёмные (средняя яркость
+        < 0.12) картинки, выходящие за границы слайда: тёмная панель макета,
+        лежащая внутри слайда, — это дизайн, её не трогаем; светлый декор
+        (круги VK Education) тоже остаётся.
+        """
+        slide_w = (prs.slide_width or 9144000) / 914400
+        slide_h = (prs.slide_height or 5143500) / 914400
+        min_area = 0.25 * slide_w * slide_h
+        for master in prs.slide_masters:
+            for layout in master.slide_layouts:
+                for shape in self._pictures_deep(layout.shapes):
+                    try:
+                        if shape.width is None or shape.height is None:
+                            continue
+                        x = (shape.left or 0) / 914400
+                        y = (shape.top or 0) / 914400
+                        w = shape.width / 914400
+                        h = shape.height / 914400
+                        if w * h < min_area:
+                            continue
+                        if x >= -0.1 and y >= -0.1 and x + w <= slide_w + 0.1 \
+                                and y + h <= slide_h + 0.1:
+                            continue  # картинка целиком внутри слайда
+                        if self._picture_brightness(shape.image.blob) >= 0.12:
+                            continue
+                        shape._element.getparent().remove(shape._element)
+                    except Exception:  # noqa: BLE001 — декор не должен ломать рендер
+                        continue
+
+    @staticmethod
+    def _pictures_deep(shapes):
+        """Картинки макета с разворотом групп."""
+        for shape in shapes:
+            try:
+                if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+                    yield from Renderer._pictures_deep(shape.shapes)
+                elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+                    yield shape
+            except Exception:  # noqa: BLE001
+                continue
+
+    def _picture_brightness(self, blob: bytes) -> float:
+        """Средняя яркость непрозрачных пикселей картинки (0..1), с кэшем."""
+        from hashlib import sha1
+
+        cache = getattr(self, "_brightness_cache", None)
+        if cache is None:
+            cache = self._brightness_cache = {}
+        key = sha1(blob).hexdigest()
+        if key in cache:
+            return cache[key]
+        value = 1.0
+        try:
+            from PIL import Image
+
+            with Image.open(io.BytesIO(blob)) as img:
+                rgba = img.convert("RGBA")
+                if max(rgba.size) > 128:
+                    ratio = 128 / max(rgba.size)
+                    rgba = rgba.resize((max(1, round(rgba.width * ratio)),
+                                        max(1, round(rgba.height * ratio))),
+                                       Image.NEAREST)
+                pixels = [(r, g, b) for r, g, b, a in rgba.getdata() if a > 200]
+            if pixels:
+                value = sum((r + g + b) / 3 for r, g, b in pixels) / len(pixels) / 255.0
+        except Exception:  # noqa: BLE001
+            value = 1.0
+        cache[key] = value
+        return value
 
     @staticmethod
     def _drop_original_slides(prs: Presentation) -> None:
@@ -583,6 +647,15 @@ class Renderer:
         return pal[1] if len(pal) > 1 else None
 
     def _bg_color(self) -> str:
+        """Фактический фон слайда: p:bg макета, иначе самая светлая палитра.
+
+        Тёмные шаблоны (VK WorkSpace: p:bg = #000000) задают фон свойством
+        макета, а не фигурой. Раньше здесь всегда бралась палитра темы, поэтому
+        на чёрном фоне выбирался тёмный текст — контент становился невидимым.
+        """
+        bg = (self._layout or {}).get("background")
+        if bg:
+            return bg
         pal = self._palette()
         for h in pal:
             if h and sum(hex_to_rgb(h)) > 600:
@@ -1187,12 +1260,21 @@ class Renderer:
             tf = shp.text_frame
             tf.word_wrap = True
             tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-            tf.margin_left = Inches(0.3 if i == 0 else 0.28)
+            tf.margin_left = Inches(0.24 if i == 0 else 0.20)
+            tf.margin_right = Inches(0.04)
             p = tf.paragraphs[0]
             p.alignment = PP_ALIGN.CENTER
             r = p.add_run()
             r.text = txt
-            size = self._fit_size(txt, max(0.4, step - 0.1), step_h * 0.7, default=14.0)
+            # текстовая область шеврона уже фигуры: PowerPoint отступает от
+            # стрелок на notch (25% регулировки) с каждой стороны плюс поля
+            # рамки. Без этого учёта кегль выбирался по всей ширине шеврона,
+            # текст переносился на лишнюю строку и обрезался («Вёрстка трёх
+            # вариантов.» — последняя строка уходила за край).
+            arrow = 0.25 * min(step + overlap, step_h)
+            text_w = max(0.5, step + overlap - 2 * arrow - 0.30)
+            text_h = max(0.3, step_h - 0.10)
+            size = self._fit_size(txt, text_w, text_h, default=13.0)
             self._set_run_font(r, self._body_font(), size, True,
                                self._readable_text(fill_hex))
 

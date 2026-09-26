@@ -2,54 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Тёмная тема по умолчанию: сервис рассчитан на длинную работу с презентацией. */
+/*
+ * Светлая тема «для бабушки»: крупный текст, высокий контраст (WCAG AA),
+ * спокойный фон. Никаких скрытых жестов и мелких подписей.
+ */
 @layer base {
   :root {
-    --background: 222 24% 8%;
-    --foreground: 210 20% 96%;
-    --card: 222 22% 11%;
-    --card-foreground: 210 20% 96%;
-    --primary: 217 91% 60%;
+    --background: 210 25% 97%;
+    --foreground: 220 39% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 39% 11%;
+    --primary: 221 83% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 217 19% 17%;
-    --secondary-foreground: 210 20% 96%;
-    --muted: 217 19% 15%;
-    --muted-foreground: 215 16% 62%;
-    --accent: 217 19% 20%;
-    --accent-foreground: 210 20% 96%;
-    --destructive: 0 72% 58%;
+    --secondary: 210 22% 92%;
+    --secondary-foreground: 220 39% 11%;
+    --muted: 210 22% 94%;
+    --muted-foreground: 215 18% 38%;
+    --accent: 214 95% 93%;
+    --accent-foreground: 221 83% 30%;
+    --destructive: 0 74% 42%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 69% 58%;
-    --warning: 38 92% 60%;
-    --border: 217 19% 20%;
-    --input: 217 19% 18%;
-    --ring: 217 91% 60%;
-    --radius: 0.65rem;
+    --success: 142 72% 29%;
+    --warning: 32 95% 33%;
+    --border: 214 20% 84%;
+    --input: 214 20% 88%;
+    --ring: 221 83% 45%;
+    --radius: 0.75rem;
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    font-size: 18px;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
   }
 
-  /* Тонкие полосы прокрутки, чтобы не спорить с контентом */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
   }
   ::-webkit-scrollbar-thumb {
     @apply rounded-full bg-border;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
-  }
-}
-
-@layer utilities {
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
   }
 }

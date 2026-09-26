@@ -53,6 +53,57 @@ def _dedupe_items(items: list) -> list:
     return out
 
 
+def _factoid_key(value: str) -> str:
+    """Ключ значения фактоида: «24/24» и «24/24 чистых комбинаций» — одно значение.
+
+    Смысл фактоида — цифра; подпись лишь поясняет её. Сравниваем по первой
+    числовой части («24/24», «5»), чтобы дубликаты одного показателя не
+    появлялись на слайде дважды.
+    """
+    import re
+
+    text = re.sub(r"\s+", " ", str(value or "").strip().lower())
+    match = re.search(r"\d+(?:[.,]\d+)?(?:\s*[/–—-]\s*\d+(?:[.,]\d+)?)?", text)
+    if match:
+        return re.sub(r"\s+", "", match.group(0))
+    return text
+
+
+def _collapse_factoids(blocks: list[dict]) -> tuple[list[dict], int]:
+    """Схлопывает фактоиды с одинаковым значением внутри слайда.
+
+    Модель дублирует метрику в двух блоках или записывает число дважды
+    («24/24» и «24/24 чистых комбинаций») — на слайде это выглядит как ошибка
+    вёрстки. Возвращает (блоки, сколько повторов убрано).
+    """
+    seen: set[str] = set()
+    out: list[dict] = []
+    removed = 0
+    for block in blocks:
+        facts = block.get("factoids")
+        if not isinstance(facts, list) or not facts:
+            out.append(block)
+            continue
+        unique = []
+        for item in facts:
+            if isinstance(item, dict):
+                key = _factoid_key(item.get("value") or item.get("label") or "")
+            else:
+                key = _factoid_key(str(item))
+            if key and key in seen:
+                removed += 1
+                continue
+            if key:
+                seen.add(key)
+            unique.append(item)
+        if not unique:
+            removed += 1          # блок целиком повторяет уже показанное
+            continue
+        block["factoids"] = unique
+        out.append(block)
+    return out, removed
+
+
 def _split_sentences(text: str, limit: int) -> list[str]:
     """Режет абзац на предложения (не больше limit штук)."""
     import re
@@ -196,6 +247,10 @@ def normalize_deck(data: Any, *, max_slides: int = MAX_SLIDES) -> tuple[Any, lis
         if len(cleaned) > MAX_BLOCKS:
             fixes.append(f"слайд {index + 1}: блоков оставлено {MAX_BLOCKS}")
             cleaned = cleaned[:MAX_BLOCKS]
+        cleaned, removed_facts = _collapse_factoids(cleaned)
+        if removed_facts:
+            fixes.append(f"слайд {index + 1}: убраны повторяющиеся фактоиды "
+                         f"({removed_facts})")
         slide["blocks"] = cleaned
         if not cleaned:
             _rescue_stray_text(slide, index, fixes)

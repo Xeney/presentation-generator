@@ -91,6 +91,22 @@ def template_lct() -> bytes:
 
 
 @pytest.fixture(scope="session")
+def template_edu() -> bytes:
+    path = _find(TEMPLATE_FILES["edu"])
+    if path is None:
+        pytest.skip("шаблон VK Education не загружен (см. docs/README.md §3)")
+    return path.read_bytes()
+
+
+@pytest.fixture(scope="session")
+def template_workspace() -> bytes:
+    path = _find(TEMPLATE_FILES["workspace"])
+    if path is None:
+        pytest.skip("шаблон VK WorkSpace не загружен (см. docs/README.md §3)")
+    return path.read_bytes()
+
+
+@pytest.fixture(scope="session")
 def all_templates() -> list[tuple[str, bytes]]:
     """Все доступные шаблоны: синтетические + реальные, если загружены."""
     from tools.make_fixtures import FIXTURES, build_template

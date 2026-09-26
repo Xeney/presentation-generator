@@ -1,0 +1,39 @@
+{
+  "template": "Шаблон презентации VK Education.pptx",
+  "brief": "Платформа внутренней аналитики: за квартал время подготовки отчётов сократилось на 40 %, автоматизированы 12 рутинных задач, охват — 5 подразделений. Платформой пользуются 2000 сотрудников еженедельно. План — подключить 10 отделов к концу года, внедрить ML-предсказания выручки.",
+  "elapsed_s": 20.0,
+  "stages": {
+    "parse_s": 1.43,
+    "plan_s": 14.22,
+    "render_s": 2.86,
+    "audit_s": 1.51,
+    "grounding_s": 0.0,
+    "total_s": 20.02
+  },
+  "planner": "aitunnel/qwen3.5-9b",
+  "slides": 15,
+  "auto_fixes": {
+    "applied": [],
+    "skipped": []
+  },
+  "variants": [
+    {
+      "name": "compact",
+      "errors": 0,
+      "warnings": 0,
+      "issues": []
+    },
+    {
+      "name": "cards",
+      "errors": 0,
+      "warnings": 0,
+      "issues": []
+    },
+    {
+      "name": "split",
+      "errors": 0,
+      "warnings": 0,
+      "issues": []
+    }
+  ]
+}

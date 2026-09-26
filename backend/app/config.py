@@ -4,6 +4,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .runtime_provider import RUNTIME
+
 
 # .env ищем и в текущем каталоге, и в корне репозитория: сервис одинаково
 # подхватывает настройки при запуске из корня, из backend/ и из Docker.
@@ -84,6 +86,9 @@ class Settings(BaseSettings):
     target_duration_min: int = 5
     vlm_audit_enabled: bool = True
     vlm_audit_all_variants: bool = False
+    # авто-фиксы детерминированных проблем применяются сразу после аудита,
+    # без подтверждения пользователя (ADR-032)
+    auto_fix_enabled: bool = True
     # параллельные запросы к VLM: стадия дорогая, а слайды независимы
     vlm_audit_workers: int = 3
     # ширина картинки слайда перед отправкой в модель (0 — без уменьшения)
@@ -121,15 +126,20 @@ class Settings(BaseSettings):
     @property
     def uses_external_provider(self) -> bool:
         """True, если включён внешний шлюз (для сдачи требуется ollama)."""
+        if RUNTIME.active:
+            return True
         if self.llm_provider == "aitunnel":
             return bool(self.aitunnel_api_key)
         return self.llm_provider == "openai_compat" and bool(self.openai_compat_base_url)
 
     @property
     def active_llm_provider(self) -> str:
-        """Фактический провайдер планировщика: ollama | openai_compat | aitunnel | offline."""
+        """Провайдер планировщика: ollama | openai_compat | aitunnel | runtime | offline."""
         if self.disable_llm:
             return "offline"
+        # ключ, введённый в интерфейсе, имеет приоритет: задание идёт через него
+        if RUNTIME.active:
+            return "runtime"
         if self.llm_provider == "aitunnel":
             return "aitunnel" if self.aitunnel_api_key else "ollama"
         if self.llm_provider == "openai_compat" and self.openai_compat_base_url:
@@ -144,6 +154,8 @@ class Settings(BaseSettings):
         requested = (self.vlm_provider or self.llm_provider).strip().lower()
         if requested == "off":
             return "off"
+        if RUNTIME.active:
+            return "runtime"
         if requested == "aitunnel":
             return "aitunnel" if self.aitunnel_api_key else "ollama"
         if requested == "openai_compat" and self.openai_compat_base_url:
@@ -177,6 +189,8 @@ class Settings(BaseSettings):
     @property
     def active_llm_model(self) -> str:
         provider = self.active_llm_provider
+        if provider == "runtime":
+            return RUNTIME.model or "model"
         if provider == "aitunnel":
             return self.aitunnel_llm_model
         if provider == "openai_compat":
@@ -186,6 +200,8 @@ class Settings(BaseSettings):
     @property
     def active_vlm_model(self) -> str:
         provider = self.active_vlm_provider
+        if provider == "runtime":
+            return RUNTIME.model or self.vlm_model
         if provider == "aitunnel":
             return self.aitunnel_vlm_model
         if provider == "openai_compat":
@@ -194,6 +210,11 @@ class Settings(BaseSettings):
 
     @property
     def active_embedding_model(self) -> str:
+        if self.active_llm_provider == "runtime":
+            # у внешнего сервиса может не быть эмбеддингов: тогда семантическая
+            # часть grounding честно пропускается, а числовая работает всегда
+            return self.openai_compat_embedding_model or self.aitunnel_embedding_model \
+                or RUNTIME.model or self.embedding_model
         if self.llm_provider == "aitunnel" and self.aitunnel_embedding_model:
             return self.aitunnel_embedding_model
         if self.llm_provider == "openai_compat" and self.openai_compat_embedding_model:
@@ -215,12 +236,16 @@ class Settings(BaseSettings):
         """Строка для отчёта задания: «провайдер/модель» или «offline»."""
         if self.active_llm_provider == "offline":
             return "offline"
+        if self.active_llm_provider == "runtime":
+            return f"внешний/{self.active_llm_model}"
         return f"{self.active_llm_provider}/{self.active_llm_model}"
 
     @property
     def vlm_label(self) -> str:
         if self.active_vlm_provider == "off":
             return "off"
+        if self.active_vlm_provider == "runtime":
+            return f"внешний/{self.active_vlm_model}"
         return f"{self.active_vlm_provider}/{self.active_vlm_model}"
 
     @property

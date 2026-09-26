@@ -6,6 +6,8 @@ import type {
   Health,
   JobInfo,
   JobState,
+  ProviderCheck,
+  ProviderStatus,
   VariantName,
 } from "./types";
 
@@ -60,12 +62,47 @@ export const api = {
     body.append("source", input.source);
     body.append("purpose", input.purpose);
     if (input.corpusId) body.append("corpus_id", input.corpusId);
+    body.append("vlm", input.vlm === false ? "off" : "on");
+    if (input.slides) body.append("slides", String(input.slides));
+    if (input.language) body.append("language", input.language);
     return fetch(`${API_URL}/api/generate`, { method: "POST", body }).then(
       parse<{ job_id: string; status: string }>,
     );
   },
 
   job: (id: string) => fetch(`${API_URL}/api/jobs/${id}`).then(parse<JobState>),
+
+  cancel: (id: string) =>
+    fetch(`${API_URL}/api/jobs/${id}/cancel`, { method: "POST" }).then(
+      parse<{ status: string }>,
+    ),
+
+  providerStatus: () =>
+    fetch(`${API_URL}/api/provider/status`).then(
+      parse<{ provider: ProviderStatus; label: string; local_label: string }>,
+    ),
+
+  providerTest: (body: { base_url: string; api_key: string; model: string }) =>
+    fetch(`${API_URL}/api/provider/test`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then(parse<ProviderCheck>),
+
+  providerSet: (body: { base_url: string; api_key: string; model: string }) =>
+    fetch(`${API_URL}/api/provider/set`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then(parse<ProviderCheck & { label?: string }>),
+
+  providerReset: () =>
+    fetch(`${API_URL}/api/provider/reset`, { method: "POST" }).then(
+      parse<{ provider: ProviderStatus; label: string }>,
+    ),
+
+  zipUrl: (id: string, formats: string[], variants: string[]) =>
+    `${API_URL}/api/jobs/${id}/download?formats=${formats.join(",")}&variants=${variants.join(",")}`,
 
   jobInfo: (id: string) => fetch(`${API_URL}/api/jobs/${id}/info`).then(parse<JobInfo>),
 

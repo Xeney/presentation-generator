@@ -56,7 +56,9 @@ MAX_TEMPLATE = settings.max_upload_mb * 1024 * 1024
 
 
 def _job_worker(job_id: str, brief: str, source: str, purpose: str,
-                tpl: bytes, tpl_name: str, corpus_id: str = ""):
+                tpl: bytes, tpl_name: str, corpus_id: str = "",
+                vlm: bool = True, max_slides: int | None = None,
+                language: str = "ru"):
     job = JOBS.get(job_id)
     if job is None:
         return
@@ -66,9 +68,15 @@ def _job_worker(job_id: str, brief: str, source: str, purpose: str,
         if corpus_id and corpus is None:
             raise ValueError(f"контент-пакет {corpus_id} не найден")
         result = full_generate(brief, source, purpose, tpl, tpl_name, corpus=corpus,
-                               vlm=settings.vlm_audit_enabled)
-        job.update({"status": "done", "result": result,
-                    "elapsed_s": round(time.time() - started, 1)})
+                               vlm=vlm, auto_fix=settings.auto_fix_enabled,
+                               max_slides=max_slides, language=language)
+        current = JOBS.get(job_id) or job
+        if current.get("cancelled"):
+            # пользователь нажал «Отменить»: результат не сохраняем и не показываем
+            job.update({"status": "cancelled", "elapsed_s": round(time.time() - started, 1)})
+        else:
+            job.update({"status": "done", "result": result,
+                        "elapsed_s": round(time.time() - started, 1)})
     except Exception as exc:
         import traceback
 
@@ -113,6 +121,9 @@ def health():
             vlm_models = []
     vlm_available = bool(vlm_client) and not settings.disable_llm and _model_ready(
         vlm_client, settings.active_vlm_model, vlm_models)
+    from ..render.pdf import find_soffice
+    from ..runtime_provider import RUNTIME
+
     return {
         "status": "ok",
         "version": app_version,
@@ -133,6 +144,9 @@ def health():
             "label": settings.vlm_label,
             "models": vlm_models,
         },
+        "pdf": {"available": bool(find_soffice(settings.libreoffice_bin))},
+        "auto_fix": settings.auto_fix_enabled,
+        "provider": RUNTIME.public(),
         "content_formats": ["pptx", "docx", "txt", "md"],
     }
 
@@ -157,7 +171,10 @@ async def generate(template: UploadFile = File(...),
                    brief: str = Form(...),
                    source: str = Form(""),
                    purpose: str = Form("project"),
-                   corpus_id: str = Form("")):
+                   corpus_id: str = Form(""),
+                   vlm: str = Form(""),
+                   slides: int = Form(0),
+                   language: str = Form("ru")):
     data = await template.read()
     if len(data) > MAX_TEMPLATE:
         raise HTTPException(413, f"шаблон больше {settings.max_upload_mb} МБ")
@@ -174,12 +191,35 @@ async def generate(template: UploadFile = File(...),
     JOBS.put({"id": job_id, "status": "pending", "created": time.time(),
               "corpus_id": corpus_id or None,
               "template": data, "template_name": template.filename or "template.pptx"})
+    # форма может не передавать флаг VLM: тогда действует настройка сервиса
+    vlm_enabled = (settings.vlm_audit_enabled if not vlm.strip()
+                   else vlm.strip().lower() not in ("off", "false", "0", "нет"))
     t = threading.Thread(target=_job_worker,
                          args=(job_id, brief, source, purpose, data,
-                               template.filename or "template.pptx", corpus_id),
+                               template.filename or "template.pptx", corpus_id,
+                               vlm_enabled,
+                               slides or None,
+                               language if language in ("ru", "en") else "ru"),
                          daemon=True)
     t.start()
     return {"job_id": job_id, "status": "pending"}
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+def job_cancel(job_id: str):
+    """«Отменить» в интерфейсе: результат отменённого задания не показывается.
+
+    Планирование и рендер — один вызов без внутренних точек остановки, поэтому
+    отмена мгновенно убирает задание из интерфейса, а поток завершается сам и
+    выбрасывает результат (в job.json он не попадает).
+    """
+    job = _get_job(job_id)
+    if job.get("status") in ("done", "error", "cancelled"):
+        return {"status": job["status"]}
+    job["cancelled"] = True
+    job["status"] = "cancelled"
+    JOBS.put(job)
+    return {"status": "cancelled"}
 
 
 # ----------------------------------------------------------- контент-пакеты
@@ -274,6 +314,98 @@ def switch_provider(request: ProviderRequest):
     }
 
 
+# ------------------------------------------------- внешний ключ из интерфейса
+class RuntimeProviderRequest(BaseModel):
+    """Внешний OpenAI-совместимый сервис, подключённый через UI (ADR-031)."""
+
+    base_url: str = Field(min_length=4, max_length=300)
+    api_key: str = Field(default="", max_length=400)
+    model: str = Field(default="", max_length=120)
+
+
+def _runtime_preflight(request: RuntimeProviderRequest) -> tuple[bool, str]:
+    """Проверка адреса/ключа/модели без сохранения: «зелёная галочка» или причина."""
+    from ..planner.llm import LlmError, OpenAICompatClient
+
+    key = request.api_key.strip()
+    if not key:
+        return False, "Введите API-ключ."
+    client = OpenAICompatClient(
+        base_url=request.base_url.strip().rstrip("/"),
+        api_key=key,
+        timeout_s=min(20, settings.llm_timeout_s),
+        max_retries=0,
+        provider_name="внешний сервис",
+        key_env="API-ключ из интерфейса",
+        mask_key=False,
+        extra_payload={"reasoning_effort": "none"},
+    )
+    try:
+        models = client.list_models()
+    except LlmError as exc:
+        status = getattr(exc, "status", None)
+        if status in (401, 403) or "401" in str(exc) or "403" in str(exc):
+            return False, ("Ключ не подошёл или закончился баланс. Проверьте ключ "
+                           "или вернитесь на локальный режим.")
+        if status == 402 or "402" in str(exc):
+            return False, ("Ключ не подошёл или закончился баланс. Проверьте ключ "
+                           "или вернитесь на локальный режим.")
+        if status == 404 or "404" in str(exc):
+            return False, "Адрес сервиса отвечает, но незнаком: проверьте адрес API."
+        return False, f"Сервис не ответил: {exc}"
+    except Exception as exc:  # noqa: BLE001 — health-check не должен падать
+        return False, f"Сервис не отвечает. Проверьте адрес и интернет. ({exc})"
+
+    model = request.model.strip()
+    if models and model and model not in models:
+        hint = ", ".join(models[:8])
+        return False, (f"Модель «{model}» недоступна у сервиса. Доступные модели: {hint}…")
+    return True, ("Подключение работает" if not model
+                  else f"Подключение работает, модель «{model}» доступна")
+
+
+@app.post("/api/provider/test")
+def provider_test(request: RuntimeProviderRequest):
+    """Проверить подключение, ничего не сохраняя."""
+    ok, message = _runtime_preflight(request)
+    return {"ok": ok, "message": message}
+
+
+@app.post("/api/provider/set")
+def provider_set(request: RuntimeProviderRequest):
+    """Сохранить внешний ключ в памяти процесса: следующее задание идёт через него."""
+    from ..runtime_provider import RUNTIME
+
+    ok, message = _runtime_preflight(request)
+    if not ok:
+        RUNTIME.mark("fail", message)
+        return {"ok": False, "message": message, "provider": RUNTIME.public()}
+    RUNTIME.set(request.base_url, request.api_key, request.model or "gpt-4o-mini",
+                status="ok", message=message)
+    return {"ok": True, "message": message,
+            "provider": RUNTIME.public(),
+            "label": settings.planner_label}
+
+
+@app.post("/api/provider/reset")
+def provider_reset():
+    """Вернуться к локальной Ollama: ключ стирается из памяти."""
+    from ..runtime_provider import RUNTIME
+
+    RUNTIME.reset()
+    return {"ok": True, "provider": RUNTIME.public(),
+            "label": settings.planner_label}
+
+
+@app.get("/api/provider/status")
+def provider_status():
+    """Текущий провайдер: источник, адрес, модель, ключ — только в маске."""
+    from ..runtime_provider import RUNTIME
+
+    return {"provider": RUNTIME.public(), "label": settings.planner_label,
+            "local_label": f"ollama/{settings.llm_model}"}
+
+
 @app.get("/api/content")
 def content_list():
     return {"corpora": list_corpora(settings.data_path)}
@@ -311,6 +443,7 @@ def job_status(job_id: str):
         vlm = r.get("vlm", {})
         vlm_label = ("off" if not vlm.get("available")
                      else f"{vlm.get('provider', '?')}/{vlm.get('model', '?')}")
+        auto = r.get("auto_fixes") or {}
         resp["summary"] = {
             "slides": len(r["deck"]["slides"]),
             "used_llm": r["planner"]["used_llm"],
@@ -321,6 +454,8 @@ def job_status(job_id: str):
             "corpus_id": job.get("corpus_id"),
             "version": job.get("version", 1),
             "fixes": len(job.get("fixes", [])),
+            "auto_fix_applied": len(auto.get("applied", [])),
+            "auto_fix_skipped": len(auto.get("skipped", [])),
             "vlm_available": r.get("vlm", {}).get("available", False),
             "variants": [{"name": v["name"], "passed": v["audit"]["passed"],
                           "errors": v["audit"]["errors"],
@@ -329,18 +464,26 @@ def job_status(job_id: str):
     return resp
 
 
-@app.get("/api/jobs/{job_id}/pptx")
+# GET и HEAD: интерфейс перед скачиванием проверяет, что файл собирается
+@app.api_route("/api/jobs/{job_id}/pptx", methods=["GET", "HEAD"])
 def download_pptx(job_id: str, variant: str = "compact"):
     job = _get_job(job_id)
     if job.get("status") != "done":
         raise HTTPException(409, "задание ещё выполняется")
     item = _find_variant(job, variant)
     res = Response(content=item["pptx"], media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation")
-    res.headers["Content-Disposition"] = f'attachment; filename="{job_id}_{variant}.pptx"'
+    # имя файла — как на карточке скачивания: браузер сохраняет его как есть
+    res.headers["Content-Disposition"] = f'attachment; filename="presentation_{variant}.pptx"'
     return res
 
 
-@app.get("/api/jobs/{job_id}/pdf")
+def _pdf_error_text(exc: Exception) -> str:
+    """Понятная человеку причина, почему PDF не собрался."""
+    return ("PDF сейчас недоступен: на сервере не установлен LibreOffice. "
+            "Скачайте PPTX — он собирается всегда.")
+
+
+@app.api_route("/api/jobs/{job_id}/pdf", methods=["GET", "HEAD"])
 def download_pdf(job_id: str, variant: str = "compact"):
     from ..render.pdf import PdfExportError
 
@@ -351,9 +494,54 @@ def download_pdf(job_id: str, variant: str = "compact"):
     try:
         pdf = pdf_bytes_for(item["pptx"])
     except PdfExportError as exc:
-        raise HTTPException(503, str(exc))
+        raise HTTPException(503, _pdf_error_text(exc))
     res = Response(content=pdf, media_type="application/pdf")
-    res.headers["Content-Disposition"] = f'attachment; filename="{job_id}_{variant}.pdf"'
+    res.headers["Content-Disposition"] = f'attachment; filename="presentation_{variant}.pdf"'
+    return res
+
+
+@app.get("/api/jobs/{job_id}/download")
+def download_all(job_id: str, formats: str = "pptx,pdf",
+                 variants: str = "compact,cards,split"):
+    """ZIP со всеми выбранными форматами всех вариантов одним файлом.
+
+    Если PDF не собрался (нет LibreOffice), он просто не кладётся в архив, а
+    PPTX остаётся: кнопка «Скачать всё» не должна падать из-за опционального
+    формата.
+    """
+    import zipfile
+
+    from ..render.pdf import PdfExportError
+
+    job = _get_job(job_id)
+    if job.get("status") != "done":
+        raise HTTPException(409, "задание ещё выполняется")
+    wanted = {part.strip().lower() for part in formats.split(",")} & {"pptx", "pdf"}
+    if not wanted:
+        raise HTTPException(422, "не выбран ни один формат")
+    names = [part.strip() for part in variants.split(",") if part.strip()] or list(VARIANTS)
+    buf = io.BytesIO()
+    added = 0
+    pdf_failed = False
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name in names:
+            item = _find_variant(job, name)
+            if "pptx" in wanted:
+                archive.writestr(f"presentation_{name}.pptx", item["pptx"])
+                added += 1
+            if "pdf" in wanted:
+                try:
+                    archive.writestr(f"presentation_{name}.pdf", pdf_bytes_for(item["pptx"]))
+                    added += 1
+                except PdfExportError:
+                    pdf_failed = True
+    if not added:
+        raise HTTPException(503, _pdf_error_text(PdfExportError("нет LibreOffice")))
+    res = Response(content=buf.getvalue(), media_type="application/zip")
+    res.headers["Content-Disposition"] = \
+        f'attachment; filename="presentations_{job_id}.zip"'
+    if pdf_failed:
+        res.headers["X-Pdf-Skipped"] = "1"
     return res
 
 
@@ -477,6 +665,7 @@ def job_info(job_id: str):
         "corpus": r.get("corpus"),
         "vlm": r["vlm"],
         "grounding": r.get("grounding", {}),
+        "auto_fixes": r.get("auto_fixes", {}),
         "prompts": r.get("prompts", {}),
         "stages": r.get("stages", {}),
         "variants": [{"name": v["name"], "audit_summary": {

@@ -68,6 +68,11 @@ class LayoutProfile:
     # понимать, на каком фоне окажется текст (на тёмной плашке шаблона тёмный
     # текст не читается) — проверка contrast_too_low и выбор цвета текста
     decor: list[dict] = field(default_factory=list)
+    # фактический фон макета из p:bg (цвет или доминирующий цвет фоновой
+    # картинки). Без него тёмные шаблоны (VK WorkSpace: p:bg = #000000)
+    # получали тёмный текст на чёрном фоне — и рендер, и аудит считали фон
+    # по палитре темы (ADR-034)
+    background: Optional[str] = None
     has_logo: bool = False
     style_sample: dict = field(default_factory=dict)
 

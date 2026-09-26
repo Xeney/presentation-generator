@@ -214,6 +214,10 @@ class FixEngine:
         if slide.slide_type != SlideType.CONTENT:
             return self._skip(issue, "витринный слайд не масштабируется")
         if slide.type_scale_step <= -3:
+            # шкала исчерпана: текст не влезает не из-за кегля, а из-за объёма —
+            # переносим часть контента на следующий слайд
+            if issue.get("code") == "text_overflow":
+                return self._split_slide(deck, issue)
             return self._skip(issue, "кегль уже на нижней ступени шкалы")
         slide.type_scale_step -= 1
         return self._done(issue, "shrink_font",

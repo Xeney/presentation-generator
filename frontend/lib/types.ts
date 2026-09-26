@@ -44,23 +44,16 @@ export type JobSummary = {
   corpus_id?: string | null;
   version?: number;
   fixes?: number;
+  auto_fix_applied?: number;
+  auto_fix_skipped?: number;
 };
 
 export type JobState = {
   id: string;
-  status: "pending" | "running" | "done" | "error";
+  status: "pending" | "running" | "done" | "error" | "cancelled";
   summary?: JobSummary;
   error?: string;
   version?: number;
-};
-
-export type FixOutcome = {
-  issue_id: string;
-  code: string;
-  slide: number;
-  status: "applied" | "skipped";
-  action: string;
-  detail: string;
 };
 
 export type FixReport = { applied: FixOutcome[]; skipped: FixOutcome[]; version: number };
@@ -150,6 +143,7 @@ export type JobInfo = {
   corpus?: Corpus | null;
   vlm: VlmResult;
   grounding?: GroundingResult;
+  auto_fixes?: AutoFixReport;
   prompts?: Record<string, { version: string; hash: string; model: string; kind: string }>;
   stages?: StageTimings;
   variants: { name: VariantName; audit_summary: VariantSummary }[];
@@ -175,6 +169,9 @@ export type Health = {
     available?: boolean;
     label?: string;
   };
+  pdf?: { available: boolean };
+  auto_fix?: boolean;
+  provider?: ProviderStatus;
   content_formats: string[];
 };
 
@@ -184,4 +181,38 @@ export type GenerateInput = {
   source: string;
   purpose: string;
   corpusId?: string;
+  vlm?: boolean;
+  slides?: number;
+  language?: string;
+};
+
+export type FixOutcome = {
+  issue_id: string;
+  code: string;
+  slide: number;
+  status: "applied" | "skipped";
+  action: string;
+  detail: string;
+};
+
+export type AutoFixReport = {
+  applied: FixOutcome[];
+  skipped: FixOutcome[];
+};
+
+export type ProviderStatus = {
+  source: "local" | "external";
+  base_url: string;
+  model: string;
+  masked_key: string;
+  has_key: boolean;
+  status: "untested" | "ok" | "fail";
+  status_message: string;
+};
+
+export type ProviderCheck = {
+  ok: boolean;
+  message: string;
+  provider?: ProviderStatus;
+  label?: string;
 };
