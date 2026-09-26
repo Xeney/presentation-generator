@@ -216,3 +216,30 @@ def test_fix_endpoint_returns_report(client, job):
     assert state["summary"]["version"] == body["version"]
     pptx = client.get(f"/api/jobs/{job['id']}/pptx", params={"variant": "compact"})
     assert pptx.status_code == 200 and pptx.content.startswith(b"PK")
+
+
+def test_health_reports_version(client):
+    """Версия сервиса видна в /api/health и совпадает с манифестами.
+
+    Требование сдачи: зафиксированная версия в репозитории; чтобы она не
+    разъезжалась с тегом, её читают из одного места (`app.__version__`) и
+    сверяют с pyproject.toml и package.json.
+    """
+    import json
+    import re
+    from pathlib import Path
+
+    from app import __version__
+
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["version"] == __version__
+    assert re.fullmatch(r"\d+\.\d+\.\d+", payload["version"])
+
+    backend = Path(__file__).resolve().parents[1]
+    pyproject = (backend / "pyproject.toml").read_text(encoding="utf-8")
+    assert f'version = "{__version__}"' in pyproject, "pyproject.toml разошёлся с версией"
+    package = json.loads((backend.parent / "frontend" / "package.json").read_text(
+        encoding="utf-8"))
+    assert package["version"] == __version__, "package.json разошёлся с версией"

@@ -188,6 +188,11 @@ export default function Page() {
           </h1>
           {slidesCount > 0 && <Badge variant="secondary">{slidesCount} слайдов</Badge>}
           {status === "running" && <Badge variant="warning">генерация…</Badge>}
+          {health?.version && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              v{health.version}
+            </span>
+          )}
         </header>
 
         {status === "done" && jobId ? (

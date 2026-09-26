@@ -158,6 +158,7 @@ export type JobInfo = {
 
 export type Health = {
   status: string;
+  version?: string;
   variants: VariantName[];
   llm: {
     available: boolean;

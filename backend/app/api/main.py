@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
+from .. import __version__ as app_version
 from ..config import get_settings
 from ..content.corpus import ContentCorpus, list_corpora
 from ..content.importer import ContentImportError, import_content_pack
@@ -114,6 +115,7 @@ def health():
         vlm_client, settings.active_vlm_model, vlm_models)
     return {
         "status": "ok",
+        "version": app_version,
         "variants": VARIANTS,
         "llm": {
             "available": available,
