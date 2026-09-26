@@ -137,6 +137,11 @@ def test_format_selection_filters_cards(ui_report):
         "при выборе только PPTX PDF-строк на экране быть не должно"
 
 
+def test_simple_mode_flow(ui_report):
+    """«Я не знаю, что делать»: спросил ключ, зафиксировал настройки, скрыл шаг 3."""
+    assert ui_report.get("simple_mode") is True
+
+
 def test_no_console_errors(ui_report):
     assert ui_report["console_errors"] == [], ui_report["console_errors"]
 

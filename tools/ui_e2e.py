@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import tempfile
 import zipfile
@@ -75,8 +76,7 @@ def run(base: str, template: Path, brief: str, out: Path, timeout_s: int = 240,
         page.get_by_placeholder("Например: квартальный отчёт").fill(brief)
         step("бриф заполнен", "03_brief.png")
 
-        # «Для опытных» — свёрнут по умолчанию, галерея скрыта
-        page.locator("summary", has_text="Для опытных").click()
+        # «Для опытных» всегда раскрыт (ADR-040); свёрнутой остаётся галерея
         page.get_by_text("Источник нейросети").wait_for(timeout=5000)
         page.get_by_text("Вернуться к локальному").wait_for(timeout=5000)
         assert page.locator("details details[open]").count() == 0
@@ -100,8 +100,6 @@ def run(base: str, template: Path, brief: str, out: Path, timeout_s: int = 240,
             report["provider_check"] = "ok"
             step("вернулись к локальному", "04d_provider_local.png")
 
-        page.locator("summary", has_text="Для опытных").click()
-
         # ШАГ 3 + запуск (оба формата включены по умолчанию)
         assert page.get_by_role("button", name="PPTX ✓").count() == 1
         assert page.get_by_role("button", name="PDF ✓").count() == 1
@@ -111,18 +109,44 @@ def run(base: str, template: Path, brief: str, out: Path, timeout_s: int = 240,
 
         page.get_by_role("heading", name="Готово! Собрано за", exact=False).wait_for(
             timeout=timeout_s * 1000)
-        page.get_by_text("Скачать всё одной кнопкой (ZIP)").wait_for(timeout=10000)
+        page.get_by_role("button", name=re.compile("Скачать всё")).wait_for(timeout=10000)
         step("результат", "05_result.png")
         report["thumbs_on_result"] = page.locator("img").count()
         assert report["thumbs_on_result"] == 0, "на экране результата нет миниатюр"
         assert not download_events, "файл не должен скачиваться сам, только по клику"
         report["downloads_before_click"] = len(download_events)
-        for variant in ("compact", "cards", "split"):
-            page.get_by_text(f"presentation_{variant}.pptx").wait_for(timeout=5000)
-            page.get_by_text(f"presentation_{variant}.pdf").wait_for(timeout=5000)
-            page.get_by_role("button", name="Скачать PPTX").first  # кнопки подписаны
-        assert page.get_by_role("button", name="Скачать PPTX").count() == 3
-        assert page.get_by_role("button", name="Скачать PDF").count() == 3
+
+        # три карточки вариантов + бейдж «Рекомендуем» только на первой
+        for name in ("Компактный", "Карточками", "С данными отдельно"):
+            page.get_by_role("heading", name=name).wait_for(timeout=5000)
+        report["recommended_badge"] = page.get_by_text("Рекомендуем").count()
+        assert report["recommended_badge"] == 1, "бейдж «Рекомендуем» — ровно один"
+
+        # PPTX — главная кнопка, PDF — вторичная; размеры показаны
+        pptx_buttons = page.get_by_role("button", name=re.compile("Скачать PPTX"))
+        assert pptx_buttons.count() == 3, pptx_buttons.count()
+        assert page.get_by_role("button", name=re.compile("Скачать PDF")).count() == 3
+        pptx_text = pptx_buttons.first.inner_text()
+        assert re.search(r"\d+([.,]\d+)?\s*(МБ|КБ)", pptx_text), pptx_text
+        report["pptx_button_text"] = pptx_text
+        report["sizes_shown"] = True
+
+        # HTML-путь — внутренняя деталь: ссылок и кнопок с HTML нет
+        assert page.get_by_text("Открыть HTML").count() == 0
+        assert page.get_by_text(re.compile("через HTML", re.IGNORECASE)).count() == 0
+        assert page.locator('a[href*=".html"]').count() == 0
+        report["html_hidden"] = True
+
+        # серая плашка появляется только при офлайн-планировщике;
+        # в прогоне с LLM её быть не должно, но и двух плашек быть не может
+        report["offline_badge"] = page.get_by_text(
+            "Собрано без участия нейросети").count()
+        assert report["offline_badge"] <= 1
+
+        # блок качества с человеческим статусом
+        page.get_by_role("heading", name="Проверка качества").wait_for(timeout=5000)
+        assert page.get_by_text(re.compile("Проверено \\d+ правил вёрстки")).count() == 1
+        report["quality_panel"] = True
         report["result_files"] = [
             f"presentation_{variant}.{format}"
             for variant in ("compact", "cards", "split")
@@ -143,7 +167,7 @@ def run(base: str, template: Path, brief: str, out: Path, timeout_s: int = 240,
 
         # ZIP со всеми файлами
         with page.expect_download(timeout=120000) as zip_info:
-            page.get_by_role("button", name="Скачать всё одной кнопкой (ZIP)").click()
+            page.get_by_role("button", name=re.compile("Скачать всё")).click()
         zip_download = zip_info.value
         zip_path = out / "downloaded_all.zip"
         zip_download.save_as(str(zip_path))
@@ -162,12 +186,33 @@ def run(base: str, template: Path, brief: str, out: Path, timeout_s: int = 240,
         page.get_by_role("button", name="Создать презентацию").click()
         page.get_by_role("heading", name="Готово! Собрано за", exact=False).wait_for(
             timeout=timeout_s * 1000)
-        page.get_by_text("presentation_compact.pptx").wait_for(timeout=5000)
-        assert page.get_by_text("presentation_compact.pdf").count() == 0, \
-            "выбран только PPTX — PDF-строк быть не должно"
-        assert page.get_by_role("button", name="Скачать PDF").count() == 0
+        page.get_by_role("button", name=re.compile("Скачать PPTX")).first.wait_for(
+            timeout=5000)
+        assert page.get_by_role("button", name=re.compile("Скачать PDF")).count() == 0, \
+            "выбран только PPTX — PDF-кнопок быть не должно"
+        assert page.get_by_text("PDF недоступен").count() == 0
         report["pptx_only_filter"] = True
         step("только PPTX на экране результата", "08_result_pptx_only.png")
+
+        # простой режим «Я не знаю, что делать»: спросит ключ, зафиксирует
+        # HTML+CSS / PPTX+PDF / без проверки нейросетью и скроет шаг 3
+        page.get_by_role("button", name="Создать ещё раз").click()
+        page.get_by_role("heading", name="Генератор презентаций").wait_for(timeout=10000)
+        page.get_by_role("button", name="Включить простой режим").click()
+        page.get_by_role("heading", name="Подключите нейросеть").wait_for(timeout=5000)
+        assert page.get_by_role("heading", name="Выберите формат скачивания").count() == 0, \
+            "в простом режиме шаг выбора форматов не показывается"
+        assert page.get_by_text("PPTX + PDF").count() == 1
+        assert page.get_by_text("Проверка нейросетью включена").count() == 1
+        assert page.locator("#simple-key").count() == 1, "должно спросить API-ключ"
+        # «Применить» — именно в простой форме (у «Для опытных» своя кнопка)
+        simple_form = page.locator("section", has_text="Подключите нейросеть")
+        assert simple_form.get_by_role("button", name="Применить").count() == 1
+        step("простой режим включён", "09_simple_mode.png")
+        page.get_by_role("button", name="Вернуть ручной режим").click()
+        page.get_by_role("heading", name="Выберите формат скачивания").wait_for(timeout=5000)
+        report["simple_mode"] = True
+        step("вернулись в ручной режим", "10_form_manual_back.png")
 
         browser.close()
     return report

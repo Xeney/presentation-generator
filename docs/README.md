@@ -165,10 +165,10 @@ data/corpora/{id}/             разобранные контент-пакет�
 |---|---|---|
 | `POST` | `/api/generate` | шаблон + бриф → `job_id` (асинхронно) |
 | `GET` | `/api/jobs/{id}` | статус, сводка по вариантам |
-| `GET` | `/api/jobs/{id}/info` | профиль, колода, planner, VLM, аудит-сводка |
+| `GET` | `/api/jobs/{id}/info` | профиль, колода, planner, VLM, аудит-сводка, размеры файлов каждого варианта (ADR-038) |
 | `GET` | `/api/jobs/{id}/pptx?variant=…` | скачать PPTX-вариант |
 | `GET` | `/api/jobs/{id}/pdf?variant=…` | PDF (LibreOffice headless) |
-| `GET` | `/api/jobs/{id}/html` | HTML-версия колоды |
+| `GET` | `/api/jobs/{id}/html` | HTML-версия колоды (в интерфейсе не показывается — ADR-038) |
 | `GET` | `/api/jobs/{id}/thumb?variant=…&s=…` | PNG-миниатюра слайда (`&boxes=1` — красные рамки проблем) |
 | `POST` | `/api/jobs/{id}/fix` | детерминированные авто-фиксы выбранных проблем |
 | `POST` | `/api/content/import` | импорт контент-пакета (PPTX/DOCX/TXT/MD) → корпус |

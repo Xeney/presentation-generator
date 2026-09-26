@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import "./globals.css";
 
@@ -9,9 +9,13 @@ export const metadata: Metadata = {
     "в PPTX и PDF.",
 };
 
+export const viewport: Viewport = {
+  themeColor: "#050607",
+};
+
 /**
- * Шрифт — системный стек: сборка не зависит от загрузки внешних шрифтов
- * (важно для офлайн-демо и сборки в закрытом контуре).
+ * Шрифт — системный стек (Inter, если установлен): сборка не зависит от
+ * загрузки внешних шрифтов — важно для офлайн-демо и закрытого контура.
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

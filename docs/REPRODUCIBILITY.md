@@ -158,7 +158,7 @@ VLM-аудит на CPU не влезает в бюджет стадии: мод
   ```
 
   На стабильных версиях Compose (< 2.33) `docker compose up --build` работает
-  как в `README.md`. После обхода `/api/health` отдаёт version 2.0.0, генерация
+  как в `README.md`. После обхода `/api/health` отдаёт version 2.1.0, генерация
   `render_mode=both` на VK WorkSpace — 0 ошибок в обоих путях.
 * **`docker compose config` печатает ключи** из `.env` — не публикуйте вывод.
 * **Скриншоты**: UI — `docs/evidence/repro/ui_main.png` (headless Chrome,

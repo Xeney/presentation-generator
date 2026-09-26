@@ -127,9 +127,11 @@ grounding `content_off_source`/`fact_unverified` (цифра не найдена
 | Backend, ядро (аудит/рендер/нормализация/тёмный шаблон/ThemePair/HTML-рендереры) | `pytest backend/tests/test_audit*.py test_fixes.py test_normalize.py test_dark_template.py test_theme_pair.py test_vk_education.py test_layout_roles.py test_render.py test_export_html.py test_html_renderer.py test_html_to_pptx.py` | **90 passed** |
 | Backend, API/скачивание/провайдер/пайплайн/режимы сборки | `pytest backend/tests/test_api.py test_downloads.py test_provider_runtime.py test_auto_fix_pipeline.py test_pipeline.py test_storage.py test_content_import.py test_render_modes.py` | **55 passed** |
 | Backend, прочее (планировщик, VLM, grounding, образцы, производительность) | `pytest backend/tests/test_block_robustness.py test_grounding.py test_imagegen.py test_llm_providers.py test_performance.py test_planner.py test_prompts_registry.py test_vlm.py` | **82 passed** |
-| Браузерные (headless Chrome, поднимают uvicorn+next) | `pytest backend/tests/test_ui_browser.py` | **6 passed** |
+| Backend, экран результата (исходники UI + live `/info` с размерами) | `pytest backend/tests/test_result_ui.py` | **10 passed** |
+| Backend, простой режим и компоновка (исходники UI) | `pytest backend/tests/test_simple_mode.py` | **6 passed** |
+| Браузерные (headless Chrome, поднимают uvicorn+next) | `pytest backend/tests/test_ui_browser.py` | **7 passed** |
 
-Итого **233 теста** (227 backend + 6 браузерных). Браузерные тесты
+Итого **250 тестов** (243 backend + 7 браузерных). Браузерные тесты
 автоматически скипаются, если не собран фронтенд, не установлен Playwright или
 заняты порты 8000/3000 (остановите `docker compose stop` перед запуском).
 

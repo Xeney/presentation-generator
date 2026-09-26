@@ -680,6 +680,12 @@ def _find_variant(job: dict, variant: str) -> dict:
     raise HTTPException(404, f"вариант {variant} не найден")
 
 
+def _file_info(blob: bytes | None) -> dict:
+    """Размер и доступность артефакта для карточек скачивания (bytes из памяти)."""
+    size = len(blob or b"")
+    return {"available": size > 0, "bytes": size if size else None}
+
+
 @app.get("/api/jobs/{job_id}/audit")
 def job_audit(job_id: str, variant: str = "compact", render: str = "native"):
     job = _get_job(job_id)
@@ -696,6 +702,9 @@ def job_info(job_id: str):
     job = _get_job(job_id)
     if job.get("status") != "done":
         raise HTTPException(409, "задание ещё выполняется")
+    from ..render.pdf import find_soffice
+
+    pdf_ok = bool(find_soffice(settings.libreoffice_bin))
     r = job["result"]
     return {
         "profile": r["profile"],
@@ -710,7 +719,16 @@ def job_info(job_id: str):
         "stages": r.get("stages", {}),
         "variants": [{"name": v["name"], "audit_summary": {
             "passed": v["audit"]["passed"], "errors": v["audit"]["errors"],
-            "warnings": v["audit"]["warnings"]}} for v in r["variants"]],
+            "warnings": v["audit"]["warnings"]},
+            # размеры файлов для карточек результата. PDF собирается только при
+            # скачивании, поэтому для него отдаём доступность без размера
+            "files": {
+                "pptx": _file_info(v.get("pptx")),
+                "pdf": {"available": pdf_ok, "bytes": None},
+                "html_pptx": _file_info(v.get("html_pptx")),
+                "html": _file_info((v.get("html") or "").encode("utf-8")
+                                   if v.get("html") else None),
+            }} for v in r["variants"]],
         "elapsed_s": job.get("elapsed_s"),
     }
 

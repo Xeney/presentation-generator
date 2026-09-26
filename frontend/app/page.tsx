@@ -5,12 +5,14 @@ import * as React from "react";
 import { AdvancedSettings } from "@/components/advanced-settings";
 import { GeneratorForm } from "@/components/generator-form";
 import { ProgressView } from "@/components/progress-view";
+import { ProviderSetup } from "@/components/provider-setup";
 import { ResultView } from "@/components/result-view";
 import { api } from "@/lib/api";
 import type {
   Audit,
   AutoFixReport,
   Health,
+  JobInfo,
   JobSummary,
   ProviderStatus,
   RenderMode,
@@ -41,6 +43,7 @@ export default function Page() {
   const [corpusBusy, setCorpusBusy] = React.useState(false);
   const [formats, setFormats] = React.useState({ pptx: true, pdf: true });
   const [renderMode, setRenderMode] = React.useState<RenderMode>("native");
+  const [simpleMode, setSimpleMode] = React.useState(false);
   const [vlm, setVlm] = React.useState(true);
   const [slides, setSlides] = React.useState(12);
   const [language, setLanguage] = React.useState("ru");
@@ -50,6 +53,7 @@ export default function Page() {
   const [summary, setSummary] = React.useState<JobSummary | null>(null);
   const [audits, setAudits] = React.useState<{ variant: VariantName; audit: Audit }[] | null>(null);
   const [autoFixes, setAutoFixes] = React.useState<AutoFixReport | null>(null);
+  const [jobInfo, setJobInfo] = React.useState<JobInfo | null>(null);
   const [error, setError] = React.useState("");
   const [elapsed, setElapsed] = React.useState(0);
   const [resultElapsed, setResultElapsed] = React.useState(0);
@@ -75,6 +79,20 @@ export default function Page() {
     }
   };
 
+  /*
+   * «Я не знаю, что делать»: простой режим фиксирует безопасный набор —
+   * внешний ключ спрашиваем отдельным блоком, сборка через HTML+CSS,
+   * PPTX + PDF, проверка нейросетью включена (ADR-040).
+   */
+  const applySimpleMode = (value: boolean) => {
+    setSimpleMode(value);
+    if (value) {
+      setRenderMode("html");
+      setVlm(true);
+      setFormats({ pptx: true, pdf: true });
+    }
+  };
+
   const start = async () => {
     if (!template) return;
     setError("");
@@ -93,10 +111,10 @@ export default function Page() {
         source: "",
         purpose: "project",
         corpusId: corpusId || undefined,
-        vlm,
+        vlm: simpleMode ? true : vlm,
         slides,
         language,
-        renderMode,
+        renderMode: simpleMode ? "html" : renderMode,
       });
       setJobId(job.job_id);
     } catch (requestError) {
@@ -136,8 +154,10 @@ export default function Page() {
         try {
           const info = await api.jobInfo(jobId);
           setAutoFixes(info.auto_fixes ?? null);
+          setJobInfo(info);
         } catch {
           setAutoFixes(null);
+          setJobInfo(null);
         }
         setPhase("result");
       } catch (requestError) {
@@ -147,37 +167,6 @@ export default function Page() {
     }, 1000);
     return () => clearInterval(timer);
   }, [phase, jobId]);
-
-  /* после авто-фиксов перечитываем отчёты */
-  const onVersionChange = async (next: number) => {
-    if (!jobId) return;
-    setVersion(next);
-    try {
-      const results = await Promise.all(
-        VARIANTS.map(async (variant) => ({ variant, audit: await api.audit(jobId, variant) })),
-      );
-      setAudits(results);
-      const info = await api.jobInfo(jobId);
-      setAutoFixes(info.auto_fixes ?? null);
-      if (info.variants?.[0]) {
-        setSummary((previous) =>
-          previous
-            ? {
-                ...previous,
-                variants: info.variants.map((item) => ({
-                  name: item.name,
-                  passed: item.audit_summary.passed,
-                  errors: item.audit_summary.errors,
-                  warnings: item.audit_summary.warnings,
-                })),
-              }
-            : previous,
-        );
-      }
-    } catch {
-      setError(GENERIC_ERROR);
-    }
-  };
 
   const cancel = async () => {
     if (!jobId) return;
@@ -200,70 +189,119 @@ export default function Page() {
     setSummary(null);
     setAudits(null);
     setAutoFixes(null);
+    setJobInfo(null);
   };
 
   return (
-    <main className="mx-auto w-full max-w-[800px] px-5 py-10">
-      {phase === "form" && (
-        <GeneratorForm
-          template={template}
-          onTemplate={setTemplate}
-          brief={brief}
-          onBrief={setBrief}
-          corpusName={corpusName}
-          corpusBusy={corpusBusy}
-          onCorpusFile={importCorpus}
-          onCorpusClear={() => {
-            setCorpusId("");
-            setCorpusName("");
-          }}
-          formats={formats}
-          onFormats={setFormats}
-          renderMode={renderMode}
-          onRenderMode={setRenderMode}
-          onSubmit={start}
-          busy={false}
-          error={error}
-          advanced={
-            <AdvancedSettings
-              health={health}
-              vlm={vlm}
-              onVlmChange={setVlm}
-              slides={slides}
-              onSlidesChange={setSlides}
-              language={language}
-              onLanguageChange={setLanguage}
-              renderMode={renderMode}
-              onRenderMode={setRenderMode}
-              provider={provider}
-              onProviderChange={setProvider}
-              jobId={jobId}
-              version={version}
-            />
-          }
-        />
-      )}
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="wrap flex min-h-[68px] flex-wrap items-center justify-between gap-3 py-3">
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="grid h-10 w-10 place-items-center rounded-xl border border-[rgba(204,255,88,.35)] bg-[rgba(204,255,88,.08)] text-lg font-black text-primary"
+            >
+              П
+            </span>
+            <div>
+              <div className="text-[17px] font-black leading-tight tracking-tight">
+                Дизайнер презентаций
+              </div>
+              <div className="eyebrow">TEMPLATE DESIGN SYSTEM / 2.1</div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {health?.pdf && <span className="chip chip-acid">PDF готов</span>}
+            {health?.llm?.label && (
+              <span className="chip mono normal-case">{health.llm.label}</span>
+            )}
+            <span className="chip">Один экран</span>
+          </div>
+        </div>
+      </header>
 
-      {phase === "running" && (
-        <ProgressView elapsed={elapsed} cancelling={cancelling} onCancel={cancel} />
-      )}
+      <main
+        className={`wrap flex-1 py-12 ${
+          phase === "result" ? "max-w-[1440px]" : "max-w-[1240px]"
+        }`}
+      >
+        {phase === "form" && (
+          <GeneratorForm
+            template={template}
+            onTemplate={setTemplate}
+            brief={brief}
+            onBrief={setBrief}
+            corpusName={corpusName}
+            corpusBusy={corpusBusy}
+            onCorpusFile={importCorpus}
+            onCorpusClear={() => {
+              setCorpusId("");
+              setCorpusName("");
+            }}
+            formats={formats}
+            onFormats={setFormats}
+            renderMode={renderMode}
+            onRenderMode={setRenderMode}
+            onSubmit={start}
+            busy={false}
+            error={error}
+            simpleMode={simpleMode}
+            onSimpleModeChange={applySimpleMode}
+            providerNode={
+              <ProviderSetup
+                idPrefix="simple"
+                forceExternal
+                provider={provider}
+                onProviderChange={setProvider}
+              />
+            }
+            advanced={
+              <AdvancedSettings
+                health={health}
+                vlm={vlm}
+                onVlmChange={setVlm}
+                slides={slides}
+                onSlidesChange={setSlides}
+                language={language}
+                onLanguageChange={setLanguage}
+                renderMode={renderMode}
+                onRenderMode={setRenderMode}
+                provider={provider}
+                onProviderChange={setProvider}
+                jobId={jobId}
+                version={version}
+              />
+            }
+          />
+        )}
 
-      {phase === "result" && jobId && (
-        <ResultView
-          jobId={jobId}
-          elapsed={resultElapsed}
-          summary={summary}
-          formats={formats}
-          renderMode={renderMode}
-          pdfAvailable={health?.pdf?.available !== false}
-          audits={audits}
-          autoFixes={autoFixes}
-          version={version}
-          onVersionChange={onVersionChange}
-          onRestart={restart}
-          thumbsAvailable={health?.pdf?.available !== false}
-        />
-      )}
-    </main>
+        {phase === "running" && (
+          <ProgressView elapsed={elapsed} cancelling={cancelling} onCancel={cancel} />
+        )}
+
+        {phase === "result" && jobId && (
+          <ResultView
+            jobId={jobId}
+            elapsed={resultElapsed}
+            summary={summary}
+            formats={formats}
+            pdfAvailable={health?.pdf?.available !== false}
+            audits={audits}
+            autoFixes={autoFixes}
+            info={jobInfo}
+            version={version}
+            onRestart={restart}
+            thumbsAvailable={health?.pdf?.available !== false}
+          />
+        )}
+      </main>
+
+      <footer className="border-t border-border py-6">
+        <div className="wrap flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+          <span className="mono">Локальный запуск · без платных API</span>
+          <span className="mono">3 ВАРИАНТА · PPTX · PDF · АУДИТ</span>
+        </div>
+      </footer>
+    </div>
   );
 }

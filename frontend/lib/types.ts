@@ -135,6 +135,16 @@ export type ProfileLayout = {
   score: number;
 };
 
+/** Размер и доступность файла варианта (см. /api/jobs/{id}/info). */
+export type FileInfo = { available: boolean; bytes: number | null };
+
+export type VariantFiles = {
+  pptx: FileInfo;
+  pdf: FileInfo;
+  html_pptx?: FileInfo;
+  html?: FileInfo;
+};
+
 export type JobInfo = {
   profile: {
     source_file: string;
@@ -155,7 +165,11 @@ export type JobInfo = {
   auto_fixes?: AutoFixReport;
   prompts?: Record<string, { version: string; hash: string; model: string; kind: string }>;
   stages?: StageTimings;
-  variants: { name: VariantName; audit_summary: VariantSummary }[];
+  variants: {
+    name: VariantName;
+    audit_summary: VariantSummary;
+    files?: VariantFiles;
+  }[];
   elapsed_s?: number;
 };
 
