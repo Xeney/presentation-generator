@@ -129,6 +129,22 @@ VLM-аудит на CPU не влезает в бюджет стадии: мод
   кириллицы в пути; лечится `DOCKER_BUILDKIT=0` (см. troubleshooting в
   `docs/README.md`). На латинском пути (`C:\temp\clean-checkout`) сборка
   проходит штатно.
+* **Docker Desktop 29.2.1 (проверено 2026-09-26)**: `docker compose build`
+  может падать до сборки с `failed to dial gRPC: ... header key
+  "x-docker-expose-session-sharedkey" contains value with non-printable ASCII
+  characters` — это баг bake-планировщика Compose, а не проекта, и
+  `DOCKER_BUILDKIT=0` на этой версии уже не поддерживается (502 у classic
+  builder). Рабочий обход — собрать образы напрямую и поднять без сборки:
+
+  ```bash
+  docker build -f backend/Dockerfile  -t digital-designer-backend  .
+  docker build -f frontend/Dockerfile -t digital-designer-frontend .
+  docker compose up -d --no-build
+  ```
+
+  После перезапуска Docker Desktop обычный `docker build` работает; сборка
+  проверена, `/api/health` отдаёт version 1.4.0, генерация на VK WorkSpace —
+  0 ошибок и 0 замечаний.
 * **`docker compose config` печатает ключи** из `.env` — не публикуйте вывод.
 * **Скриншоты**: UI — `docs/evidence/repro/ui_main.png` (headless Chrome,
   состояние чистого клона: форма, встроенный бриф, селекторы `ollama`);
