@@ -23,6 +23,35 @@
 `layout/` не читает PPTX-байты, `render/` не ходит в LLM, `audit/` не мутирует
 колоду, `export/` не знает про шаблон больше, чем токены дизайна.
 
+```mermaid
+flowchart LR
+    T["PPTX-шаблон"] --> P["1. Парсинг<br/>template/"]
+    P -->|"TemplateProfile (JSON)"| L["4. Вёрстка<br/>layout/"]
+    P -->|"токены, шкала, сетка"| A["6. Аудит<br/>audit/"]
+    C["Контент-пакет<br/>(PPTX/DOCX/TXT/MD)"] --> K["2. Контент<br/>content/"]
+    K -->|"ContentCorpus: текст"| G["3. Генерация<br/>planner/"]
+    B["Бриф"] --> G
+    G -->|"Deck (Pydantic-схема)"| L
+    K -->|"картинки: {ключ: байты}"| R
+    I["ImageGen<br/>imagegen.py<br/>FLUX.2 klein 4B"] -->|"сгенерированные<br/>иллюстрации"| R["5. Рендер<br/>render/"]
+    L -->|"план виджетов"| R
+    R -->|"PPTX (нативные объекты)"| A
+    A -->|"Issue[] с координатами"| F["Fix Engine<br/>audit/fixes.py"]
+    F -->|"правки колоды"| R
+    A -->|"отчёт"| E["7. Экспорт<br/>export/"]
+    R --> E
+    E --> O1["PPTX"]
+    E --> O2["PDF (LibreOffice)"]
+    E --> O3["HTML"]
+    V["VLM-аудит<br/>audit/vlm.py<br/>Qwen2.5-VL"] --> A
+    GR["Grounding<br/>retrieval/<br/>BGE-M3"] --> A
+```
+
+Слои 3–6 общаются только через два контракта: `Deck` (Pydantic-схема колоды) и
+план виджетов (`{widget, rect, block, style}`). Поэтому каждый слой тестируется
+отдельно, а замену LLM, рендера или генератора картинок не нужно «прошивать»
+через весь пайплайн.
+
 ## 2. Слои
 
 ### 2.1 Парсинг — `backend/app/template/`
@@ -128,12 +157,24 @@
 клавиатура) из той же `Deck` и токенов профиля — единый контент-контракт с PPTX.
 PDF получается из PPTX через LibreOffice, поэтому визуально совпадает.
 
+### 2.10 Генерация иллюстраций — `backend/app/imagegen.py`
+
+| Вход | Выход | Ключевое решение |
+|---|---|---|
+| блоки `kind=image` с полем `image_prompt` и реестр картинок контент-пакета | тот же реестр + сгенерированные PNG/JPEG | OpenAI-совместимый `/images/generations`; модель `flux.2-klein-4b` (Apache 2.0); приоритет у картинки из контент-пакета, затем генерация, затем слот-плейсхолдер шаблона |
+
+Стадия необязательная: по умолчанию `IMAGE_PROVIDER=off`, недоступность
+провайдера не роняет задание — причина попадает в `result.imagegen`, а слот
+остаётся заглушкой макета (аудит помечает `image_missing` предупреждением).
+Обоснование и замеры — ADR-028.
+
 ## 3. Оркестрация и API
 
 `backend/app/pipeline.py` — тонкая склейка слоёв без бизнес-логики:
 
 ```
-build_profile → plan_deck → render_variants(×3) → audit_variant(×3) → audit_vlm → html_export
+build_profile → plan_deck → generate_images_for_deck → render_variants(×3)
+  → audit_variant(×3) → audit_vlm → ground_deck → html_export
 ```
 
 Каждая стадия измеряется, время попадает в результат задания (`stages`), что
