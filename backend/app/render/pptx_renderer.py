@@ -753,16 +753,25 @@ class Renderer:
         pPr.append(buChar)
 
     def _blk_title(self, slide, rect: Rect, title: str, style: dict) -> Rect:
+        """Заголовок блока: рамка считается от фактического кегля.
+
+        Раньше рамка была фиксированной (0.4″): при кегле 24–30 pt текст не
+        влезал в неё и аудит помечал text_overflow на тесных макетах (16:10).
+        """
         size = self._scale_pick("title", 20.0)
-        tb = slide.shapes.add_textbox(_in(rect.x), _in(rect.y), _in(rect.w), _in(0.4))
+        snapped = self._snap_size(size)
+        title_h = max(0.28, snapped * 1.35 / 72.0 + 0.03)
+        title_h = min(title_h, max(0.28, rect.h * 0.6))
+        tb = slide.shapes.add_textbox(_in(rect.x), _in(rect.y), _in(rect.w), _in(title_h))
         tf = tb.text_frame
         tf.word_wrap = True
         r = tf.paragraphs[0].add_run()
         r.text = title
         # порог контраста как у аудита: 3:1 для ≥14 pt полужирного
         self._set_run_font(r, self._headline_font(), size, True,
-                           self._accent_on(rect, large=size >= 14))
-        return Rect(rect.x, rect.y + 0.42, rect.w, max(0.2, rect.h - 0.42))
+                           self._accent_on(rect, large=snapped >= 14))
+        shift = title_h + 0.02
+        return Rect(rect.x, rect.y + shift, rect.w, max(0.2, rect.h - shift))
 
     def _draw_card_bg(self, slide, rect: Rect, style: dict):
         shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
@@ -863,8 +872,11 @@ class Renderer:
             label_size = self._fit_size(label or value, text_w, label_budget,
                                         default=max(8.0, big * 0.35), kind="any",
                                         min_size=8.0)
+            # высота рамки — от ИТОГОВОГО кегля (после снапа к шкале): иначе
+            # кандидат 10 pt превращается в 14 pt и текст вылезает из рамки
+            label_final = self._snap_size(label_size)
             label_h = max(0.16, min(cell.h * 0.6,
-                                    text_height_in(label, text_w, label_size) + 0.02))
+                                    text_height_in(label, text_w, label_final) + 0.02))
             # значение подбирается под остаток ячейки С УЧЁТОМ ПЕРЕНОСА: в узкой
             # карточке «5 подразделений» переносилось на две строки и наезжало
             # на подпись (аудит: text_overflow). Рамка = оценка высоты текста,
@@ -880,6 +892,14 @@ class Renderer:
                                             kind="any", min_size=10.0)
                 value_h = max(0.24, min(cell.h - 0.10,
                                         text_height_in(value, text_w, value_size) + 0.02))
+            # тесная ячейка (карточка KPI): значение и подпись вместе не влезают.
+            # Тогда оставляем значение — оно несёт смысл, а подпись-источник
+            # вторична; иначе подпись вылезает за карточку и аудит справедливо
+            # ругается на наложение (VK Tech, cards)
+            if label and value_h + label_h > cell.h:
+                if value_h <= cell.h:
+                    label = ""
+                    label_h = 0.0
             # цвет выбирается по фону ПОД этой ячейкой: правая колонка KPI часто
             # попадает на тёмную плашку макета, где тёмный текст пропадает;
             # порог контраста — как у аудита (крупное значение: 3:1)

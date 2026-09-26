@@ -125,9 +125,39 @@ def _title_text(brief: str) -> str:
     return sentence[:57].rstrip(" ,;:—-") + "…"
 
 
+MAX_BULLET_WORDS = 15
+
+
+def _short_bullets(text: str, limit: int = MAX_BULLET_WORDS) -> list[str]:
+    """Режет длинную фразу на буллеты по границам слов (≤15 слов).
+
+    Гайдлайн ТЗ: пункт не длиннее 15 слов. Бриф — одна длинная фраза, и без
+    нарезки пункт занимает три строки: в компактной вёрстке тесного макета
+    текст выходит за рамку (аудит: text_overflow), а читать его неудобно.
+    """
+    words = text.split()
+    if len(words) <= limit:
+        return [text.strip()]
+    out: list[str] = []
+    current: list[str] = []
+    for word in words:
+        current.append(word)
+        # предпочитаем границу по запятой/точке с запятой, иначе — по лимиту
+        ends_clause = word.endswith((",", ";", ":"))
+        if len(current) >= limit or (ends_clause and len(current) >= limit // 2):
+            out.append(" ".join(current).strip(" ,;:"))
+            current = []
+    if current:
+        out.append(" ".join(current).strip(" ,;:"))
+    return [item for item in out if item]
+
+
 def _bullet_items(brief: str, source: str, n: int = 5) -> list[str]:
     sents = _sentences(brief + "\n" + source, 20)
-    return sents[:max(1, min(n, 6))]
+    items: list[str] = []
+    for sentence in sents:
+        items.extend(_short_bullets(sentence))
+    return items[:max(1, min(n, 6))]
 
 
 def _corpus_items(corpus, n: int = 5, used: list[str] | None = None) -> list[str]:
@@ -207,7 +237,9 @@ class FallbackPlanner:
                     if metrics:
                         blocks.append(Block(
                             kind="factoids",
-                            factoids=[{"value": m, "label": "показатель из брифа"} for m in metrics[:4]],
+                            # короткая подпись: «показатель из брифа» в узкой
+                            # карточке переносится на две строки и не влезает
+                            factoids=[{"value": m, "label": "из брифа"} for m in metrics[:4]],
                         ))
                     numeric = [(metric, metric_value(metric)) for metric in metrics]
                     numeric = [(metric, value) for metric, value in numeric

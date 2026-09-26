@@ -306,13 +306,23 @@ class LayoutEngine:
 
 
 # ---------------------------------------------------------------- полосы (compact)
+TEXT_KINDS = {"bullets", "text", "quote", "numbered"}
+
+
 def fit_heights(heights: list[float], avail: float, gap: float,
-                max_growth: float = 2.0) -> list[float]:
+                max_growth: float = 2.0,
+                kinds: list[str] | None = None) -> list[float]:
     """Высоты блоков под доступную область: сжатие при переполнении, рост при запасе.
 
     Свободное место распределяется пропорционально содержимому, но не более чем
     в `max_growth` раз на блок: иначе один короткий блок растянулся бы на весь
     слайд. Рост нужен, чтобы плотный вариант не оставлял низ слайда пустым.
+
+    При нехватке места блоки сжимаются **не одинаково**: текстовые теряют не
+    больше 15% минимума, а диаграммы/таблицы/фактоиды — до 55%: текст при
+    сжатии вылезает за рамку и обрезается (аудит: text_overflow), а визуальные
+    блоки переносят уменьшение спокойно. Если даже «полы» не влезают —
+    пропорциональное сжатие всех (честное замечание аудита лучше тихой обрезки).
     """
     if not heights:
         return []
@@ -321,6 +331,17 @@ def fit_heights(heights: list[float], avail: float, gap: float,
     if total <= 0:
         return [usable / len(heights)] * len(heights)
     if total > usable:
+        kinds = kinds or ["text"] * len(heights)
+        floors = [h * (0.85 if kind in TEXT_KINDS else 0.45)
+                  for h, kind in zip(heights, kinds)]
+        if sum(floors) <= usable:
+            # вода: сначала опускаем всё до полов, затем отдаём остаток
+            slack = [h - floor for h, floor in zip(heights, floors)]
+            extra = usable - sum(floors)
+            out = []
+            for floor, room in zip(floors, slack):
+                out.append(floor + (extra * room / sum(slack) if sum(slack) else 0.0))
+            return out
         scale = usable / total
         return [max(0.3, h * scale) for h in heights]
     grown = []
@@ -340,7 +361,8 @@ def compact(engine: LayoutEngine, slide: Slide, blocks: list[Block], canvas: Rec
     if not blocks:
         return []
 
-    heights = fit_heights([_block_min_h(b, dc, inner.w) for b in blocks], inner.h, gap)
+    heights = fit_heights([_block_min_h(b, dc, inner.w) for b in blocks], inner.h, gap,
+                          kinds=[b.kind for b in blocks])
     # стек центрируется по вертикали: остаток воздуха делится сверху и снизу
     used = sum(heights) + gap * (len(heights) - 1)
     y = inner.y + max(0.0, (inner.h - used) / 2)
@@ -392,7 +414,7 @@ def split(engine: LayoutEngine, slide: Slide, blocks: list[Block], canvas: Rect)
 
         def _stack(box: Rect, parts: list[Block], min_h: float) -> list[dict]:
             heights = fit_heights([_block_min_h(b, dc, box.w) for b in parts],
-                                  box.h, 0.12)
+                                  box.h, 0.12, kinds=[b.kind for b in parts])
             used = sum(heights) + 0.12 * max(0, len(heights) - 1)
             yy = box.y + max(0.0, (box.h - used) / 2)
             stack = []
