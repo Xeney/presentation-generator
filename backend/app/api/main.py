@@ -58,7 +58,7 @@ MAX_TEMPLATE = settings.max_upload_mb * 1024 * 1024
 def _job_worker(job_id: str, brief: str, source: str, purpose: str,
                 tpl: bytes, tpl_name: str, corpus_id: str = "",
                 vlm: bool = True, max_slides: int | None = None,
-                language: str = "ru"):
+                language: str = "ru", render_mode: str = "native"):
     job = JOBS.get(job_id)
     if job is None:
         return
@@ -69,7 +69,8 @@ def _job_worker(job_id: str, brief: str, source: str, purpose: str,
             raise ValueError(f"контент-пакет {corpus_id} не найден")
         result = full_generate(brief, source, purpose, tpl, tpl_name, corpus=corpus,
                                vlm=vlm, auto_fix=settings.auto_fix_enabled,
-                               max_slides=max_slides, language=language)
+                               max_slides=max_slides, language=language,
+                               render_mode=render_mode)
         current = JOBS.get(job_id) or job
         if current.get("cancelled"):
             # пользователь нажал «Отменить»: результат не сохраняем и не показываем
@@ -174,7 +175,8 @@ async def generate(template: UploadFile = File(...),
                    corpus_id: str = Form(""),
                    vlm: str = Form(""),
                    slides: int = Form(0),
-                   language: str = Form("ru")):
+                   language: str = Form("ru"),
+                   render_mode: str = Form("native")):
     data = await template.read()
     if len(data) > MAX_TEMPLATE:
         raise HTTPException(413, f"шаблон больше {settings.max_upload_mb} МБ")
@@ -194,12 +196,15 @@ async def generate(template: UploadFile = File(...),
     # форма может не передавать флаг VLM: тогда действует настройка сервиса
     vlm_enabled = (settings.vlm_audit_enabled if not vlm.strip()
                    else vlm.strip().lower() not in ("off", "false", "0", "нет"))
+    mode = render_mode.strip().lower()
+    mode = mode if mode in ("native", "html", "both") else "native"
     t = threading.Thread(target=_job_worker,
                          args=(job_id, brief, source, purpose, data,
                                template.filename or "template.pptx", corpus_id,
                                vlm_enabled,
                                slides or None,
-                               language if language in ("ru", "en") else "ru"),
+                               language if language in ("ru", "en") else "ru",
+                               mode),
                          daemon=True)
     t.start()
     return {"job_id": job_id, "status": "pending"}
@@ -453,24 +458,38 @@ def job_status(job_id: str):
             "stages": r.get("stages", {}),
             "corpus_id": job.get("corpus_id"),
             "version": job.get("version", 1),
+            "render_mode": r.get("render_mode", "native"),
             "fixes": len(job.get("fixes", [])),
             "auto_fix_applied": len(auto.get("applied", [])),
             "auto_fix_skipped": len(auto.get("skipped", [])),
             "vlm_available": r.get("vlm", {}).get("available", False),
             "variants": [{"name": v["name"], "passed": v["audit"]["passed"],
                           "errors": v["audit"]["errors"],
-                          "warnings": v["audit"]["warnings"]} for v in r["variants"]],
+                          "warnings": v["audit"]["warnings"],
+                          "html": bool(v.get("html")),
+                          "html_errors": (v.get("html_audit") or {}).get("errors")}
+                         for v in r["variants"]],
         }
     return resp
 
 
 # GET и HEAD: интерфейс перед скачиванием проверяет, что файл собирается
 @app.api_route("/api/jobs/{job_id}/pptx", methods=["GET", "HEAD"])
-def download_pptx(job_id: str, variant: str = "compact"):
+def download_pptx(job_id: str, variant: str = "compact", render: str = "native"):
+    """PPTX задания: классический (python-pptx) или собранный из HTML (ADR-035)."""
     job = _get_job(job_id)
     if job.get("status") != "done":
         raise HTTPException(409, "задание ещё выполняется")
     item = _find_variant(job, variant)
+    if render == "html":
+        blob = item.get("html_pptx") or b""
+        if not blob:
+            raise HTTPException(404, "HTML-версия не собиралась: выберите режим "
+                                     "«Через HTML» или «Оба»")
+        res = Response(content=blob, media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation")
+        res.headers["Content-Disposition"] = \
+            f'attachment; filename="presentation_{variant}_html.pptx"'
+        return res
     res = Response(content=item["pptx"], media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation")
     # имя файла — как на карточке скачивания: браузер сохраняет его как есть
     res.headers["Content-Disposition"] = f'attachment; filename="presentation_{variant}.pptx"'
@@ -516,7 +535,7 @@ def download_all(job_id: str, formats: str = "pptx,pdf",
     job = _get_job(job_id)
     if job.get("status") != "done":
         raise HTTPException(409, "задание ещё выполняется")
-    wanted = {part.strip().lower() for part in formats.split(",")} & {"pptx", "pdf"}
+    wanted = {part.strip().lower() for part in formats.split(",")} & {"pptx", "pdf", "html"}
     if not wanted:
         raise HTTPException(422, "не выбран ни один формат")
     names = [part.strip() for part in variants.split(",") if part.strip()] or list(VARIANTS)
@@ -528,6 +547,9 @@ def download_all(job_id: str, formats: str = "pptx,pdf",
             item = _find_variant(job, name)
             if "pptx" in wanted:
                 archive.writestr(f"presentation_{name}.pptx", item["pptx"])
+                added += 1
+            if "html" in wanted and item.get("html"):
+                archive.writestr(f"presentation_{name}.html", item["html"])
                 added += 1
             if "pdf" in wanted:
                 try:
@@ -546,10 +568,25 @@ def download_all(job_id: str, formats: str = "pptx,pdf",
 
 
 @app.get("/api/jobs/{job_id}/html")
-def download_html(job_id: str):
+def download_html(job_id: str, variant: str = ""):
+    """HTML-колода: без `variant` — легаси-экспорт, с `variant` — рендер ADR-035.
+
+    Новый HTML-рендер (Block B) открывается в браузере (`inline`), потому что
+    скачивание HTML по ТЗ v2.0 — это «посмотреть в браузере».
+    """
     job = _get_job(job_id)
     if job.get("status") != "done":
         raise HTTPException(409, "задание ещё выполняется")
+    if variant:
+        item = _find_variant(job, variant)
+        page = item.get("html") or ""
+        if not page:
+            raise HTTPException(404, "HTML-версия не собиралась: выберите режим "
+                                     "«Через HTML» или «Оба»")
+        res = Response(content=page, media_type="text/html; charset=utf-8")
+        res.headers["Content-Disposition"] = \
+            f'inline; filename="presentation_{variant}.html"'
+        return res
     return Response(content=job["result"]["html"], media_type="text/html; charset=utf-8")
 
 
@@ -644,11 +681,13 @@ def _find_variant(job: dict, variant: str) -> dict:
 
 
 @app.get("/api/jobs/{job_id}/audit")
-def job_audit(job_id: str, variant: str = "compact"):
+def job_audit(job_id: str, variant: str = "compact", render: str = "native"):
     job = _get_job(job_id)
     if job.get("status") != "done":
         raise HTTPException(409, "задание ещё выполняется")
     item = _find_variant(job, variant)
+    if render == "html":
+        return item.get("html_audit") or item["audit"]
     return item["audit"]
 
 
@@ -661,6 +700,7 @@ def job_info(job_id: str):
     return {
         "profile": r["profile"],
         "deck": r["deck"],
+        "render_mode": r.get("render_mode", "native"),
         "planner": r["planner"],
         "corpus": r.get("corpus"),
         "vlm": r["vlm"],

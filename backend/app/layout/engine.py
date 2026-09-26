@@ -183,12 +183,17 @@ def avoid_title_rect(rect: Rect, layout: dict) -> Rect:
     title_bottom = title_top + float(title.get("h", 0.0))
     if rect.y < title_bottom and rect.bottom > title_top:
         below_h = rect.bottom - (title_bottom + 0.08)
-        if below_h >= 0.6:
-            return Rect(rect.x, title_bottom + 0.08, rect.w, below_h)
-        # на макетах вроде «Section Header» заголовок стоит внизу —
-        # тогда контент логично разместить над ним
         above_h = title_top - 0.08 - rect.y
+        # выбираем БОЛЬШУЮ свободную полосу: раньше при низком заголовке
+        # приоритет отдавался нижней, и контент сжимался в 0.75″ (фактоиды
+        # и картинки вылезали за слайд)
+        options = [(below_h, "below")] if below_h >= 0.6 else []
         if above_h >= 0.6:
+            options.append((above_h, "above"))
+        if options:
+            _, side = max(options)
+            if side == "below":
+                return Rect(rect.x, title_bottom + 0.08, rect.w, below_h)
             return Rect(rect.x, rect.y, rect.w, above_h)
     return rect
 
@@ -330,13 +335,12 @@ class LayoutEngine:
 
     def compose(self, slide: Slide, canvas: Rect) -> list[dict]:
         blocks = self._prepare_blocks(slide)
-        plan = []
         if slide.slide_type in (SlideType.TITLE, SlideType.SECTION, SlideType.AGENDA,
                                 SlideType.FINAL):
-            plan = self._compose_featured(slide, canvas, blocks)
-        else:
-            plan = self.part(self, slide, blocks, canvas)
-        return plan
+            return self._compose_featured(slide, canvas, blocks)
+        # типовая компоновка по содержимому слайда (ADR-036)
+        kind = slide_composition(slide)
+        return _COMPOSERS.get(kind, compose_bullets)(self, slide, blocks, canvas)
 
     # --------------------------------------------------------- подготовка блоков
     def _prepare_blocks(self, slide: Slide) -> list[Block]:
@@ -520,6 +524,29 @@ def math_ceil(x: float) -> int:
     return ceil(x)
 
 
+def _stack_box(engine: LayoutEngine, canvas: Rect, box: Rect,
+               parts: list[Block], min_h: float = 0.4, gap: float = 0.12) -> list[dict]:
+    """Вертикальный стек блоков внутри области (общий для типовых компоновок)."""
+    if not parts:
+        return []
+    heights = fit_heights([_block_min_h(b, engine.dc, box.w) for b in parts],
+                          box.h, gap, kinds=[b.kind for b in parts])
+    used = sum(heights) + gap * max(0, len(heights) - 1)
+    yy = box.y + max(0.0, (box.h - used) / 2)
+    stack = []
+    for block, height in zip(parts, heights):
+        # блок никогда не выходит за пределы области: min_h не должен
+        # «продавливать» нижнюю границу (иначе out_of_bounds у картинок)
+        room = box.bottom - yy
+        if room < 0.2:
+            break
+        value = max(min_h, height)
+        rect = Rect(box.x, yy, box.w, max(0.2, min(value, room)))
+        stack.append(engine._widget_item(block, rect.to_dict(), canvas))
+        yy += rect.h + gap
+    return stack
+
+
 # ---------------------------------------------------------------------- сплит
 def split(engine: LayoutEngine, slide: Slide, blocks: list[Block], canvas: Rect) -> list[dict]:
     dc, cfg = engine.dc, engine.cfg
@@ -527,26 +554,246 @@ def split(engine: LayoutEngine, slide: Slide, blocks: list[Block], canvas: Rect)
     text_blocks = [b for b in blocks if not _is_data_block(b)]
     gap = cfg["gap"]
     inner = canvas.padded(cfg["padding"] * 0.8)
-    items = []
     if data_blocks and text_blocks:
         left_w = inner.w * 0.5
         right_w = inner.w - left_w - gap
         left = Rect(inner.x, inner.y, left_w, inner.h)
         right = Rect(inner.x + left_w + gap, inner.y, right_w, inner.h)
-
-        def _stack(box: Rect, parts: list[Block], min_h: float) -> list[dict]:
-            heights = fit_heights([_block_min_h(b, dc, box.w) for b in parts],
-                                  box.h, 0.12, kinds=[b.kind for b in parts])
-            used = sum(heights) + 0.12 * max(0, len(heights) - 1)
-            yy = box.y + max(0.0, (box.h - used) / 2)
-            stack = []
-            for block, height in zip(parts, heights):
-                rect = Rect(box.x, yy, box.w, max(min_h, height))
-                stack.append(engine._widget_item(block, rect.to_dict(), canvas))
-                yy += max(min_h, height) + 0.12
-            return stack
-
-        items += _stack(left, text_blocks, 0.4)
-        items += _stack(right, data_blocks, 0.6)
-        return items
+        return (_stack_box(engine, canvas, left, text_blocks, 0.4)
+                + _stack_box(engine, canvas, right, data_blocks, 0.6))
     return compact(engine, slide, blocks, canvas)
+
+
+# =============================================================================
+# Компоновка по типу слайда (ADR-036, идея типовых компоновок — Presenton)
+# =============================================================================
+
+COMPOSITIONS = ("kpi", "chart", "comparison", "quote", "steps",
+                "text_image", "bullets")
+
+
+def slide_composition(slide: Slide) -> str:
+    """Тип компоновки слайда по его блокам: kpi | chart | comparison | ..."""
+    kinds: list[str] = []
+    for block in slide.blocks:
+        if block.table is not None:
+            return "comparison"
+        if block.chart is not None and block.chart.series:
+            return "chart"
+        if block.quote_text:
+            return "quote"
+        if block.factoids:
+            kinds.append("kpi")
+        elif block.image_ref or block.image_prompt:
+            kinds.append("image")
+        elif block.kind in ("steps", "numbered"):
+            kinds.append("steps")
+        elif block.items or block.text:
+            kinds.append("text")
+    if kinds:
+        if "kpi" in kinds:
+            return "kpi"
+        if "image" in kinds:
+            return "text_image"
+        if "steps" in kinds:
+            return "steps"
+    return "bullets"
+
+
+def compose_bullets(engine: LayoutEngine, slide: Slide, blocks: list[Block],
+                    canvas: Rect) -> list[dict]:
+    """Обычный слайд: композиция выбранного варианта вёрстки."""
+    return engine.part(engine, slide, blocks, canvas)
+
+
+def _stack_band(engine: LayoutEngine, canvas: Rect, box: Rect,
+                parts: list[Block]) -> list[dict]:
+    """Стек блоков в полосе без повторных отступов (в отличие от `compact`).
+
+    `engine.part` добавляет собственные поля; при компоновке по типу полоса уже
+    вычислена, и второе сжатие съедало место у текста (VK Tech: заголовок блока
+    не помещался). Здесь блоки кладутся прямо в полосу.
+    """
+    if not parts:
+        return []
+    gap = 0.12
+    heights = fit_heights([_block_min_h(b, engine.dc, box.w) for b in parts],
+                          box.h, gap, kinds=[b.kind for b in parts])
+    used = sum(heights) + gap * max(0, len(heights) - 1)
+    y = box.y + max(0.0, (box.h - used) / 2)
+    items = []
+    for block, height in zip(parts, heights):
+        room = box.bottom - y
+        if room < 0.2:
+            break
+        rect = Rect(box.x, y, box.w, max(0.2, min(height, room)))
+        items.append(engine._widget_item(block, rect.to_dict(), canvas))
+        y += rect.h + gap
+    return items
+
+
+def _rest_plan(engine: LayoutEngine, slide: Slide, rest: list[Block],
+               box: Rect, canvas: Rect) -> list[dict]:
+    """Остаток слайда: карточки — сеткой, прочие варианты — полосой."""
+    if not rest:
+        return []
+    if engine.variant == "cards":
+        return engine.part(engine, slide, rest, box)
+    return _stack_band(engine, canvas, box, rest)
+
+
+def compose_kpi(engine: LayoutEngine, slide: Slide, blocks: list[Block],
+                canvas: Rect) -> list[dict]:
+    """KPI: числа в ряд/сетку, каждое значение вместе со своей подписью.
+
+    Фактоид не разрывается: блок чисел получает либо всю область, либо общую
+    полосу, а текст уезжает под него отдельной полосой.
+    """
+    kpi = [b for b in blocks if b.factoids]
+    rest = [b for b in blocks if not b.factoids]
+    if not kpi:
+        return engine.part(engine, slide, blocks, canvas)
+    gap = engine.cfg["gap"]
+    inner = canvas.padded(engine.cfg["padding"])
+    if not rest:
+        if len(kpi) == 1:
+            return [engine._widget_item(kpi[0], inner.to_dict(), canvas)]
+        cells = row_cells(inner, len(kpi), 0.2)
+        return [engine._widget_item(b, c.to_dict(), canvas)
+                for b, c in zip(kpi, cells)]
+    # высоты полос — по минимальной потребности блоков (фактоиды не сжимаются
+    # сильнее текста: у них своя сетка, и число с подписью должны поместиться)
+    kpi_min = max(_block_min_h(b, engine.dc, inner.w) for b in kpi)
+    rest_min = sum(_block_min_h(b, engine.dc, inner.w) for b in rest)
+    bands = fit_heights([kpi_min, max(rest_min, 0.5)], inner.h, gap,
+                        kinds=["factoids", "text"])
+    kpi_h = max(0.9, bands[0])
+    top = Rect(inner.x, inner.y, inner.w, kpi_h)
+    bottom = Rect(inner.x, inner.y + kpi_h + gap, inner.w,
+                  max(0.4, inner.h - kpi_h - gap))
+    items: list[dict] = []
+    cols = min(3, len(kpi))
+    rows_t = max(1, math_ceil(len(kpi) / cols))
+    cells = grid_cells(top, cols, rows_t, 0.2)
+    for block, cell in zip(kpi, cells):
+        items.append(engine._widget_item(block, cell.to_dict(), canvas))
+    items += _rest_plan(engine, slide, rest, bottom, canvas)
+    return items
+
+
+def _compose_side(engine: LayoutEngine, slide: Slide, blocks: list[Block],
+                  canvas: Rect, is_data) -> list[dict]:
+    """Данные (диаграмма/таблица) и текст — в две колонки."""
+    data = [b for b in blocks if is_data(b)]
+    text = [b for b in blocks if not is_data(b)]
+    if not data or not text:
+        return engine.part(engine, slide, blocks, canvas)
+    gap = engine.cfg["gap"]
+    inner = canvas.padded(engine.cfg["padding"])
+    data_left = engine.variant != "cards"
+    width = inner.w * (0.56 if len(data) > 1 else 0.52)
+    if data_left:
+        data_box = Rect(inner.x, inner.y, width, inner.h)
+        text_box = Rect(inner.x + width + gap, inner.y, inner.w - width - gap, inner.h)
+    else:
+        text_box = Rect(inner.x, inner.y, inner.w - width - gap, inner.h)
+        data_box = Rect(inner.x + inner.w - width, inner.y, width, inner.h)
+    return (_stack_box(engine, canvas, text_box, text, 0.4)
+            + _stack_box(engine, canvas, data_box, data, 0.8))
+
+
+def compose_chart(engine: LayoutEngine, slide: Slide, blocks: list[Block],
+                  canvas: Rect) -> list[dict]:
+    """Диаграмма крупно, пояснения рядом (не менее половины ширины)."""
+    return _compose_side(engine, slide, blocks, canvas,
+                         lambda b: b.chart is not None and b.chart.series)
+
+
+def compose_comparison(engine: LayoutEngine, slide: Slide, blocks: list[Block],
+                       canvas: Rect) -> list[dict]:
+    """Таблица-сравнение и текст — по колонкам."""
+    return _compose_side(engine, slide, blocks, canvas,
+                         lambda b: b.table is not None)
+
+
+def compose_quote(engine: LayoutEngine, slide: Slide, blocks: list[Block],
+                  canvas: Rect) -> list[dict]:
+    """Цитата — крупно и по центру; остальное — полосой ниже."""
+    quotes = [b for b in blocks if b.quote_text]
+    rest = [b for b in blocks if not b.quote_text]
+    if not quotes:
+        return engine.part(engine, slide, blocks, canvas)
+    inner = canvas.padded(engine.cfg["padding"])
+    if not rest:
+        box = Rect(inner.x, inner.y + inner.h * 0.12, inner.w, inner.h * 0.76)
+        return [engine._widget_item(quotes[0], box.to_dict(), canvas)]
+    gap = engine.cfg["gap"]
+    q_h = inner.h * 0.62
+    top = Rect(inner.x, inner.y, inner.w, q_h)
+    bottom = Rect(inner.x, inner.y + q_h + gap, inner.w,
+                  max(0.4, inner.h - q_h - gap))
+    items = [engine._widget_item(quotes[0], top.to_dict(), canvas)]
+    items += _rest_plan(engine, slide, rest, bottom, canvas)
+    return items
+
+
+def compose_steps(engine: LayoutEngine, slide: Slide, blocks: list[Block],
+                  canvas: Rect) -> list[dict]:
+    """Шаги-процесс: шевронам нужна вся ширина, текст — отдельной полосой."""
+    steps = [b for b in blocks if b.kind in ("steps", "numbered")]
+    rest = [b for b in blocks if b.kind not in ("steps", "numbered")]
+    if not steps:
+        return engine.part(engine, slide, blocks, canvas)
+    inner = canvas.padded(engine.cfg["padding"])
+    if not rest:
+        height = min(1.6, max(0.9, inner.h * 0.45))
+        box = Rect(inner.x, inner.y + (inner.h - height) / 2, inner.w, height)
+        return [engine._widget_item(b, box.to_dict(), canvas) for b in steps]
+    height = min(1.6, max(0.9, inner.h * 0.42))
+    top = Rect(inner.x, inner.y, inner.w, height)
+    bottom = Rect(inner.x, inner.y + height + engine.cfg["gap"], inner.w,
+                  max(0.4, inner.h - height - engine.cfg["gap"]))
+    if len(steps) == 1:
+        items = [engine._widget_item(steps[0], top.to_dict(), canvas)]
+    else:
+        cells = row_cells(top, len(steps), 0.2)
+        items = [engine._widget_item(b, c.to_dict(), canvas)
+                 for b, c in zip(steps, cells)]
+    items += _rest_plan(engine, slide, rest, bottom, canvas)
+    return items
+
+
+def compose_text_image(engine: LayoutEngine, slide: Slide, blocks: list[Block],
+                       canvas: Rect) -> list[dict]:
+    """Текст и иллюстрация: картинка колонкой, текст рядом."""
+    images = [b for b in blocks if b.image_ref or b.image_prompt]
+    text = [b for b in blocks if not (b.image_ref or b.image_prompt)]
+    if not images:
+        return engine.part(engine, slide, blocks, canvas)
+    gap = engine.cfg["gap"]
+    inner = canvas.padded(engine.cfg["padding"])
+    if not text:
+        width = inner.w * 0.62
+        box = Rect(inner.x + (inner.w - width) / 2, inner.y, width, inner.h)
+        return [engine._widget_item(images[0], box.to_dict(), canvas)]
+    image_left = engine.variant != "cards"
+    width = inner.w * 0.45
+    if image_left:
+        image_box = Rect(inner.x, inner.y, width, inner.h)
+        text_box = Rect(inner.x + width + gap, inner.y, inner.w - width - gap, inner.h)
+    else:
+        text_box = Rect(inner.x, inner.y, inner.w - width - gap, inner.h)
+        image_box = Rect(inner.x + inner.w - width, inner.y, width, inner.h)
+    return (_stack_box(engine, canvas, image_box, images, 1.4)
+            + _stack_box(engine, canvas, text_box, text, 0.4))
+
+
+_COMPOSERS = {
+    "kpi": compose_kpi,
+    "chart": compose_chart,
+    "comparison": compose_comparison,
+    "quote": compose_quote,
+    "steps": compose_steps,
+    "text_image": compose_text_image,
+    "bullets": compose_bullets,
+}

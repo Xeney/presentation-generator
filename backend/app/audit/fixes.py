@@ -252,6 +252,9 @@ class FixEngine:
             half = max(1, len(slide.blocks) // 2)
             moved = slide.blocks[half:]
             slide.blocks = slide.blocks[:half]
+        elif slide.blocks and slide.blocks[0].factoids:
+            # KPI-блок (число + подпись) не разрывается между слайдами
+            return self._skip(issue, "KPI-блок не разрывается между слайдами")
         elif slide.blocks and (slide.blocks[0].items or []):
             block = slide.blocks[0]
             items = list(block.items)

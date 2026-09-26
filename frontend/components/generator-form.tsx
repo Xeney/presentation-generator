@@ -3,6 +3,14 @@
 import { CheckCircle2, FileText, FolderOpen, Paperclip, X } from "lucide-react";
 import * as React from "react";
 
+import type { RenderMode } from "@/lib/types";
+
+const RENDER_MODES: { id: RenderMode; title: string; hint: string }[] = [
+  { id: "native", title: "Классический", hint: "PPTX нативными объектами python-pptx" },
+  { id: "html", title: "Через HTML+CSS", hint: "генерация в браузере и конвертация в PPTX" },
+  { id: "both", title: "Оба", hint: "можно сравнить на защите" },
+];
+
 function StepNumber({ n }: { n: number }) {
   return (
     <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
@@ -35,6 +43,8 @@ export function GeneratorForm({
   onCorpusClear,
   formats,
   onFormats,
+  renderMode,
+  onRenderMode,
   onSubmit,
   busy,
   error,
@@ -50,6 +60,8 @@ export function GeneratorForm({
   onCorpusClear: () => void;
   formats: { pptx: boolean; pdf: boolean };
   onFormats: (formats: { pptx: boolean; pdf: boolean }) => void;
+  renderMode: RenderMode;
+  onRenderMode: (mode: RenderMode) => void;
   onSubmit: () => void;
   busy: boolean;
   error: string;
@@ -192,6 +204,29 @@ export function GeneratorForm({
           {!formats.pptx && !formats.pdf && (
             <p className="mt-3 text-lg text-warning">Выберите хотя бы один формат.</p>
           )}
+
+          <div className="mt-6">
+            <div className="text-xl font-semibold">Способ сборки</div>
+            <div className="mt-2 space-y-2" role="radiogroup" aria-label="Способ сборки">
+              {RENDER_MODES.map((mode) => (
+                <label key={mode.id}
+                       className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                  <input
+                    type="radio"
+                    name="render-mode"
+                    value={mode.id}
+                    checked={renderMode === mode.id}
+                    onChange={() => onRenderMode(mode.id)}
+                    className="mt-1 h-5 w-5"
+                  />
+                  <span>
+                    <span className="text-lg font-medium">{mode.title}</span>
+                    <span className="block text-base text-muted-foreground">— {mode.hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
         </Step>
       </div>
 

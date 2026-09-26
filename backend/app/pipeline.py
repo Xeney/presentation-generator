@@ -31,9 +31,19 @@ VARIANTS = ["compact", "cards", "split"]
 
 @dataclass
 class VariantArtifact:
+    """Артефакты одного варианта: нативный PPTX и, при html-режиме, HTML-путь.
+
+    `pptx`/`audit` — основной результат (в режиме `html` в них кладётся PPTX,
+    собранный из HTML). `html`/`html_pptx`/`html_audit` заполняются, когда
+    пользователь выбрал режим `html` или `both` (ADR-035, ADR-036).
+    """
+
     variant: str
     pptx: bytes = b""
     audit: dict = field(default_factory=dict)
+    html: str = ""
+    html_pptx: bytes = b""
+    html_audit: dict = field(default_factory=dict)
 
 
 def build_profile(template_bytes: bytes, template_name: str = "template.pptx") -> dict:
@@ -69,6 +79,34 @@ def render_variants(deck: Deck, profile: dict, template_bytes: bytes,
 
 def audit_variant(deck: Deck, artifact: VariantArtifact, profile: dict) -> dict:
     return Audit(profile).audit(deck, artifact.pptx)
+
+
+def render_html_variants(deck: Deck, profile: dict, template_bytes: bytes,
+                         artifacts: list[VariantArtifact],
+                         images: dict | None = None,
+                         mode: str = "native") -> list[VariantArtifact]:
+    """Дополняет варианты HTML-путём: HTML-файл + PPTX из HTML (ADR-035/036).
+
+    Режимы: `html` — основным результатом становится PPTX из HTML; `both` —
+    основной остаётся нативным, а HTML-версия прикладывается для сравнения.
+    Оба PPTX проходят один и тот же детерминированный аудит.
+    """
+    from .render.html_renderer import render_html
+    from .render.html_to_pptx import html_to_pptx
+
+    if mode not in ("html", "both"):
+        return artifacts
+    for artifact in artifacts:
+        artifact.html = render_html(deck, profile, variant=artifact.variant,
+                                    template_bytes=template_bytes, images=images)
+        artifact.html_pptx = html_to_pptx(artifact.html, profile,
+                                          template_bytes=template_bytes)
+        probe = VariantArtifact(variant=artifact.variant, pptx=artifact.html_pptx)
+        artifact.html_audit = audit_variant(deck, probe, profile)
+        if mode == "html":
+            artifact.pptx = artifact.html_pptx
+            artifact.audit = artifact.html_audit
+    return artifacts
 
 
 def auto_fix_variants(deck: Deck, profile: dict, template_bytes: bytes,
@@ -144,7 +182,8 @@ def full_generate(brief: str, source: str, purpose: str,
                   corpus: ContentCorpus | None = None,
                   vlm: bool = True, auto_fix: bool = True,
                   max_slides: int | None = None,
-                  language: str = "ru") -> dict:
+                  language: str = "ru",
+                  render_mode: str = "native") -> dict:
     """Полный прогон: профиль → колода → варианты → аудиты → экспорт.
 
     `corpus` — импортированный контент-пакет: его текст уходит планировщику как
@@ -228,6 +267,23 @@ def full_generate(brief: str, source: str, purpose: str,
         if applied or skipped:
             stages["autofix_s"] = round(time.perf_counter() - t0, 2)
 
+    render_mode = render_mode if render_mode in ("native", "html", "both") else "native"
+    if render_mode in ("html", "both") and artifacts:
+        t0 = time.perf_counter()
+        artifacts = render_html_variants(deck, profile, template_bytes, artifacts,
+                                         images=images, mode=render_mode)
+        if render_mode == "html":
+            # основные отчёты теперь относятся к PPTX из HTML — переносим в них
+            # уже посчитанные VLM- и grounding-замечания
+            for artifact in artifacts:
+                verdict = vlm_by_variant.get(artifact.variant)
+                if verdict:
+                    merge_issues(artifact.audit,
+                                 [dict(issue) for issue in violations_to_issues(verdict)])
+                merge_issues(artifact.audit,
+                             [dict(issue) for issue in grounding.get("issues", [])])
+        stages["html_s"] = round(time.perf_counter() - t0, 2)
+
     stages["total_s"] = round(sum(stages.values()), 2)
 
     return {
@@ -236,8 +292,10 @@ def full_generate(brief: str, source: str, purpose: str,
         "planner": result.to_dict(),
         "prompts": prompts_meta.versions(),
         "corpus": corpus.to_dict() if corpus is not None else None,
+        "render_mode": render_mode,
         "variants": [
-            {"name": a.variant, "pptx": a.pptx, "audit": a.audit}
+            {"name": a.variant, "pptx": a.pptx, "audit": a.audit,
+             "html": a.html, "html_pptx": a.html_pptx, "html_audit": a.html_audit}
             for a in artifacts
         ],
         "vlm": vlm_result,

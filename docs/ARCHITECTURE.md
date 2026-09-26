@@ -157,7 +157,36 @@ flowchart LR
 клавиатура) из той же `Deck` и токенов профиля — единый контент-контракт с PPTX.
 PDF получается из PPTX через LibreOffice, поэтому визуально совпадает.
 
-### 2.10 Генерация иллюстраций — `backend/app/imagegen.py`
+### 2.10 Два рендерера: общий widget-план, две реализации (v2.0)
+
+Один и тот же план вёрстки (`LayoutEngine.compose`) потребляют два рендерера;
+третий компонент собирает из HTML нативные объекты PPTX. Никакой путь не
+является заменой другого (ADR-035, ADR-036).
+
+```mermaid
+flowchart LR
+    D[Deck: Pydantic-контракт] --> L[Layout Engine<br/>widget-план + DesignContext]
+    L --> P[pptx_renderer.py<br/>нативные фигуры python-pptx]
+    L --> H[html_renderer.py<br/>HTML+CSS, инлайн-токены :root]
+    H --> C[html_to_pptx.py<br/>DOM → нативные фигуры]
+    P --> A[Audit: 29 проверок]
+    C --> A
+    A --> F[Auto-fixes<br/>без подтверждения]
+    F --> R[Результат: PPTX / PDF / HTML<br/>режим native | html | both]
+```
+
+| Компонент | Вход | Выход | Ключевое |
+|---|---|---|---|
+| `render/pptx_renderer.py` | план + `DesignContext` | PPTX | нативные фигуры, ThemePair, контраст WCAG |
+| `render/html_renderer.py` | тот же план | HTML+CSS | `:root`-токены профиля, проценты от слайда, инлайн CSS/JS, SVG-диаграммы |
+| `render/html_to_pptx.py` | HTML | PPTX | lxml-DOM → textbox/runs, buChar/buAutoNum, table, chart, chevron, contain-картинка; растеризация запрещена |
+
+Режим сборки задания: `native` (по умолчанию), `html`, `both`. В `both`
+основным остаётся нативный PPTX, HTML-версия и PPTX из неё прикладываются для
+сравнения; оба PPTX проходят один и тот же детерминированный аудит, различия
+не подгоняются.
+
+### 2.11 Генерация иллюстраций — `backend/app/imagegen.py`
 
 | Вход | Выход | Ключевое решение |
 |---|---|---|
@@ -174,7 +203,8 @@ PDF получается из PPTX через LibreOffice, поэтому виз
 
 ```
 build_profile → plan_deck → generate_images_for_deck → render_variants(×3)
-  → audit_variant(×3) → audit_vlm → ground_deck → auto_fix_variants → html_export
+  → audit_variant(×3) → audit_vlm → ground_deck → auto_fix_variants
+  → (render_mode html|both: html_renderer → html_to_pptx → audit) → html_export
 ```
 
 Аудит и авто-фиксы — **часть полного прогона**, а не отдельные кнопки (ADR-032):
@@ -190,9 +220,9 @@ build_profile → plan_deck → generate_images_for_deck → render_variants(×3
 
 | Группа | Эндпоинты |
 |---|---|
-| Генерация | `POST /api/generate` (`vlm`, `slides`, `language`), `GET /api/jobs/{id}`, `GET /api/jobs/{id}/info` |
-| Артефакты | `GET /api/jobs/{id}/pptx`, `/pdf` (+`HEAD` — проверка перед скачиванием), `/html`, `/thumb`, `/audit` |
-| Скачивание | `GET /api/jobs/{id}/download?formats=pptx,pdf&variants=...` — ZIP со всеми выбранными файлами (ADR-033) |
+| Генерация | `POST /api/generate` (`vlm`, `slides`, `language`, `render_mode`), `GET /api/jobs/{id}`, `GET /api/jobs/{id}/info` |
+| Артефакты | `GET /api/jobs/{id}/pptx?render=native|html`, `/pdf` (+`HEAD` — проверка перед скачиванием), `/html?variant=` (HTML-колода, inline), `/thumb`, `/audit?render=` |
+| Скачивание | `GET /api/jobs/{id}/download?formats=pptx,pdf,html&variants=...` — ZIP со всеми выбранными файлами (ADR-033) |
 | Задание | `POST /api/jobs/{id}/cancel` — «Отменить» в интерфейсе |
 | Исправления | `POST /api/jobs/{id}/fix` — повторно применить фиксы к оставшимся проблемам |
 | Провайдер | `POST /api/provider/set`, `/test`, `/reset`, `GET /api/provider/status` — внешний ключ из UI, только в памяти процесса (ADR-031) |

@@ -13,6 +13,7 @@ import type {
   Health,
   JobSummary,
   ProviderStatus,
+  RenderMode,
   VariantName,
 } from "@/lib/types";
 
@@ -39,6 +40,7 @@ export default function Page() {
   const [corpusName, setCorpusName] = React.useState("");
   const [corpusBusy, setCorpusBusy] = React.useState(false);
   const [formats, setFormats] = React.useState({ pptx: true, pdf: true });
+  const [renderMode, setRenderMode] = React.useState<RenderMode>("native");
   const [vlm, setVlm] = React.useState(true);
   const [slides, setSlides] = React.useState(12);
   const [language, setLanguage] = React.useState("ru");
@@ -94,6 +96,7 @@ export default function Page() {
         vlm,
         slides,
         language,
+        renderMode,
       });
       setJobId(job.job_id);
     } catch (requestError) {
@@ -216,6 +219,8 @@ export default function Page() {
           }}
           formats={formats}
           onFormats={setFormats}
+          renderMode={renderMode}
+          onRenderMode={setRenderMode}
           onSubmit={start}
           busy={false}
           error={error}
@@ -228,6 +233,8 @@ export default function Page() {
               onSlidesChange={setSlides}
               language={language}
               onLanguageChange={setLanguage}
+              renderMode={renderMode}
+              onRenderMode={setRenderMode}
               provider={provider}
               onProviderChange={setProvider}
               jobId={jobId}
@@ -247,6 +254,7 @@ export default function Page() {
           elapsed={resultElapsed}
           summary={summary}
           formats={formats}
+          renderMode={renderMode}
           pdfAvailable={health?.pdf?.available !== false}
           audits={audits}
           autoFixes={autoFixes}

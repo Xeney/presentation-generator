@@ -23,6 +23,22 @@
 валидны на всех шаблонах, включая тёмный VK WorkSpace и шаблон без осмысленных
 имён макетов.
 
+### 1b. Матрица обоих путей: классика + HTML (v2.0)
+
+`python tools/audit_matrix.py --html` — к тем же 24 комбинациям добавляется
+HTML-путь (HTML+CSS → PPTX нативными фигурами, ADR-035/036):
+
+| Метрика | Значение |
+|---|---|
+| Комбинаций классического пути | 24 из 24 чисто |
+| Комбинаций HTML-пути | 24 из 24 чисто |
+| **Всего** | **48 из 48 чисто, расхождений 0** |
+| Среднее время HTML-пути на комбинацию | +0.4 с (рендер HTML + конвертация + аудит) |
+
+Расхождения не подгоняются: аудит один и тот же, и на LLM-колодах он честно
+нашёл дефект конвертера (`image_stretched` — картинка вставлялась по размеру
+рамки); лечится contain-боксом в `html_to_pptx.py` (`_contain_box`).
+
 ### Регресс тёмного шаблона и фикс ADR-034
 
 На VK WorkSpace (фон макетов `p:bg = #000000`) тексты стали невидимыми: рендер
@@ -59,6 +75,22 @@
 Видимость подтверждена `tools/check_visibility.py` (контраст каждого run к
 фактическому фону): **0 невидимых (<3:1) и 0 ниже WCAG на всех девяти колодах**.
 
+### 2b. Живой e2e обоих путей (v2.0)
+
+`VLM_AUDIT_ENABLED=false python tools/e2e_9variants.py --render-mode both …`
+(3 VK-шаблона × 3 варианта, 129.5 с):
+
+| Шаблон | Классика, ошибок/замечаний | HTML-путь, ошибок/замечаний |
+|---|---|---|
+| VK WorkSpace (тёмный) | 0 / 1 | 0 / 0 |
+| VK Education | 0 / 0 | 0 / 0 |
+| VK Tech | 0 / 0 | 0 / 0 |
+
+Единственное замечание классики — grounding `content_off_source` (семантика
+пересказа брифа), к вёрстке отношения не имеет. HTML-путь на этих же колодах
+чист; сохранены и PPTX, и HTML по всем вариантам
+(`data/output/e2e_both/*.pptx`, `*.html`).
+
 ## 3. Замеры времени: что на что влияет
 
 | Прогон | Итого | Конфигурация | Что влияет |
@@ -78,23 +110,26 @@
 
 | Набор | Команда | Результат |
 |---|---|---|
-| Backend, ядро (аудит/рендер/нормализация/тёмный шаблон) | `pytest backend/tests/test_audit*.py test_fixes.py test_normalize.py test_dark_template.py test_vk_education.py test_layout_roles.py test_render.py test_export_html.py` | **77 passed** |
-| Backend, API/скачивание/провайдер/пайплайн | `pytest backend/tests/test_api.py test_downloads.py test_provider_runtime.py test_auto_fix_pipeline.py test_pipeline.py test_storage.py test_content_import.py` | **50 passed** |
+| Backend, ядро (аудит/рендер/нормализация/тёмный шаблон/ThemePair/HTML-рендереры) | `pytest backend/tests/test_audit*.py test_fixes.py test_normalize.py test_dark_template.py test_theme_pair.py test_vk_education.py test_layout_roles.py test_render.py test_export_html.py test_html_renderer.py test_html_to_pptx.py` | **90 passed** |
+| Backend, API/скачивание/провайдер/пайплайн/режимы сборки | `pytest backend/tests/test_api.py test_downloads.py test_provider_runtime.py test_auto_fix_pipeline.py test_pipeline.py test_storage.py test_content_import.py test_render_modes.py` | **55 passed** |
 | Backend, прочее (планировщик, VLM, grounding, образцы, производительность) | `pytest backend/tests/test_block_robustness.py test_grounding.py test_imagegen.py test_llm_providers.py test_performance.py test_planner.py test_prompts_registry.py test_vlm.py` | **82 passed** |
 | Браузерные (headless Chrome, поднимают uvicorn+next) | `pytest backend/tests/test_ui_browser.py` | **6 passed** |
 
-Итого **215 тестов** (209 backend + 6 браузерных). Браузерные тесты автоматически
-скипаются, если не собран фронтенд, не установлен Playwright или заняты порты
-8000/3000.
+Итого **233 теста** (227 backend + 6 браузерных). Браузерные тесты
+автоматически скипаются, если не собран фронтенд, не установлен Playwright или
+заняты порты 8000/3000 (остановите `docker compose stop` перед запуском).
 
 ## 5. Как воспроизвести
 
 ```bash
-python tools/audit_matrix.py                     # матрица 8×3 (детерминированно)
-python tools/e2e_9variants.py --templates "VK_WorkSpace_Клиентская_конференция_Шаблон_03.pptx" \
-  "Шаблон презентации VK Education.pptx" "VK Tech шаблон.pptx" --out data/output/9variants_final
+python tools/audit_matrix.py                     # матрица 8×3 классического пути
+python tools/audit_matrix.py --html              # + HTML-путь: 48/48, расхождения видны
+python tools/e2e_9variants.py --render-mode both \
+  --templates "VK_WorkSpace_Клиентская_конференция_Шаблон_03.pptx" \
+  "Шаблон презентации VK Education.pptx" "VK Tech шаблон.pptx" --out data/output/e2e_both
 python tools/check_visibility.py data/output/9variants_final/*_compact.pptx "VK Tech шаблон.pptx"
 pytest backend/tests/test_dark_template.py -q    # тёмный шаблон: контраст и шум
+pytest backend/tests/test_html_renderer.py backend/tests/test_html_to_pptx.py -q
 pytest backend/tests/test_ui_browser.py -q       # интерфейс в headless Chrome
 ```
 

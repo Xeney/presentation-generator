@@ -5,7 +5,13 @@ import * as React from "react";
 
 import { QualityPanel } from "@/components/quality-panel";
 import { api } from "@/lib/api";
-import type { Audit, AutoFixReport, JobSummary, VariantName } from "@/lib/types";
+import type {
+  Audit,
+  AutoFixReport,
+  JobSummary,
+  RenderMode,
+  VariantName,
+} from "@/lib/types";
 
 const CARDS: { variant: VariantName; name: string; description: string }[] = [
   { variant: "compact", name: "Компактный", description: "Плотно, для большого объёма" },
@@ -76,6 +82,7 @@ export function ResultView({
   elapsed,
   summary,
   formats,
+  renderMode,
   pdfAvailable,
   audits,
   autoFixes,
@@ -88,6 +95,7 @@ export function ResultView({
   elapsed: number;
   summary: JobSummary | null;
   formats: { pptx: boolean; pdf: boolean };
+  renderMode: RenderMode;
   pdfAvailable: boolean;
   audits: { variant: VariantName; audit: Audit }[] | null;
   autoFixes: AutoFixReport | null;
@@ -99,9 +107,13 @@ export function ResultView({
   const [pdfFailed, setPdfFailed] = React.useState<Set<VariantName>>(new Set());
   const seconds = Math.max(1, Math.round(elapsed));
   const selectedVariants = CARDS.map((card) => card.variant);
+  const mode: RenderMode = summary?.render_mode ?? renderMode;
+  const withNative = mode === "native" || mode === "both";
+  const withHtml = mode === "html" || mode === "both";
   const zipFormats = [
     ...(formats.pptx ? ["pptx"] : []),
     ...(formats.pdf && pdfAvailable ? ["pdf"] : []),
+    ...(withHtml ? ["html"] : []),
   ];
 
   return (
@@ -127,12 +139,34 @@ export function ResultView({
               <p className="text-base text-muted-foreground">{card.description}</p>
 
               <div className="mt-4 space-y-3">
-                {formats.pptx && (
+                {formats.pptx && withNative && (
                   <DownloadRow
-                    url={`${api.downloadUrl(jobId, "pptx", card.variant)}`}
-                    label="Скачать PPTX"
+                    url={api.downloadUrl(jobId, "pptx", card.variant, "native")}
+                    label={withHtml ? "Скачать PPTX (классический)" : "Скачать PPTX"}
                     filename={`presentation_${card.variant}.pptx`}
                   />
+                )}
+                {formats.pptx && withHtml && (
+                  <DownloadRow
+                    url={api.downloadUrl(jobId, "pptx", card.variant, "html")}
+                    label="Скачать PPTX (через HTML)"
+                    filename={`presentation_${card.variant}_html.pptx`}
+                  />
+                )}
+                {withHtml && (
+                  <div className="flex flex-col gap-3 rounded-xl bg-secondary px-4 py-3">
+                    <div className="text-base">
+                      🌐 <span className="break-all">presentation_{card.variant}.html</span>
+                    </div>
+                    <a
+                      href={api.htmlUrl(jobId, card.variant)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border-2 border-primary text-lg font-semibold text-primary hover:bg-accent"
+                    >
+                      Открыть HTML
+                    </a>
+                  </div>
                 )}
                 {formats.pdf && (
                   pdfOk ? (

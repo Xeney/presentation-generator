@@ -107,6 +107,17 @@ def template_workspace() -> bytes:
 
 
 @pytest.fixture(scope="session")
+def external_templates() -> list[tuple[str, bytes]]:
+    """Сторонние шаблоны (data/external_templates, вне git) — если загружены."""
+    directory = ROOT / "data" / "external_templates"
+    items: list[tuple[str, bytes]] = []
+    if directory.is_dir():
+        for path in sorted(directory.glob("*.pptx"))[:3]:
+            items.append((path.stem[:24], path.read_bytes()))
+    return items
+
+
+@pytest.fixture(scope="session")
 def all_templates() -> list[tuple[str, bytes]]:
     """Все доступные шаблоны: синтетические + реальные, если загружены."""
     from tools.make_fixtures import FIXTURES, build_template

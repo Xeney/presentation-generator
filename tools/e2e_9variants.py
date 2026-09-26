@@ -90,6 +90,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--brief", default=BRIEF)
     parser.add_argument("--out", type=Path, default=ROOT / "data" / "output" / "9variants")
     parser.add_argument("--purpose", default="project")
+    parser.add_argument("--render-mode", default="native",
+                        choices=("native", "html", "both"),
+                        help="способ сборки: классический, HTML+CSS или оба")
     args = parser.parse_args(argv)
 
     templates = discover_templates(args.templates)
@@ -137,7 +140,7 @@ def main(argv: list[str]) -> int:
                 files={"template": (template_path.name, template_bytes,
                                     "application/octet-stream")},
                 data={"brief": args.brief, "source": "", "purpose": args.purpose,
-                      "corpus_id": corpus["id"]})
+                      "corpus_id": corpus["id"], "render_mode": args.render_mode})
             if response.status_code != 200:
                 print(f"{template_path.name}: генерация не запустилась "
                       f"({response.status_code}) {response.text[:150]}")
@@ -172,6 +175,16 @@ def main(argv: list[str]) -> int:
                 pptx = client.get(f"/api/jobs/{job_id}/pptx", params={"variant": variant})
                 target = args.out / f"{slug(template_path.name)}_{variant}.pptx"
                 target.write_bytes(pptx.content)
+                html_audit = None
+                if args.render_mode in ("html", "both"):
+                    html_page = client.get(f"/api/jobs/{job_id}/html",
+                                           params={"variant": variant})
+                    if html_page.status_code == 200:
+                        (args.out / f"{slug(template_path.name)}_{variant}.html").write_text(
+                            html_page.text, encoding="utf-8")
+                    html_audit = client.get(
+                        f"/api/jobs/{job_id}/audit",
+                        params={"variant": variant, "render": "html"}).json()
                 prs = Presentation(__import__("io").BytesIO(pptx.content))
                 raster = sum(
                     1 for slide in prs.slides for shape in slide.shapes
@@ -192,11 +205,17 @@ def main(argv: list[str]) -> int:
                     "planner": summary.get("planner_label"),
                     "vlm": summary.get("vlm_label"),
                     "stages": stages,
+                    "html_errors": (html_audit or {}).get("errors"),
+                    "html_warnings": (html_audit or {}).get("warnings"),
                 }
                 rows.append(row)
+                suffix = ""
+                if html_audit is not None:
+                    suffix = (f" · HTML-путь: ошибок {html_audit['errors']}, "
+                              f"замечаний {html_audit['warnings']}")
                 print(f"    {variant:8s} слайдов {len(prs.slides):2d} · ошибок "
                       f"{audit['errors']} · замечаний {audit['warnings']:2d} · "
-                      f"{len(pptx.content) // 1024} КБ → {target.name}")
+                      f"{len(pptx.content) // 1024} КБ → {target.name}{suffix}")
             print()
 
     total = time.perf_counter() - total_started
@@ -212,10 +231,12 @@ def main(argv: list[str]) -> int:
 
     report = {
         "planner": settings.planner_label, "vlm": settings.vlm_label,
+        "render_mode": args.render_mode,
         "corpus": corpus["source_file"], "corpus_stats": corpus["stats"],
         "templates": [str(p.name) for p in templates],
         "rows": rows, "total_s": round(total, 1),
-        "all_passed": all(row["errors"] == 0 for row in rows),
+        "all_passed": all(row["errors"] == 0 and (row.get("html_errors") or 0) == 0
+                          for row in rows),
     }
     report_path = args.out / "report.json"
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2),

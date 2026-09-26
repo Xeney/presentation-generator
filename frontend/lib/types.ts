@@ -3,6 +3,9 @@
 export const VARIANTS = ["compact", "cards", "split"] as const;
 export type VariantName = (typeof VARIANTS)[number];
 
+/** Способ сборки: классический python-pptx, HTML+CSS или оба (ADR-035). */
+export type RenderMode = "native" | "html" | "both";
+
 export type Issue = {
   id: string;
   code: string;
@@ -26,6 +29,10 @@ export type VariantSummary = {
   passed: boolean;
   errors: number;
   warnings: number;
+  /** есть ли HTML-версия варианта (режим html/both) */
+  html?: boolean;
+  /** ошибки аудита HTML→PPTX-версии */
+  html_errors?: number | null;
 };
 
 export type StageTimings = Record<string, number>;
@@ -46,6 +53,7 @@ export type JobSummary = {
   fixes?: number;
   auto_fix_applied?: number;
   auto_fix_skipped?: number;
+  render_mode?: RenderMode;
 };
 
 export type JobState = {
@@ -139,6 +147,7 @@ export type JobInfo = {
     layout_groups: Record<string, string[]>;
   };
   deck: { title: string; language: string; slides: { heading: string; slide_type: string }[] };
+  render_mode?: RenderMode;
   planner: { used_llm: boolean; attempts: number };
   corpus?: Corpus | null;
   vlm: VlmResult;
@@ -184,6 +193,7 @@ export type GenerateInput = {
   vlm?: boolean;
   slides?: number;
   language?: string;
+  renderMode?: RenderMode;
 };
 
 export type FixOutcome = {

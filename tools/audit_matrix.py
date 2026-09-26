@@ -22,6 +22,8 @@ sys.path.insert(0, str(ROOT))
 from app.audit.checks import Audit  # noqa: E402
 from app.layout.engine import DesignContext, LayoutEngine  # noqa: E402
 from app.planner.fallback import FallbackPlanner  # noqa: E402
+from app.render.html_renderer import render_html  # noqa: E402
+from app.render.html_to_pptx import html_to_pptx  # noqa: E402
 from app.render.pptx_renderer import Renderer  # noqa: E402
 from app.template.parser import TemplateParser  # noqa: E402
 
@@ -62,7 +64,7 @@ def _count_kinds(profile: dict) -> dict[str, int]:
     return kinds
 
 
-def run_one(name: str, template_bytes: bytes, deck) -> dict:
+def run_one(name: str, template_bytes: bytes, deck, with_html: bool = False) -> dict:
     profile = TemplateParser(template_bytes).parse().to_dict()
     dc = DesignContext.from_profile(profile)
     result: dict = {
@@ -73,6 +75,7 @@ def run_one(name: str, template_bytes: bytes, deck) -> dict:
         "body_font": profile.get("body_font"),
         "palette": len(profile.get("palette", [])),
         "variants": {},
+        "variants_html": {},
     }
     for variant in ("compact", "cards", "split"):
         renderer = Renderer(profile, variant=variant, template_bytes=template_bytes)
@@ -83,6 +86,19 @@ def run_one(name: str, template_bytes: bytes, deck) -> dict:
         result["variants"][variant] = {
             "errors": audit["errors"], "warnings": audit["warnings"], "codes": codes,
         }
+        if with_html:
+            # HTML-путь: тот же план → HTML → PPTX нативными фигурами (ADR-035/036)
+            page = render_html(deck, profile, variant=variant,
+                               template_bytes=template_bytes)
+            converted = html_to_pptx(page, profile, template_bytes=template_bytes)
+            html_audit = Audit(profile).audit(deck, converted)
+            html_codes: dict[str, int] = {}
+            for issue in html_audit["issues"]:
+                html_codes[issue["code"]] = html_codes.get(issue["code"], 0) + 1
+            result["variants_html"][variant] = {
+                "errors": html_audit["errors"], "warnings": html_audit["warnings"],
+                "codes": html_codes,
+            }
     return result
 
 
@@ -90,6 +106,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Матрица аудита по шаблонам и вариантам")
     parser.add_argument("templates", nargs="*", help="дополнительные PPTX")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--html", action="store_true",
+                        help="добавить HTML-путь (HTML → PPTX нативными фигурами)")
     parser.add_argument("--layouts", action="store_true",
                         help="показать классификацию макетов (имя → роль/тип/причина)")
     parser.add_argument("--picks", action="store_true",
@@ -131,7 +149,7 @@ def main() -> int:
     report = {}
     for name, template_bytes in collect_templates(args.templates):
         try:
-            report[name] = run_one(name, template_bytes, deck)
+            report[name] = run_one(name, template_bytes, deck, with_html=args.html)
         except Exception as exc:  # noqa: BLE001
             report[name] = {"error": f"{type(exc).__name__}: {exc}"}
 
@@ -150,6 +168,14 @@ def main() -> int:
         for variant, info in data["variants"].items():
             codes = ", ".join(f"{k}×{v}" for k, v in sorted(info["codes"].items())) or "чисто"
             print(f"  {variant:8s} ошибок {info['errors']}, замечаний {info['warnings']}: {codes}")
+            html_info = (data.get("variants_html") or {}).get(variant)
+            if html_info is not None:
+                html_codes = ", ".join(
+                    f"{k}×{v}" for k, v in sorted(html_info["codes"].items())) or "чисто"
+                diff = html_info["errors"] - info["errors"]
+                print(f"  {variant + '·html':8s} ошибок {html_info['errors']}, "
+                      f"замечаний {html_info['warnings']}: {html_codes} "
+                      f"(расхождение с классикой: {diff:+d})")
     return 0
 
 

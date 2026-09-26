@@ -499,14 +499,47 @@ class Audit:
         layout = self.layouts_by_name.get(self._layout_name(slide)) or {}
         return layout.get("background")
 
+    def _shape_fill_below(self, slide, shape) -> Optional[str]:
+        """Заливка ближайшей фигуры слайда ПОД текстовой рамкой.
+
+        Рендер рисует подложки карточек как фигуры слайда, и текст поверх них
+        получает цвет по этой заливке. Аудит обязан видеть тот же фон, иначе
+        карточка с тёмной подложкой и светлым текстом выглядит «невидимой»
+        (Fun-Education: белое на оранжевом декоре под карточкой).
+        """
+        if shape.left is None or shape.width is None:
+            return None
+        area = (shape.width or 0) * (shape.height or 0)
+        if area <= 0:
+            return None
+        best: Optional[str] = None
+        for other in slide.shapes:
+            if other is shape:
+                break
+            if other.left is None or other.width is None:
+                continue
+            fill = self._shape_fill(other)
+            if not fill:
+                continue
+            x0 = max(other.left, shape.left)
+            y0 = max(other.top or 0, shape.top or 0)
+            x1 = min(other.left + other.width, shape.left + shape.width)
+            y1 = min((other.top or 0) + (other.height or 0),
+                     (shape.top or 0) + (shape.height or 0))
+            inter = max(0, x1 - x0) * max(0, y1 - y0)
+            if inter / area >= 0.6:
+                best = fill
+        return best
+
     def _effective_bg(self, slide, shape) -> str:
         """Фон под текстом ровно так же, как его выбирает рендер.
 
-        Приоритет: заливка самой фигуры → декор макета под рамкой → фон p:bg
-        макета → самая светлая палитра. Единый алгоритм для рендера и аудита —
-        иначе проверка контраста молчит на тёмных шаблонах.
+        Приоритет: заливка самой фигуры → фигура-подложка под рамкой → декор
+        макета → фон p:bg макета → самая светлая палитра. Единый алгоритм для
+        рендера и аудита — иначе проверка контраста молчит на тёмных шаблонах.
         """
         return (self._shape_fill(shape)
+                or self._shape_fill_below(slide, shape)
                 or self._decor_fill_at(slide, shape)
                 or self._layout_bg(slide)
                 or self.bg_color)

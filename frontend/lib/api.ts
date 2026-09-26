@@ -8,6 +8,7 @@ import type {
   JobState,
   ProviderCheck,
   ProviderStatus,
+  RenderMode,
   VariantName,
 } from "./types";
 
@@ -65,6 +66,7 @@ export const api = {
     body.append("vlm", input.vlm === false ? "off" : "on");
     if (input.slides) body.append("slides", String(input.slides));
     if (input.language) body.append("language", input.language);
+    if (input.renderMode) body.append("render_mode", input.renderMode);
     return fetch(`${API_URL}/api/generate`, { method: "POST", body }).then(
       parse<{ job_id: string; status: string }>,
     );
@@ -119,8 +121,13 @@ export const api = {
   thumbUrl: (id: string, variant: VariantName, page: number, boxes: boolean, version: number) =>
     `${API_URL}/api/jobs/${id}/thumb?variant=${variant}&s=${page}&boxes=${boxes ? 1 : 0}&v=${version}`,
 
-  downloadUrl: (id: string, kind: "pptx" | "pdf" | "html", variant: VariantName) =>
+  downloadUrl: (id: string, kind: "pptx" | "pdf" | "html", variant: VariantName,
+                render: RenderMode | "native" = "native") =>
     kind === "html"
       ? `${API_URL}/api/jobs/${id}/html`
-      : `${API_URL}/api/jobs/${id}/${kind}?variant=${variant}`,
+      : `${API_URL}/api/jobs/${id}/${kind}?variant=${variant}&render=${render}`,
+
+  /** HTML-колода варианта: открывается в браузере (ADR-035). */
+  htmlUrl: (id: string, variant: VariantName) =>
+    `${API_URL}/api/jobs/${id}/html?variant=${variant}`,
 };

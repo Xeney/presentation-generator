@@ -524,18 +524,25 @@ class Renderer:
     def _readable_text(self, background: str) -> str:
         """Цвет текста, читаемый на данной заливке (выбор по контрасту WCAG).
 
-        Нужен там, где текст ложится на акцентный фон: у части шаблонов акцент
-        светлый, и белый текст на нём не проходит проверку контраста.
+        Нужен там, где текст ложится на цветной фон (акцент, подложка карточки,
+        шеврон). Кандидаты — foreground темы, белый и чёрный: тёмный цвет из
+        палитры может сам оказаться светлым (шаблоны без чёрного), и тогда
+        белый текст на светлой заливке не читался (Fun-Education: белое на
+        оранжевом, контраст 1.9).
         """
         from .images import contrast_ratio
 
-        dark = self._text_color()
-        try:
-            if contrast_ratio(background, "#FFFFFF") >= contrast_ratio(background, dark):
-                return "#FFFFFF"
-        except Exception:  # noqa: BLE001 — при сбое остаётся тёмный текст шаблона
-            pass
-        return dark
+        candidates = [self._foreground() if self._theme() else self._text_color(),
+                      "#FFFFFF", "#000000"]
+        best, best_ratio = candidates[0], -1.0
+        for candidate in candidates:
+            try:
+                ratio = contrast_ratio(background, candidate)
+            except Exception:  # noqa: BLE001
+                continue
+            if ratio > best_ratio:
+                best, best_ratio = candidate, ratio
+        return best
 
     # ------------------------------------------------- фон под блоком и цвет
     def _decor_at(self, rect: Rect) -> Optional[str]:
@@ -565,31 +572,53 @@ class Renderer:
                 best_fill, best_ratio = fill, ratio
         return best_fill if best_ratio >= 0.35 else None
 
-    def _text_on(self, rect: Rect) -> str:
-        """Цвет текста, читаемый на фактическом фоне под блоком."""
-        return self._readable_text(self._decor_at(rect) or self._bg_color())
+    def _theme(self) -> dict:
+        """ThemePair текущего макета (ADR-035): background/foreground/accent/muted."""
+        return (self._layout or {}).get("theme") or {}
 
-    def _accent_on(self, rect: Rect, large: bool = False) -> str:
-        """Акцентный цвет, читаемый на фоне под блоком.
+    def _foreground(self) -> str:
+        """Основной цвет текста макета (foreground), иначе самый тёмный токен."""
+        return self._theme().get("foreground") or self._text_color()
 
-        Порог тот же, что у аудита (WCAG): 3:1 для крупного текста (≥18 pt или
-        ≥14 pt полужирного) и 4.5:1 для обычного. Раньше порог был всегда 3:1, и
-        на шаблонах с промежуточным акцентом (например, бирюзовым #0097A7)
-        мелкий акцентный текст не проходил проверку аудита — теперь акцент
-        используется только там, где он действительно читается, иначе берётся
-        читаемый нейтральный цвет.
+    def _text_on(self, rect: Rect, background: str | None = None) -> str:
+        """Цвет текста: foreground макета, если он читается на фактическом фоне.
+
+        Идея ролей «фон → текст» и автоподбора при контрасте < 4.5:1 — из
+        Presenton (Apache-2.0, ADR-035); реализация своя: фон берётся из декора
+        макета или p:bg, при провале порога — белый/чёрный по контрасту.
         """
         from .images import contrast_ratio
 
-        accent = self._accent_color() or self._text_on(rect)
-        background = self._decor_at(rect) or self._bg_color()
-        threshold = 3.0 if large else 4.5
+        bg = background or self._decor_at(rect) or self._bg_color()
+        foreground = self._foreground()
         try:
-            if contrast_ratio(accent, background) >= threshold:
-                return accent
+            if contrast_ratio(foreground, bg) >= 4.5:
+                return foreground
         except Exception:  # noqa: BLE001
-            return accent
-        return self._text_on(rect)
+            return foreground
+        return self._readable_text(bg)
+
+    def _accent_on(self, rect: Rect, large: bool = False,
+                   background: str | None = None) -> str:
+        """Акцент для текста — только при достаточном контрасте, иначе foreground.
+
+        Порог: 4.5:1 для обычного текста и 3:1 для крупного (≥24 pt) — как в
+        правиле контраста Presenton (ADR-035). Акцент по умолчанию — роль
+        декора; в качестве цвета текста он используется только для крупных KPI
+        и заголовков, где проверка пройдена.
+        """
+        from .images import contrast_ratio
+
+        bg = background or self._decor_at(rect) or self._bg_color()
+        accent = self._accent_color()
+        threshold = 3.0 if large else 4.5
+        if accent:
+            try:
+                if contrast_ratio(accent, bg) >= threshold:
+                    return accent
+            except Exception:  # noqa: BLE001
+                pass
+        return self._text_on(rect, background=bg)
 
     def _headline_font(self) -> str:
         return self.profile.get("headline_font") or self.profile.get("body_font") or "Arial"
@@ -653,7 +682,7 @@ class Renderer:
         макета, а не фигурой. Раньше здесь всегда бралась палитра темы, поэтому
         на чёрном фоне выбирался тёмный текст — контент становился невидимым.
         """
-        bg = (self._layout or {}).get("background")
+        bg = self._theme().get("background") or (self._layout or {}).get("background")
         if bg:
             return bg
         pal = self._palette()
@@ -666,6 +695,18 @@ class Renderer:
         bg = self._bg_color()
         ac = self._accent_color() or "#888888"
         return self._mix(ac, bg, 0.85)
+
+    def _card_fill(self, style: dict) -> str:
+        """Заливка карточки: производная темы макета, а не палитры.
+
+        `LayoutEngine` кладёт `accent_soft` из `DesignContext` (палитра), но на
+        тёмных шаблонах палитра светлая: карточка выходила светлой, а текст по
+        теме — белым (белое на светлом). Если у макета есть ThemePair, подложка
+        считается от фона макета — тот же фон видит и аудит (ADR-035).
+        """
+        if self._theme():
+            return self._accent_soft()
+        return style.get("accent_soft") or self._accent_soft()
 
     @staticmethod
     def _mix(a: str, b: str, t: float) -> str:
@@ -726,13 +767,15 @@ class Renderer:
         card = style.get("card", False)
         items = block.items or []
         pad = 0.16 if card else 0.04
+        card_bg = None
         if card:
             self._draw_card_bg(slide, rect, style)
+            card_bg = self._card_fill(style)
         inner = rect.padded(pad)
         if block.title and not card:
             inner = self._blk_title(slide, inner, block.title, style)
-        text_color = self._text_on(inner)
-        accent = self._accent_on(inner)
+        text_color = self._text_on(inner, background=card_bg)
+        accent = self._accent_on(inner, background=card_bg)
         body = style.get("body") or self._body_font()
         # подбираем кегль, чтобы влезли все буллеты
         joined = "\n".join(items)
@@ -767,13 +810,15 @@ class Renderer:
         if not items:
             return
         card = style.get("card", False)
+        card_bg = None
         if card:
             self._draw_card_bg(slide, rect, style)
+            card_bg = self._card_fill(style)
         inner = rect.padded(0.16 if card else 0.04)
         if block.title and not card:
             inner = self._blk_title(slide, inner, block.title, style)
-        text_color = self._text_on(inner)
-        accent = self._accent_on(inner)
+        text_color = self._text_on(inner, background=card_bg)
+        accent = self._accent_on(inner, background=card_bg)
         size = self._fit_size("\n".join(items), inner.w, inner.h, default=16.0)
         tb = slide.shapes.add_textbox(_in(inner.x), _in(inner.y + 0.02),
                                       _in(inner.w), _in(inner.h))
@@ -840,9 +885,9 @@ class Renderer:
         tf.word_wrap = True
         r = tf.paragraphs[0].add_run()
         r.text = title
-        # порог контраста как у аудита: 3:1 для ≥14 pt полужирного
-        self._set_run_font(r, self._headline_font(), size, True,
-                           self._accent_on(rect, large=snapped >= 14))
+        # заголовок блока — текст, а не декор: цвет по правилу foreground
+        # (акцент для декора, ADR-035)
+        self._set_run_font(r, self._headline_font(), size, True, self._text_on(rect))
         shift = title_h + 0.02
         return Rect(rect.x, rect.y + shift, rect.w, max(0.2, rect.h - shift))
 
@@ -852,7 +897,7 @@ class Renderer:
         shp.adjustments[0] = 0.06
         fill = shp.fill
         fill.solid()
-        soft = style.get("accent_soft") or self._accent_soft()
+        soft = self._card_fill(style)
         r, g, b = hex_to_rgb(soft)
         fill.fore_color.rgb = RGBColor(r, g, b)
         shp.line.color.rgb = _color(style.get("accent") or self._accent_color() or "#DDDDDD")
@@ -890,8 +935,10 @@ class Renderer:
         style = it.get("style", {})
         card = style.get("card", False)
         pad = 0.16 if card else 0.05
+        card_bg = None
         if card:
             self._draw_card_bg(slide, rect, style)
+            card_bg = self._card_fill(style)
         inner = rect.padded(pad)
         if block.title and not card:
             inner = self._blk_title(slide, inner, block.title, style)
@@ -902,7 +949,8 @@ class Renderer:
         size = self._fit_size(text, inner.w, inner.h, default=15.0)
         r = tf.paragraphs[0].add_run()
         r.text = text
-        self._set_run_font(r, self._body_font(), size, False, self._text_on(inner))
+        self._set_run_font(r, self._body_font(), size, False,
+                           self._text_on(inner, background=card_bg))
 
     # ---------------------------------------------------------------- factoids
     def _draw_factoids(self, slide, it: dict, rect: Rect) -> None:
@@ -913,10 +961,12 @@ class Renderer:
         n = len(items)
         if not n:
             return
-        cols = 2 if n > 2 else 1
+        # KPI-числа группируются в ряд/сетку: 1–3 — в ряд, 4 — 2×2, 5–6 — 3×2
+        cols = n if n <= 3 else (2 if n == 4 else 3)
         rows = math.ceil(n / cols)
         gap = 0.2
         card = style.get("card", False)
+        card_bg = self._card_fill(style) if card else None
         cell_w = (rect.w - gap * (cols - 1)) / cols
         cell_h = rect.h / rows
         big = self._scale_pick("title", 34.0) * (0.55 if card else 0.9)
@@ -965,19 +1015,36 @@ class Renderer:
                                             kind="any", min_size=10.0)
                 value_h = max(0.24, min(cell.h - 0.10,
                                         text_height_in(value, text_w, value_size) + 0.02))
-            # тесная ячейка (карточка KPI): значение и подпись вместе не влезают.
-            # Тогда оставляем значение — оно несёт смысл, а подпись-источник
-            # вторична; иначе подпись вылезает за карточку и аудит справедливо
-            # ругается на наложение (VK Tech, cards)
+            # «число + подпись» — единый блок: сначала ужимаем пару до минимумов
+            # шкалы (подпись остаётся), и только если вместе не помещаются
+            # вовсе — опускаем подпись как последний резерв. Так KPI не
+            # «разъезжается» (ADR-036, тест test_kpi_card_stays_together).
             if label and value_h + label_h > cell.h:
-                if value_h <= cell.h:
+                tight_label = self._fit_size(label, text_w, max(0.14, cell.h * 0.3),
+                                             default=max(8.0, big * 0.3),
+                                             kind="any", min_size=8.0)
+                tight_label_final = self._snap_size(tight_label)
+                tight_label_h = max(0.14, min(cell.h * 0.5,
+                                              text_height_in(label, text_w,
+                                                             tight_label_final) + 0.02))
+                tight_room = max(0.2, cell.h - tight_label_h)
+                tight_value = self._fit_size(value, text_w, tight_room, default=big,
+                                             kind="any", min_size=10.0)
+                tight_value_h = max(0.2, min(tight_room,
+                                             text_height_in(value, text_w, tight_value) + 0.02))
+                if tight_value_h + tight_label_h <= cell.h:
+                    value_size, value_h = tight_value, tight_value_h
+                    label_size, label_h = tight_label, tight_label_h
+                elif value_h <= cell.h:
                     label = ""
                     label_h = 0.0
             # цвет выбирается по фону ПОД этой ячейкой: правая колонка KPI часто
-            # попадает на тёмную плашку макета, где тёмный текст пропадает;
-            # порог контраста — как у аудита (крупное значение: 3:1)
-            accent = self._accent_on(cell, large=value_size >= 18)
-            label_c = self._text_on(cell)
+            # попадает на тёмную плашку макета, где тёмный текст пропадает.
+            # Акцент для числа — только при контрасте ≥ 3:1 и кегле ≥ 24 pt
+            # (правило ADR-035); подпись — всегда foreground/авто
+            accent = self._accent_on(cell, large=value_size >= 24,
+                                     background=card_bg)
+            label_c = self._text_on(cell, background=card_bg)
             # группа «значение + подпись» центрируется по ячейке: иначе на KPI-
             # слайде с одной ячейкой текст прижимался к верхнему краю и низ
             # слайда оставался пустым (аудит: slide_too_sparse)

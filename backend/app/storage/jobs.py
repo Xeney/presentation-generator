@@ -100,16 +100,21 @@ class JobStore:
         tmp.write_text(json.dumps(meta, ensure_ascii=False, default=str), encoding="utf-8")
         tmp.replace(directory / "job.json")   # атомарная замена
 
-    @staticmethod
-    def _result_to_meta(result: dict, directory: Path) -> dict:
+    # байтовые артефакты варианта: ключ → имя файла (HTML-путь хранится рядом)
+    VARIANT_FILES = {"pptx": "{name}.pptx", "html_pptx": "{name}_html.pptx"}
+
+    @classmethod
+    def _result_to_meta(cls, result: dict, directory: Path) -> dict:
         meta = {key: value for key, value in result.items() if key != "variants"}
         variants = []
         for variant in result.get("variants", []):
             name = variant.get("name", "variant")
-            pptx = variant.get("pptx")
-            if pptx:
-                (directory / f"{name}.pptx").write_bytes(pptx)
-            variants.append({key: value for key, value in variant.items() if key != "pptx"})
+            item = dict(variant)
+            for key, template in cls.VARIANT_FILES.items():
+                blob = item.pop(key, None)
+                if blob:
+                    (directory / template.format(name=name)).write_bytes(blob)
+            variants.append(item)
         meta["variants"] = variants
         return meta
 
@@ -132,8 +137,10 @@ class JobStore:
             variants = []
             for variant in result.get("variants", []):
                 item = dict(variant)
-                pptx_path = directory / f"{item.get('name')}.pptx"
-                item["pptx"] = pptx_path.read_bytes() if pptx_path.exists() else b""
+                name = item.get("name", "variant")
+                for key, template in self.VARIANT_FILES.items():
+                    path = directory / template.format(name=name)
+                    item[key] = path.read_bytes() if path.exists() else b""
                 variants.append(item)
             result = dict(result)
             result["variants"] = variants

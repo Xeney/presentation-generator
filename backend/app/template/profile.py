@@ -73,6 +73,10 @@ class LayoutProfile:
     # получали тёмный текст на чёрном фоне — и рендер, и аудит считали фон
     # по палитре темы (ADR-034)
     background: Optional[str] = None
+    # ThemePair макета: {background, foreground, accent, muted}. Текст по
+    # умолчанию — foreground, accent — только декор или крупные KPI при
+    # достаточном контрасте (ADR-035, по мотивам Presenton)
+    theme: Optional[dict] = None
     has_logo: bool = False
     style_sample: dict = field(default_factory=dict)
 

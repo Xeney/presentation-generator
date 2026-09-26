@@ -33,6 +33,8 @@ export function AdvancedSettings({
   onSlidesChange,
   language,
   onLanguageChange,
+  renderMode,
+  onRenderMode,
   provider,
   onProviderChange,
   jobId,
@@ -45,6 +47,8 @@ export function AdvancedSettings({
   onSlidesChange: (value: number) => void;
   language: string;
   onLanguageChange: (value: string) => void;
+  renderMode: "native" | "html" | "both";
+  onRenderMode: (value: "native" | "html" | "both") => void;
   provider: ProviderStatus | null;
   onProviderChange: (provider: ProviderStatus | null, label?: string) => void;
   jobId: string | null;
@@ -273,6 +277,20 @@ export function AdvancedSettings({
               >
                 <option value="ru">Русский</option>
                 <option value="en">English</option>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="render-mode">Режим сборки по умолчанию</Label>
+              <Select
+                id="render-mode"
+                value={renderMode}
+                onChange={(event) =>
+                  onRenderMode(event.target.value as "native" | "html" | "both")
+                }
+              >
+                <option value="native">Классический (python-pptx)</option>
+                <option value="html">Через HTML+CSS</option>
+                <option value="both">Оба (сравнение)</option>
               </Select>
             </div>
           </div>

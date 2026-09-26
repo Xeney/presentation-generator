@@ -21,6 +21,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
 from pptx.oxml.ns import qn
 from pptx.util import Emu
 
+from ..render.images import brightness as _brightness, contrast_ratio, hex_to_rgb
 from .profile import (
     ColorToken,
     FontToken,
@@ -28,6 +29,37 @@ from .profile import (
     PlaceholderInfo,
     TemplateProfile,
 )
+
+
+def _contrast_hex(first: str, second: str) -> float:
+    return contrast_ratio(first, second)
+
+
+def _luminance(hex_color: str) -> float:
+    return _brightness(hex_color)
+
+
+def _saturation(hex_color: str) -> float:
+    r, g, b = hex_to_rgb(hex_color)
+    mx, mn = max(r, g, b), min(r, g, b)
+    return 0.0 if mx == 0 else (mx - mn) / mx
+
+
+def _mix_hex(first: str, second: str, t: float) -> str:
+    r1, g1, b1 = hex_to_rgb(first)
+    r2, g2, b2 = hex_to_rgb(second)
+    return "#%02X%02X%02X" % (
+        round(r1 * (1 - t) + r2 * t),
+        round(g1 * (1 - t) + g2 * t),
+        round(b1 * (1 - t) + b2 * t),
+    )
+
+
+def _best_on(background: str) -> str:
+    """Максимально контрастный из белого/чёрного — как `_repair_text_color`."""
+    return "#FFFFFF" if _contrast_hex(background, "#FFFFFF") >= \
+        _contrast_hex(background, "#000000") else "#000000"
+
 
 A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -571,6 +603,11 @@ class TemplateParser:
         # 4. токены дизайна из слайдов + макетов
         self._extract_tokens(prof, raw_slides, layouts)
 
+        # 4b. ThemePair каждого макета: фон → foreground, accent только декор
+        # (ADR-035, идея ролей темы и порога контраста — Presenton, Apache-2.0)
+        for lp in layouts:
+            lp.theme = self._layout_theme(lp, prof)
+
         # 5. типографическая шкала
         prof.type_scale = self._type_scale(layouts, raw_slides)
 
@@ -826,6 +863,105 @@ class TemplateParser:
                     return None
                 return self._blob_color(blob)
         return None
+
+    def _layout_theme(self, lp, prof) -> dict:
+        """ThemePair макета: фон, текст, акцент, приглушённый текст.
+
+        Идея ролей темы и порога контраста взята из Presenton (Apache-2.0):
+        текст и фон — пара, проверяемая по WCAG; акцент — отдельная роль для
+        декора. Реализация своя: кандидаты берём из наблюдённых текстовых
+        цветов шаблона, затем из темы, затем чёрный/белый.
+        """
+        background = (lp.background or self._default_background(prof)).upper()
+        candidates: list[str] = []
+
+        def add(value: Optional[str]) -> None:
+            if not value:
+                return
+            value = value.upper()
+            if re.fullmatch(r"#[0-9A-F]{6}", value) and value not in candidates:
+                candidates.append(value)
+
+        for color in prof.text_colors:
+            add(color)
+        for name in ("dk1", "lt1", "dk2", "lt2"):
+            add(prof.theme_colors.get(name))
+        for token in prof.palette:
+            add(token.hex)
+        add("#000000")
+        add("#FFFFFF")
+
+        foreground = self._neutral_foreground(candidates, background)
+        primary_text = None
+        accent = self._accent_candidate(prof, background)
+        if accent:
+            primary_text = self._first_readable(candidates, accent, 4.5)
+        muted = _mix_hex(foreground, background, 0.35)
+        if _contrast_hex(muted, background) < 3.0:
+            muted = _mix_hex(foreground, background, 0.15)
+        return {
+            "background": background,
+            "foreground": foreground,
+            "accent": accent or "",
+            "muted": muted,
+            "on_accent": primary_text or _best_on(accent or foreground),
+        }
+
+    def _default_background(self, prof) -> str:
+        """Фон по умолчанию: самая светлая краска палитры, иначе белый."""
+        best, best_lum = "#FFFFFF", -1.0
+        for token in prof.palette:
+            lum = _luminance(token.hex) if token.hex else -1.0
+            if lum > best_lum:
+                best, best_lum = token.hex, lum
+        return best if best_lum >= 0 else "#FFFFFF"
+
+    @staticmethod
+    def _first_readable(candidates: list[str], background: str,
+                        threshold: float) -> str:
+        """Первый наблюдаемый цвет текста, проходящий порог контраста."""
+        for color in candidates:
+            if _contrast_hex(color, background) >= threshold:
+                return color
+        return _best_on(background)
+
+    @staticmethod
+    def _neutral_foreground(candidates: list[str], background: str) -> str:
+        """Основной цвет текста: нейтральный и максимально контрастный.
+
+        Наблюдаемые текстовые цвета шаблона часто включают акцент (брендовый
+        синий). Для роли foreground он не годится: акцент — отдельная роль
+        декора (ADR-035). Поэтому сначала ищем нейтральные цвета (низкая
+        насыщенность), затем самые контрастные; акцент оставляем на декора.
+        """
+        neutral = [c for c in candidates if _saturation(c) < 0.15]
+        bg_lum = _luminance(background)
+        pool = neutral or candidates
+        # тёмный фон → светлый текст, светлый фон → тёмный текст
+        oriented = [c for c in pool if (_luminance(c) > bg_lum) == (bg_lum < 0.4)]
+        accessible = [c for c in (oriented or pool)
+                      if _contrast_hex(c, background) >= 4.5]
+        if accessible:
+            return max(accessible, key=lambda c: _contrast_hex(c, background))
+        return TemplateParser._first_readable(candidates, background, 4.5)
+
+    @staticmethod
+    def _accent_candidate(prof, background: str) -> Optional[str]:
+        """Акцент — из темы или самый насыщенный тёмный цвет палитры."""
+        theme_accent = prof.theme_colors.get("accent1") or prof.theme_colors.get("dk2")
+        if theme_accent and theme_accent.upper() != background.upper():
+            return theme_accent.upper()
+        best, best_sat = None, 0.0
+        for token in prof.palette:
+            hexv = (token.hex or "").upper()
+            if not re.fullmatch(r"#[0-9A-F]{6}", hexv):
+                continue
+            if hexv in (background.upper(), "#FFFFFF", "#000000"):
+                continue
+            saturation = _saturation(hexv)
+            if saturation > best_sat:
+                best, best_sat = hexv, saturation
+        return best
 
     def _resolve_scheme_name(self, value: str) -> Optional[str]:
         """«scheme:accent1» → HEX из темы (тема читается первой)."""
