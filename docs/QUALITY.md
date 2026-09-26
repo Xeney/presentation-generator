@@ -82,7 +82,7 @@ python tools/audit_matrix.py                     # матрица 8×3 (дете
 python tools/e2e_9variants.py --templates data/external_templates/*.pptx
 python tools/demo_rehearsal.py --budget 420      # живой прогон с хронометражом
 python tools/visual_pass.py --job data/jobs/<id> --variant compact   # PNG-осмотр
-pytest -q                                        # 179 тестов
+pytest -q                                        # 180 тестов
 ```
 
 Скриншоты: `docs/examples/` (3 шаблона × 3 варианта), `docs/evidence/visual/`
