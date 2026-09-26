@@ -544,11 +544,20 @@ class HtmlRenderer:
         if not items:
             return ""
         cells = []
+        n = len(items)
+        # та же геометрия текста шеврона, что в python-pptx-рендерере: иначе
+        # пути выбирают разные кегли и аудит даёт разные warning'и (паритет)
+        overlap_ratio = 0.15
+        step = rect["w"] / (n + overlap_ratio)
+        overlap = step * overlap_ratio
+        step_h = min(rect["h"] * 0.6, 1.1)
+        arrow = 0.25 * min(step + overlap, step_h)
+        text_w = max(0.5, step + overlap - 2 * arrow - 0.30)
+        text_h = max(0.3, step_h - 0.10)
         for index, text in enumerate(items):
             fill = soft if index % 2 else accent
             color = self.renderer._readable_text(fill)
-            size = self.renderer._fit_size(text, max(0.5, rect["w"] / len(items) * 0.6),
-                                           rect["h"] * 0.7, default=13.0)
+            size = self.renderer._fit_size(text, text_w, text_h, default=13.0)
             cell = {"x": rect["x"] + rect["w"] * index / len(items), "y": rect["y"],
                     "w": rect["w"] / len(items), "h": rect["h"]}
             css = _style(**{

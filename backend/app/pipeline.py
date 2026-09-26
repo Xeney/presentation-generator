@@ -272,16 +272,21 @@ def full_generate(brief: str, source: str, purpose: str,
         t0 = time.perf_counter()
         artifacts = render_html_variants(deck, profile, template_bytes, artifacts,
                                          images=images, mode=render_mode)
-        if render_mode == "html":
-            # основные отчёты теперь относятся к PPTX из HTML — переносим в них
-            # уже посчитанные VLM- и grounding-замечания
-            for artifact in artifacts:
-                verdict = vlm_by_variant.get(artifact.variant)
-                if verdict:
-                    merge_issues(artifact.audit,
-                                 [dict(issue) for issue in violations_to_issues(verdict)])
-                merge_issues(artifact.audit,
-                             [dict(issue) for issue in grounding.get("issues", [])])
+        # смысловые замечания (VLM + grounding) общие для обоих путей: HTML-аудит
+        # обязан показывать те же warning'и, что и классический, иначе сравнение
+        # путей в отчёте нечестное
+        grounding_issues = [dict(issue) for issue in grounding.get("issues", [])]
+        for artifact in artifacts:
+            verdict = vlm_by_variant.get(artifact.variant)
+            semantic = ([dict(issue) for issue in violations_to_issues(verdict)]
+                        if verdict else [])
+            if artifact.html_audit and artifact.html_audit is not artifact.audit:
+                merge_issues(artifact.html_audit, [dict(issue) for issue in semantic])
+                merge_issues(artifact.html_audit, [dict(issue) for issue in grounding_issues])
+            if render_mode == "html":
+                # основные отчёты теперь относятся к PPTX из HTML
+                merge_issues(artifact.audit, [dict(issue) for issue in semantic])
+                merge_issues(artifact.audit, [dict(issue) for issue in grounding_issues])
         stages["html_s"] = round(time.perf_counter() - t0, 2)
 
     stages["total_s"] = round(sum(stages.values()), 2)

@@ -14,8 +14,30 @@ VLM и сверкой с источником) и отдаёт `.pptx`, `.pdf` �
 
 ```bash
 git clone <repo> && cd <repo>
+./start.sh                    # одна команда: сборка + запуск + ожидание готовности
+# или, если Compose собирает штатно:
 docker compose up --build     # первая сборка 4–9 мин, модели ~12 ГБ
 ```
+
+> **Docker Desktop 29.2.x / Compose v5 — известный баг сборки.**
+> `docker compose up --build` может упасть **до сборки** с ошибкой
+> `failed to dial gRPC: ... header key "x-docker-expose-session-sharedkey"
+> contains value with non-printable ASCII characters`. Это баг Compose v5
+> (bake-сессия), а не проекта: он не лечится `COMPOSE_BAKE=false`, не зависит
+> от кириллического пути и выбора builder'а. Проект **не требует ручных
+> обходов**: `./start.sh` сам распознаёт эту ошибку, собирает образы напрямую
+> (`docker build`) и поднимает уже собранные (`docker compose up -d --no-build`).
+> Если запускаете compose вручную — используйте два шага:
+>
+> ```bash
+> docker build -f backend/Dockerfile  -t digital-designer-backend  .
+> docker build -f frontend/Dockerfile -t digital-designer-frontend .
+> docker compose up -d --no-build
+> ```
+>
+> На стабильных версиях Compose (< 2.33) и там, где баг не воспроизводится,
+> обычный `docker compose up --build` работает как раньше. Подробнее —
+> `docs/REPRODUCIBILITY.md` §6.
 
 * UI — http://localhost:3000 (выберите `examples/synthetic_16x9.pptx`, при
   желании контент-пакет `examples/builtin_corpus.md`, нажмите

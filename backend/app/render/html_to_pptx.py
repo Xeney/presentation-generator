@@ -477,6 +477,11 @@ class HtmlToPptxConverter:
         shape_type = MSO_SHAPE.ROUNDED_RECTANGLE if rounded else MSO_SHAPE.RECTANGLE
         shape = slide.shapes.add_shape(shape_type, Emu(rect["x"]), Emu(rect["y"]),
                                        Emu(rect["w"]), Emu(rect["h"]))
+        if "image-slot" in classes:
+            # имя слота: аудит должен видеть отсутствие картинки и в HTML-пути
+            from .pptx_renderer import IMAGE_SLOT_NAME
+
+            shape.name = IMAGE_SLOT_NAME
         if rounded:
             try:
                 shape.adjustments[0] = 0.06

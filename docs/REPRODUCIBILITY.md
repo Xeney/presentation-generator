@@ -125,26 +125,41 @@ VLM-аудит на CPU не влезает в бюджет стадии: мод
 
 * **Первая сборка** — 4–9 минут (npm/pip + образы), первый старт — ещё
   ~9 минут на модели (~12 ГБ). Дальше `docker compose up` занимает секунды.
-* **Кириллический путь**: `docker compose build` падает на BuildKit из-за
-  кириллицы в пути; лечится `DOCKER_BUILDKIT=0` (см. troubleshooting в
-  `docs/README.md`). На латинском пути (`C:\temp\clean-checkout`) сборка
-  проходит штатно.
-* **Docker Desktop 29.2.1 (проверено 2026-09-26)**: `docker compose build`
-  может падать до сборки с `failed to dial gRPC: ... header key
-  "x-docker-expose-session-sharedkey" contains value with non-printable ASCII
-  characters` — это баг bake-планировщика Compose, а не проекта, и
-  `DOCKER_BUILDKIT=0` на этой версии уже не поддерживается (502 у classic
-  builder). Рабочий обход — собрать образы напрямую и поднять без сборки:
+* **Docker Compose v5 / Docker Desktop 29.2.x — баг bake-сессии (проверено
+  2026-09-26)**: `docker compose up --build` / `docker compose build` падает
+  **до сборки** с
+  `failed to dial gRPC: ... header key "x-docker-expose-session-sharedkey"
+  contains value with non-printable ASCII characters`.
+
+  Что проверено (чтобы не списывать на проект):
+  1. тот же код и тот же `docker-compose.yml`, собранные из другого каталога
+     (`robocopy` в латинский путь), собираются штатно — значит, дело не в коде;
+  2. минимальный проект (одна/две услуги) в **кириллическом** каталоге
+     собирается штатно — значит, дело не в кириллице как таковой;
+  3. не помогают: `COMPOSE_BAKE=false`, `COMPOSE_BAKE=0`,
+     `COMPOSE_BUILD_BACKEND=compose`, `DOCKER_BUILDKIT=0` (classic builder в
+     Engine 29 отвечает 502), отдельно созданный builder
+     (`docker buildx create --driver docker-container`);
+  4. `docker build -f …` из того же каталога работает всегда.
+
+  Вывод: баг воспроизводится на связке Compose v5.0.2 + Docker Desktop 29.2.1
+  (зависит от полезной нагрузки bake-сессии, поэтому проявляется не на всяком
+  проекте). Лечения на уровне `docker-compose.yml` нет — это вне проекта.
+
+  Обход, встроенный в `./start.sh` (проверен сквозным прогоном: скрипт сам
+  распознаёт ошибку, собирает образы напрямую и поднимает сервисы):
 
   ```bash
+  ./start.sh                     # сам выберет обход при баге
+  # вручную то же самое:
   docker build -f backend/Dockerfile  -t digital-designer-backend  .
   docker build -f frontend/Dockerfile -t digital-designer-frontend .
   docker compose up -d --no-build
   ```
 
-  После перезапуска Docker Desktop обычный `docker build` работает; сборка
-  проверена, `/api/health` отдаёт version 1.4.0, генерация на VK WorkSpace —
-  0 ошибок и 0 замечаний.
+  На стабильных версиях Compose (< 2.33) `docker compose up --build` работает
+  как в `README.md`. После обхода `/api/health` отдаёт version 2.0.0, генерация
+  `render_mode=both` на VK WorkSpace — 0 ошибок в обоих путях.
 * **`docker compose config` печатает ключи** из `.env` — не публикуйте вывод.
 * **Скриншоты**: UI — `docs/evidence/repro/ui_main.png` (headless Chrome,
   состояние чистого клона: форма, встроенный бриф, селекторы `ollama`);
@@ -157,7 +172,8 @@ VLM-аудит на CPU не влезает в бюджет стадии: мод
 
 ```bash
 git clone <repo> && cd <repo>
-docker compose up --build            # первая сборка 4–9 мин, модели ~12 ГБ
+./start.sh                           # сборка + запуск + ожидание готовности
+# (или docker compose up --build, если Compose собирает штатно; см. §6)
 # UI:  http://localhost:3000  →  выбрать examples/synthetic_16x9.pptx,
 #      при желании examples/builtin_corpus.md, «Сгенерировать 3 варианта»
 # API: http://localhost:8000/docs

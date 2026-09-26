@@ -121,7 +121,32 @@ start_docker() {
   local args=(up -d)
   (( BUILD )) && args+=(--build)
   info "docker compose ${args[*]}"
-  docker compose "${args[@]}"
+  if (( BUILD )); then
+    # Docker Compose v5 (Docker Desktop 29.2.x) падает на сборке bake-сессией:
+    # failed to dial gRPC: header key "x-docker-expose-session-sharedkey" ...
+    # Это баг Compose, не проекта: обходим его сборкой образов напрямую
+    # (docker build) и запуском уже собранных (docker compose up --no-build).
+    local err_log
+    err_log="$(mktemp)"
+    if ! docker compose "${args[@]}" 2>"$err_log"; then
+      if grep -qi "x-docker-expose-session-sharedkey" "$err_log"; then
+        warn "Compose v5 упал на bake-сессии — собираю образы напрямую (обход бага)"
+        docker build -f backend/Dockerfile -t digital-designer-backend . \
+          || fail "не удалось собрать backend-образ"
+        docker build -f frontend/Dockerfile -t digital-designer-frontend . \
+          || fail "не удалось собрать frontend-образ"
+        docker compose up -d --no-build
+        ok "образы собраны напрямую, сервисы подняты"
+      else
+        cat "$err_log" >&2
+        rm -f "$err_log"
+        fail "docker compose не смог собрать сервисы (см. вывод выше)"
+      fi
+    fi
+    rm -f "$err_log"
+  else
+    docker compose "${args[@]}"
+  fi
 
   # ollama на первом запуске скачивает модели — это несколько минут
   wait_for_http "http://localhost:${BACKEND_PORT}/api/health" "$HEALTH_TIMEOUT" "backend" || true
