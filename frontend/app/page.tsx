@@ -48,6 +48,17 @@ export default function Page() {
     refreshHealth();
   }, [refreshHealth]);
 
+  // Deep-link на готовое задание: /?job=<id> — для демо и разбора на защите
+  // (открыть заранее прогнанную колоду без повторной генерации).
+  React.useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("job");
+    if (requested && !jobId) {
+      setJobId(requested);
+      setStatus("running");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** План Б на демо: смена провайдера без перезапуска сервиса. */
   const switchProvider = async (llm: string, vlm: string) => {
     setError("");

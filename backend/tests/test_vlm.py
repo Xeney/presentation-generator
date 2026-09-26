@@ -103,7 +103,7 @@ def test_audit_returns_violations_with_text(deck, monkeypatch):
     assert result["elapsed_s"] >= 0
     assert len(result["per_slide_s"]) == 3
     assert result["prompt"]["hash"], "версия промпта должна попадать в результат"
-    assert result["prompt"]["version"] == "2.0"
+    assert result["prompt"]["version"] == "2.1"
 
 
 def test_prompt_contains_neighbour_context(deck, monkeypatch):

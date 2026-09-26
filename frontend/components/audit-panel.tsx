@@ -8,6 +8,54 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Audit, FixReport } from "@/lib/types";
 
+function IssueRow({
+  issue,
+  currentSlide,
+  selected,
+  onToggle,
+}: {
+  issue: Audit["issues"][number];
+  currentSlide: number;
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  const onSlide = issue.slide < 0 || issue.slide === currentSlide;
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer gap-2 rounded-md border p-2 text-xs leading-relaxed transition-colors",
+        onSlide ? "border-border bg-muted/40" : "border-transparent opacity-50",
+      )}
+    >
+      <input
+        type="checkbox"
+        className="mt-0.5 h-3.5 w-3.5 accent-[hsl(var(--primary))]"
+        checked={selected.has(issue.id)}
+        onChange={() => onToggle(issue.id)}
+      />
+      <span>
+        <span
+          className={cn(
+            "font-medium",
+            issue.severity === "error"
+              ? "text-destructive"
+              : "text-[hsl(var(--warning))]",
+          )}
+        >
+          {issue.severity === "error" ? "ошибка" : "замечание"}
+        </span>
+        <span className="text-muted-foreground">
+          {" "}
+          · слайд {issue.slide < 0 ? "все" : issue.slide + 1}
+          {" · "}
+          {issue.deterministic ? issue.code : `VLM: ${issue.code}`}
+        </span>
+        <span className="mt-1 block text-foreground/90">{issue.message}</span>
+      </span>
+    </label>
+  );
+}
+
 export function AuditPanel({
   audit,
   selected,
@@ -27,11 +75,18 @@ export function AuditPanel({
   fixReport: FixReport | null;
   currentSlide: number;
 }) {
+  // Разделение по природе проверки: детерминированные считаются по геометрии и
+  // токенам шаблона (один файл — один результат, годятся для авто-фиксов),
+  // контекстуальные — VLM по 11 вопросам ТЗ и эмбеддинги (могут меняться между
+  // запусками, авто-фиксов для них нет — только ручное решение).
+  const deterministic = (audit?.issues ?? []).filter((i) => i.deterministic);
+  const contextual = (audit?.issues ?? []).filter((i) => !i.deterministic);
+
   return (
     <Card className="flex min-h-0 flex-col">
       <CardHeader className="flex-row items-center justify-between gap-2 pb-2">
         <CardTitle className="flex items-center gap-2">
-          <ListChecks className="h-4 w-4 text-primary" /> Детерминированный аудит
+          <ListChecks className="h-4 w-4 text-primary" /> Аудит
         </CardTitle>
         {audit && (
           <Badge variant={audit.passed ? "success" : "destructive"}>
@@ -44,49 +99,60 @@ export function AuditPanel({
           <p className="text-xs text-muted-foreground">загрузка аудита…</p>
         )}
 
-        {audit && audit.issues.length === 0 && (
-          <p className="flex items-center gap-2 text-xs text-[hsl(var(--success))]">
-            <CheckCircle2 className="h-4 w-4" /> проблем не найдено
-          </p>
+        {audit && (
+          <section className="flex flex-col gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Детерминированные проверки · {deterministic.length}
+            </p>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              геометрия, токены шаблона, контраст, плотность, дубли — считаются по
+              файлу, результат повторяем, для них работают авто-фиксы
+            </p>
+            {deterministic.length === 0 ? (
+              <p className="flex items-center gap-2 text-xs text-[hsl(var(--success))]">
+                <CheckCircle2 className="h-4 w-4" /> проблем не найдено
+              </p>
+            ) : (
+              deterministic.map((issue) => (
+                <IssueRow
+                  key={issue.id}
+                  issue={issue}
+                  currentSlide={currentSlide}
+                  selected={selected}
+                  onToggle={onToggle}
+                />
+              ))
+            )}
+          </section>
         )}
 
-        {audit?.issues.map((issue) => {
-          const onSlide = issue.slide < 0 || issue.slide === currentSlide;
-          return (
-            <label
-              key={issue.id}
-              className={cn(
-                "flex cursor-pointer gap-2 rounded-md border p-2 text-xs leading-relaxed transition-colors",
-                onSlide ? "border-border bg-muted/40" : "border-transparent opacity-50",
-              )}
-            >
-              <input
-                type="checkbox"
-                className="mt-0.5 h-3.5 w-3.5 accent-[hsl(var(--primary))]"
-                checked={selected.has(issue.id)}
-                onChange={() => onToggle(issue.id)}
-              />
-              <span>
-                <span
-                  className={cn(
-                    "font-medium",
-                    issue.severity === "error"
-                      ? "text-destructive"
-                      : "text-[hsl(var(--warning))]",
-                  )}
-                >
-                  {issue.severity === "error" ? "ошибка" : "замечание"}
-                </span>
-                <span className="text-muted-foreground">
-                  {" "}
-                  · слайд {issue.slide < 0 ? "все" : issue.slide + 1}
-                  {issue.deterministic ? "" : " · VLM"}
-                </span>
-                <span className="mt-1 block text-foreground/90">{issue.message}</span>
-              </span>
-            </label>
-          );
-        })}
+        {audit && (
+          <section className="flex flex-col gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Контекстуальные проверки · {contextual.length}
+            </p>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              VLM по 11 вопросам Приложения 1 и опора на источник (эмбеддинги):
+              оценивают смысл, а не координаты; ответы могут меняться между
+              запусками, авто-фиксов нет
+            </p>
+            {contextual.length === 0 ? (
+              <p className="flex items-center gap-2 text-xs text-[hsl(var(--success))]">
+                <CheckCircle2 className="h-4 w-4" /> замечаний нет
+              </p>
+            ) : (
+              contextual.map((issue) => (
+                <IssueRow
+                  key={issue.id}
+                  issue={issue}
+                  currentSlide={currentSlide}
+                  selected={selected}
+                  onToggle={onToggle}
+                />
+              ))
+            )}
+          </section>
+        )}
 
         {audit && audit.issues.length > 0 && (
           <div className="flex gap-2">

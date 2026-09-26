@@ -1,0 +1,54 @@
+{
+ "passed": false,
+ "errors": 4,
+ "warnings": 0,
+ "total": 4,
+ "issues": [
+  {
+   "code": "too_many_bullets",
+   "severity": "error",
+   "slide": 1,
+   "message": "на слайде 8 буллетов (максимум 6)",
+   "bbox": [],
+   "id": "too_many_bullets-1-0",
+   "deterministic": true
+  },
+  {
+   "code": "bullet_too_long",
+   "severity": "error",
+   "slide": 1,
+   "message": "буллет длиннее 15 слов: «Платформа аналитики сократила время подготовки отч…»",
+   "bbox": [
+    0.04800120081744171,
+    0.30633333333333335,
+    0.6540163611376433,
+    0.5709536307961505
+   ],
+   "id": "bullet_too_long-1-1",
+   "deterministic": true
+  },
+  {
+   "code": "too_many_bullets",
+   "severity": "error",
+   "slide": 3,
+   "message": "на слайде 8 буллетов (максимум 6)",
+   "bbox": [],
+   "id": "too_many_bullets-3-2",
+   "deterministic": true
+  },
+  {
+   "code": "bullet_too_long",
+   "severity": "error",
+   "slide": 3,
+   "message": "буллет длиннее 15 слов: «Платформа аналитики сократила время подготовки отч…»",
+   "bbox": [
+    0.04800120081744171,
+    0.30633333333333335,
+    0.6540163611376433,
+    0.5709536307961505
+   ],
+   "id": "bullet_too_long-3-3",
+   "deterministic": true
+  }
+ ]
+}

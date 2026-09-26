@@ -257,10 +257,10 @@ class Audit:
                 return n
             rPr = r._r.rPr
             if rPr is not None:
-                ea = rPr.find(f"{A_NS}ea")
+                ea = rPr.find(f"{{{A_NS}}}ea")
                 if ea is not None and ea.get("typeface"):
                     return ea.get("typeface")
-                latin = rPr.find(f"{A_NS}latin")
+                latin = rPr.find(f"{{{A_NS}}}latin")
                 if latin is not None and latin.get("typeface"):
                     return latin.get("typeface")
         except Exception:
@@ -917,7 +917,11 @@ class Audit:
             pPr = p._pPr
             if pPr is None:
                 return False
-            if pPr.find(f"{A_NS}buChar") is not None or pPr.find(f"{A_NS}buAutoNum") is not None:
+            # Clark-нотация обязательна: ElementTree ищет тег «{ns}имя», и без
+            # фигурных скобок find() не находил buChar — проверки буллетов
+            # (too_many_bullets, bullet_too_long) не срабатывали никогда
+            if (pPr.find(f"{{{A_NS}}}buChar") is not None
+                    or pPr.find(f"{{{A_NS}}}buAutoNum") is not None):
                 return True
         except Exception:
             pass

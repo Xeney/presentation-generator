@@ -1,0 +1,37 @@
+{
+ "applied": [
+  {
+   "issue_id": "too_many_bullets-1-0",
+   "code": "too_many_bullets",
+   "slide": 1,
+   "status": "applied",
+   "action": "split_slide",
+   "detail": "часть контента перенесена на слайд 3"
+  },
+  {
+   "issue_id": "bullet_too_long-1-1",
+   "code": "bullet_too_long",
+   "slide": 1,
+   "status": "applied",
+   "action": "split_bullet",
+   "detail": "длинные буллеты разделены на части"
+  },
+  {
+   "issue_id": "too_many_bullets-3-2",
+   "code": "too_many_bullets",
+   "slide": 3,
+   "status": "applied",
+   "action": "split_slide",
+   "detail": "часть контента перенесена на слайд 5"
+  },
+  {
+   "issue_id": "bullet_too_long-5-0",
+   "code": "bullet_too_long",
+   "slide": 5,
+   "status": "applied",
+   "action": "split_bullet",
+   "detail": "длинные буллеты разделены на части; лишние 1 перенесены в отчёт"
+  }
+ ],
+ "skipped": []
+}

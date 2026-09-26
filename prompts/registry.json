@@ -35,11 +35,11 @@
       "id": "vlm/audit",
       "kind": "prompt",
       "agent": "vlm_auditor",
-      "version": "2.0",
+      "version": "2.1",
       "path": "vlm/system.md",
       "model": "qwen2.5vl:7b",
       "purpose": "11 вопросов Приложения 1 ТЗ и формат JSON-ответа для недетерминированного аудита",
-      "hash": "799c8b467e8dea75"
+      "hash": "c5e2c9ad5423125c"
     },
     {
       "id": "vlm/user",
